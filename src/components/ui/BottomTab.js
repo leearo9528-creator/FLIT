@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 
@@ -16,6 +17,9 @@ export default function BottomTab() {
     const pathname = usePathname();
     const { user } = useAuth();
 
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const router = useRouter();
+
     const getHref = (tab) => {
         if (tab.key === 'my') return user ? '/mypage' : '/login';
         if (tab.key === 'community') return user ? '/community' : '/login';
@@ -27,40 +31,110 @@ export default function BottomTab() {
         return pathname.startsWith(tab.href);
     };
 
-    const showFAB = pathname === '/' || pathname.startsWith('/search');
+    const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/community');
+
+    const handleWriteClick = (path) => {
+        setIsMenuOpen(false);
+        if (!user) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
+        router.push(path);
+    };
 
     return (
         <>
-            {/* 플로팅 리뷰 작성 버튼 (홈 & 마켓 찾기 화면에서만) */}
+            {/* 글쓰기 메뉴 배경 (열렸을 때) */}
+            {isMenuOpen && (
+                <div 
+                    onClick={() => setIsMenuOpen(false)}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)', zIndex: 98,
+                        backdropFilter: 'blur(2px)'
+                    }}
+                />
+            )}
+
+            {/* 플로팅 리뷰 작성 버튼 (홈, 마켓 찾기, 커뮤니티) */}
             {showFAB && (
                 <div style={{
                     position: 'fixed', bottom: 84, right: 20, zIndex: 99,
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12
                 }}>
-                    <div style={{
-                        background: '#333', color: '#fff', fontSize: 12, fontWeight: 700,
-                        padding: '6px 12px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        position: 'relative'
-                    }}>
-                        리뷰 3개 쓰면 첫 달 0원! 🎁
+                    {/* 글쓰기 옵션 메뉴 */}
+                    {isMenuOpen && (
                         <div style={{
-                            position: 'absolute', bottom: -4, right: 24, width: 8, height: 8,
-                            background: '#333', transform: 'rotate(45deg)'
-                        }} />
-                    </div>
-                    <Link href={user ? '/reviews/write' : '/login'} style={{ textDecoration: 'none' }}>
+                            display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end',
+                            animation: 'slideUp 0.2s ease-out'
+                        }}>
+                            <div 
+                                onClick={() => handleWriteClick('/reviews/write')}
+                                style={{ 
+                                    background: T.white, padding: '12px 20px', borderRadius: 24, 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
+                                    fontSize: 15, fontWeight: 700, color: T.text,
+                                    display: 'flex', alignItems: 'center', gap: 8
+                                }}
+                            >
+                                ✏️ 리뷰 작성하기 
+                            </div>
+                            <div 
+                                onClick={() => handleWriteClick('/community/write')}
+                                style={{ 
+                                    background: T.white, padding: '12px 20px', borderRadius: 24, 
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
+                                    fontSize: 15, fontWeight: 700, color: T.text,
+                                    display: 'flex', alignItems: 'center', gap: 8
+                                }}
+                            >
+                                💬 커뮤니티 글쓰기
+                            </div>
+                        </div>
+                    )}
+
+                    {!isMenuOpen && (
                         <div style={{
+                            background: '#333', color: '#fff', fontSize: 12, fontWeight: 700,
+                            padding: '6px 12px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            position: 'relative', animation: 'fadeIn 0.3s ease-in'
+                        }}>
+                            리뷰 3개 쓰면 첫 달 0원! 🎁
+                            <div style={{
+                                position: 'absolute', bottom: -4, right: 24, width: 8, height: 8,
+                                background: '#333', transform: 'rotate(45deg)'
+                            }} />
+                        </div>
+                    )}
+
+                    <div 
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        style={{
                             width: 56, height: 56, borderRadius: '50%',
                             background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             boxShadow: '0 4px 16px rgba(0,0,0,0.25)', cursor: 'pointer',
-                            color: '#fff', fontSize: 24
-                        }}>
-                            ✏️
-                        </div>
-                    </Link>
+                            color: '#fff', fontSize: 24,
+                            transform: isMenuOpen ? 'rotate(45deg)' : 'none',
+                            transition: 'transform 0.2s ease'
+                        }}
+                    >
+                        {isMenuOpen ? '➕' : '✏️'}
+                    </div>
                 </div>
             )}
+
+            <style jsx global>{`
+                @keyframes slideUp {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+            `}</style>
 
             {/* 하단 탭 바 */}
             <div style={{
