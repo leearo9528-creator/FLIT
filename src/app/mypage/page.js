@@ -71,8 +71,8 @@ export default function MyPage() {
                     {/* 메뉴 */}
                     <Card padding={0}>
                         {[
-                            { icon: '✏️', label: '내가 쓴 리뷰', href: '#' },
-                            { icon: '📢', label: '내가 제보한 행사', href: '#' },
+                            { icon: '✏️', label: '내가 쓴 리뷰', href: '/mypage/reviews' },
+                            { icon: '📢', label: '내가 제보한 행사', href: '/mypage/events' },
                             { icon: '🔔', label: '알림 설정', href: '#' },
                         ].map((item, i, arr) => (
                             <div key={item.label} onClick={() => item.href !== '#' && router.push(item.href)} style={{
