@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { T, FILTERS } from '@/lib/design-tokens';
 import Card from '@/components/ui/Card';
-import BottomTab from '@/components/ui/BottomTab';
 
 export default function HomePage() {
     const [events, setEvents] = useState([]);
@@ -113,8 +112,6 @@ export default function HomePage() {
                     )}
                 </div>
             </div>
-
-            <BottomTab />
         </div>
     );
 }
