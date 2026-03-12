@@ -1,22 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 
-export default function LoginPage() {
+function LoginContent() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [error, setError] = useState('');
+    const searchParams = useSearchParams();
+    const [error, setError] = useState(searchParams.get('message') || '');
+    const [loginStatus, setLoginStatus] = useState('');
 
     // 이미 로그인 상태면 홈으로
     useEffect(() => {
         if (!loading && user) router.replace('/');
     }, [user, loading, router]);
-
-    const [loginStatus, setLoginStatus] = useState('');
 
     async function handleSocialLogin(provider) {
         try {
@@ -127,5 +127,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ color: '#888', fontSize: 15 }}>페이지 로딩 중...</div>
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }

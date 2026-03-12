@@ -16,9 +16,12 @@ export async function GET(request) {
       // ✅ 쿠키 기반 세션이 적용된 후, 강제로 브라우저를 이동시킴
       const redirectUrl = new URL(next, request.url);
       return NextResponse.redirect(redirectUrl);
+    } else {
+      // ✅ 어떤 에러인지 정확히 볼 수 있도록 URL에 에러 원인 파라미터 추가
+      return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(error.message)}`)
     }
   }
 
   // 에러 발생 시 로그인 페이지로 복귀, 알림 전달
-  return NextResponse.redirect(`${origin}/login?message=auth-failed`)
+  return NextResponse.redirect(`${origin}/login?message=no-code-found`)
 }
