@@ -1,66 +1,129 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { T, FILTERS } from '@/lib/design-tokens';
+import Card from '@/components/ui/Card';
+
+export default function HomePage() {
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('전체');
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            const { getSupabase } = await import('@/lib/supabase');
+            const sb = getSupabase();
+            const { data } = await sb.from('events')
+                .select('*')
+                .eq('is_approved', true)
+                .order('created_at', { ascending: false });
+            if (data) setEvents(data);
+            setLoading(false);
+        };
+        fetchEvents();
+    }, []);
+
+    const filteredEvents = filter === '전체'
+        ? events
+        : events.filter(e => e.recruitment_type === filter);
+
+    return (
+        <div style={{ minHeight: '100vh', paddingBottom: 80 }}>
+            {/* 상단 헤더 */}
+            <div style={{
+                padding: '24px 20px', background: T.white,
+                borderBottom: `1px solid ${T.border}`,
+                position: 'sticky', top: 0, zIndex: 10
+            }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: -0.5 }}>
+                    플리 <span style={{ color: T.blue }}>●</span>
+                </div>
+                <div style={{ fontSize: 13, color: T.gray, marginTop: 4 }}>셀러들이 직접 말하는 진짜 행사 정보</div>
+            </div>
+
+            {/* 필터 칩 */}
+            <div style={{
+                display: 'flex', gap: 8, padding: '16px 20px',
+                overflowX: 'auto', background: T.bg
+            }}>
+                {FILTERS.recruitmentType.map(f => (
+                    <div
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        style={{
+                            padding: '8px 16px', borderRadius: 20, fontSize: 14, fontWeight: 600,
+                            whiteSpace: 'nowrap', cursor: 'pointer',
+                            background: filter === f ? T.text : T.white,
+                            color: filter === f ? T.white : T.gray,
+                            border: `1px solid ${filter === f ? T.text : T.border}`,
+                            transition: 'all 0.15s'
+                        }}
+                    >
+                        {f}
+                    </div>
+                ))}
+            </div>
+
+            {/* 리스트 */}
+            <div className="page-padding">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {loading ? (
+                        Array(5).fill(0).map((_, i) => (
+                            <Card key={i} style={{ height: 120, background: '#f8f9fa' }} />
+                        ))
+                    ) : (
+                        filteredEvents.map(event => (
+                            <Link href={`/events/${event.id}`} key={event.id}>
+                                <Card padding={16}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{
+                                            padding: '4px 8px', borderRadius: 4,
+                                            background: event.recruitment_type === '플리마켓' ? T.blueLt : T.greenLt,
+                                            color: event.recruitment_type === '플리마켓' ? T.blue : T.green,
+                                            fontSize: 11, fontWeight: 700, marginBottom: 8
+                                        }}>
+                                            {event.recruitment_type}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: T.gray }}>
+                                            {event.status}
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+                                        {event.name}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ fontSize: 14, color: T.gray }}>
+                                            📍 {event.location_sido} {event.location_sigungu}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <span style={{ fontSize: 13 }}>⭐</span>
+                                                <span style={{ fontSize: 14, fontWeight: 700 }}>{event.avg_rating || '0.0'}</span>
+                                            </div>
+                                            <div style={{ fontSize: 13, color: T.gray }}>
+                                                리뷰 {event.review_count || 0}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+                            </Link>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* 하단 탭바 (임시) */}
+            <div style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0, height: 64,
+                background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
+                borderTop: `1px solid ${T.border}`, display: 'flex',
+                justifyContent: 'space-around', alignItems: 'center', zIndex: 100
+            }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.blue }}>홈</div>
+                <Link href="/reviews/write"><div style={{ fontSize: 12, fontWeight: 500, color: T.gray }}>리뷰작성</div></Link>
+                <div style={{ fontSize: 12, fontWeight: 500, color: T.gray }}>마이</div>
+            </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    );
 }
