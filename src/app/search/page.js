@@ -149,7 +149,7 @@ function RecruitCard({ rec }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: T.textSub }}>
                         <MapPin size={13} color={T.gray} />
-                        {ev.location || ev.location_sido || '장소 미정'}
+                        {ev.location || '장소 미정'}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 800, color: T.blue }}>
                         {rec.fee === 0 || rec.fee === null
@@ -333,7 +333,7 @@ function SearchContent() {
 
             const [{ data: recData }, { data: evtData }, { data: orgData }] = await Promise.all([
                 sb.from('recruitments')
-                    .select('*, event:events(id, name, location, location_sido, avg_rating, average_profit, average_traffic, total_reviews, review_count, category), organizer:organizers(name)')
+                    .select('*, event:events(id, name, location, category, average_profit, average_traffic, total_reviews), organizer:organizers(name)')
                     .order('created_at', { ascending: false }),
                 sb.from('events')
                     .select('*')
@@ -360,14 +360,13 @@ function SearchContent() {
                 (r.title || '').toLowerCase().includes(q) ||
                 (r.event?.name || '').toLowerCase().includes(q) ||
                 (r.event?.location || '').toLowerCase().includes(q) ||
-                (r.event?.location_sido || '').toLowerCase().includes(q) ||
                 (r.organizer?.name || '').toLowerCase().includes(q)
             );
         }
 
         if (regionFilter !== '전체') {
             list = list.filter(r => {
-                const loc = (r.event?.location || '') + (r.event?.location_sido || '');
+                const loc = r.event?.location || '';
                 return loc.includes(regionFilter);
             });
         }
