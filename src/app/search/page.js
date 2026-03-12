@@ -6,33 +6,52 @@ import { T } from '@/lib/design-tokens';
 import Card from '@/components/ui/Card';
 
 export default function SearchPage() {
-    const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+    const [activeTab, setActiveTab] = useState('recruitments'); // 'recruitments' | 'brands'
     const [query, setQuery] = useState('');
-    const [events, setEvents] = useState([]);
+    const [recruitments, setRecruitments] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
+            setLoading(true);
             const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
-            const { data } = await sb.from('events')
-                .select('*')
-                .eq('is_approved', true)
+            
+            // 공고 목록 (브랜드 정보 Join)
+            const { data: recData } = await sb.from('recruitments')
+                .select(`*, brand:brands(name, category, logo_url)`)
                 .order('created_at', { ascending: false });
-            if (data) setEvents(data);
+            
+            // 브랜드 목록
+            const { data: brdData } = await sb.from('brands')
+                .select('*')
+                .order('average_rating', { ascending: false });
+
+            if (recData) setRecruitments(recData);
+            if (brdData) setBrands(brdData);
+            
             setLoading(false);
         };
-        fetchEvents();
+        fetchData();
     }, []);
 
-    const filteredEvents = events.filter(e => {
+    const filteredRecruitments = recruitments.filter(r => {
         if (!query.trim()) return true;
         const lowerQ = query.toLowerCase();
         return (
-            (e.name || '').toLowerCase().includes(lowerQ) ||
-            (e.location_sido || '').toLowerCase().includes(lowerQ) ||
-            (e.location_sigungu || '').toLowerCase().includes(lowerQ) ||
-            (e.recruitment_type || '').toLowerCase().includes(lowerQ)
+            (r.title || '').toLowerCase().includes(lowerQ) ||
+            (r.location || '').toLowerCase().includes(lowerQ) ||
+            (r.brand?.name || '').toLowerCase().includes(lowerQ)
+        );
+    });
+
+    const filteredBrands = brands.filter(b => {
+        if (!query.trim()) return true;
+        const lowerQ = query.toLowerCase();
+        return (
+            (b.name || '').toLowerCase().includes(lowerQ) ||
+            (b.category || '').toLowerCase().includes(lowerQ)
         );
     });
 
@@ -58,82 +77,79 @@ export default function SearchPage() {
                         type="text" 
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="지역이나 행사명을 검색해보세요"
+                        placeholder={activeTab === 'recruitments' ? "어떤 행사의 셀러 모집을 찾으시나요?" : "행사 브랜드명을 검색해보세요"}
                         style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 15 }}
                     />
                 </div>
             </div>
 
-            {/* 뷰 전환 탭 (리스트 / 지도) */}
+            {/* 뷰 전환 탭 (공고 / 주최측) */}
             <div style={{ display: 'flex', borderBottom: `1px solid ${T.border}`, background: T.white }}>
                 <div 
-                    onClick={() => setViewMode('list')}
+                    onClick={() => setActiveTab('recruitments')}
                     style={{ 
-                        flex: 1, textAlign: 'center', padding: '14px 0', fontSize: 15, fontWeight: viewMode === 'list' ? 700 : 500,
-                        color: viewMode === 'list' ? T.text : T.gray, cursor: 'pointer',
-                        borderBottom: viewMode === 'list' ? `2px solid ${T.text}` : '2px solid transparent',
+                        flex: 1, textAlign: 'center', padding: '14px 0', fontSize: 15, fontWeight: activeTab === 'recruitments' ? 700 : 500,
+                        color: activeTab === 'recruitments' ? T.text : T.gray, cursor: 'pointer',
+                        borderBottom: activeTab === 'recruitments' ? `2px solid ${T.text}` : '2px solid transparent',
                         transition: 'all 0.2s'
                     }}
                 >
-                    📝 리스트 뷰
+                    📢 모집 공고
                 </div>
                 <div 
-                    onClick={() => setViewMode('map')}
+                    onClick={() => setActiveTab('brands')}
                     style={{ 
-                        flex: 1, textAlign: 'center', padding: '14px 0', fontSize: 15, fontWeight: viewMode === 'map' ? 700 : 500,
-                        color: viewMode === 'map' ? T.text : T.gray, cursor: 'pointer',
-                        borderBottom: viewMode === 'map' ? `2px solid ${T.text}` : '2px solid transparent',
+                        flex: 1, textAlign: 'center', padding: '14px 0', fontSize: 15, fontWeight: activeTab === 'brands' ? 700 : 500,
+                        color: activeTab === 'brands' ? T.text : T.gray, cursor: 'pointer',
+                        borderBottom: activeTab === 'brands' ? `2px solid ${T.text}` : '2px solid transparent',
                         transition: 'all 0.2s'
                     }}
                 >
-                    🗺️ 지도 뷰
+                    🏢 주최측 (브랜드)
                 </div>
             </div>
 
             {/* 컨텐츠 영역 */}
             <div className="page-padding" style={{ paddingTop: 20 }}>
-                {viewMode === 'list' ? (
+                {activeTab === 'recruitments' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        {loading && events.length === 0 ? (
-                            [1, 2, 3, 4, 5].map(i => (
+                        {loading ? (
+                            [1, 2, 3].map(i => (
                                 <div key={i} style={{ height: 120, background: '#f0f0f0', borderRadius: 16, animation: 'pulse 1.5s infinite' }} />
                             ))
-                        ) : filteredEvents.length === 0 ? (
+                        ) : filteredRecruitments.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 15 }}>
-                                검색 결과가 없습니다.
+                                진행 중인 공고가 없습니다.
                             </div>
                         ) : (
-                            filteredEvents.map(event => (
-                                <Link href={`/events/${event.id}`} key={event.id} style={{ textDecoration: 'none' }}>
+                            filteredRecruitments.map(rec => (
+                                <Link href={`/recruitments/${rec.id}`} key={rec.id} style={{ textDecoration: 'none' }}>
                                     <Card padding={16}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div style={{
                                                 padding: '4px 8px', borderRadius: 4,
-                                                background: event.recruitment_type === '플리마켓' ? T.blueLt : T.greenLt,
-                                                color: event.recruitment_type === '플리마켓' ? T.blue : T.green,
+                                                background: rec.status === 'OPEN' ? T.blueLt : T.border,
+                                                color: rec.status === 'OPEN' ? T.blue : T.gray,
                                                 fontSize: 11, fontWeight: 700, marginBottom: 8
                                             }}>
-                                                {event.recruitment_type}
+                                                {rec.status === 'OPEN' ? '모집중' : '마감됨'}
                                             </div>
-                                            <div style={{ fontSize: 12, color: T.gray }}>
-                                                {event.status}
+                                            <div style={{ fontSize: 13, color: T.gray }}>
+                                                마감 {new Date(rec.end_date).toLocaleDateString()}
                                             </div>
                                         </div>
-                                        <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 8, lineHeight: 1.4 }}>
-                                            {event.name}
+                                        <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 4, lineHeight: 1.4 }}>
+                                            {rec.title}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>
+                                            {rec.brand?.name}
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: 14, color: T.gray }}>
-                                                📍 {event.location_sido} {event.location_sigungu}
+                                            <div style={{ fontSize: 14, color: T.gray, fontWeight: 500 }}>
+                                                📍 {rec.location}
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    <span style={{ fontSize: 13 }}>⭐</span>
-                                                    <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{event.avg_rating || '0.0'}</span>
-                                                </div>
-                                                <div style={{ fontSize: 13, color: T.gray }}>
-                                                    리뷰 {event.review_count || 0}
-                                                </div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                                                {rec.fee === 0 ? '참가비 무료' : `${rec.fee.toLocaleString()}원`}
                                             </div>
                                         </div>
                                     </Card>
@@ -142,13 +158,51 @@ export default function SearchPage() {
                         )}
                     </div>
                 ) : (
-                    <div style={{ 
-                        width: '100%', height: 'calc(100vh - 260px)', 
-                        background: '#e0e0e0', borderRadius: 16, 
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: T.gray, fontSize: 15, fontWeight: 600
-                    }}>
-                        지도 연동 준비중... 🗺️
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {loading ? (
+                            [1, 2, 3].map(i => (
+                                <div key={i} style={{ height: 100, background: '#f0f0f0', borderRadius: 16, animation: 'pulse 1.5s infinite' }} />
+                            ))
+                        ) : filteredBrands.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 15 }}>
+                                등록된 브랜드가 없습니다.
+                            </div>
+                        ) : (
+                            filteredBrands.map(brand => (
+                                <Link href={`/brands/${brand.id}`} key={brand.id} style={{ textDecoration: 'none' }}>
+                                    <Card padding={16}>
+                                        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                            <div style={{ 
+                                                width: 60, height: 60, borderRadius: 12, background: T.border,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 24, overflow: 'hidden'
+                                            }}>
+                                                {brand.logo_url ? (
+                                                    <img src={brand.logo_url} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : '🏢'}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                                                    {brand.name}
+                                                </div>
+                                                <div style={{ fontSize: 14, color: T.gray, marginBottom: 8 }}>
+                                                    {brand.category || '행사 기획사'}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <span style={{ fontSize: 14 }}>⭐</span>
+                                                        <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{Number(brand.average_rating || 0).toFixed(1)}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: T.gray }}>
+                                                        리뷰 {brand.total_reviews || 0}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                </Link>
+                            ))
+                        )}
                     </div>
                 )}
             </div>
