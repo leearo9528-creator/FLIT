@@ -13,8 +13,9 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // 쿠키 세션을 성공적으로 고정시키고 next 주소로 리다이렉트 (서버 처리)
-      return NextResponse.redirect(`${origin}${next}`)
+      // ✅ 쿠키 기반 세션이 적용된 후, 강제로 브라우저를 이동시킴
+      const redirectUrl = new URL(next, request.url);
+      return NextResponse.redirect(redirectUrl);
     }
   }
 

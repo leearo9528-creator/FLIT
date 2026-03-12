@@ -16,16 +16,24 @@ export default function LoginPage() {
         if (!loading && user) router.replace('/');
     }, [user, loading, router]);
 
+    const [loginStatus, setLoginStatus] = useState('');
+
     async function handleSocialLogin(provider) {
         try {
             setError('');
+            setLoginStatus('구글 창으로 이동 중...');
             const sb = createClient();
+            
             const { error: authError } = await sb.auth.signInWithOAuth({
                 provider,
                 options: { redirectTo: `${window.location.origin}/auth/callback` },
             });
             if (authError) throw authError;
+
+            // 라우터가 페이지를 벗어나기 전까지 알림 표시
+            setLoginStatus('로그인 처리 대기 중...');
         } catch (err) {
+            setLoginStatus('');
             setError(err.message || '로그인 중 오류가 발생했습니다.');
         }
     }
@@ -58,6 +66,15 @@ export default function LoginPage() {
                         background: T.redLt, color: T.red, borderRadius: T.radiusMd,
                         padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 16,
                     }}>⚠️ {error}</div>
+                )}
+                
+                {/* 로딩/진행 상태 알림 */}
+                {loginStatus && (
+                    <div style={{
+                        background: T.blueLt, color: T.blue, borderRadius: T.radiusMd,
+                        padding: '10px 14px', fontSize: 13, fontWeight: 600, marginBottom: 16,
+                        display: 'flex', justifyContent: 'center', alignItems: 'center'
+                    }}>⏳ {loginStatus}</div>
                 )}
 
                 {/* 간편 로그인 헤더 */}
