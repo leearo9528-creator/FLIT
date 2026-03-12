@@ -37,6 +37,21 @@ export default function MyEventsPage() {
         setIsFetching(false);
     }
 
+    const handleDelete = async (e, id) => {
+        e.stopPropagation(); // 카드 클릭 이동 방지
+        if (!window.confirm('정말 제보한 행사를 삭제하시겠습니까?')) return;
+        try {
+            const sb = createClient();
+            const { error } = await sb.from('events').delete().eq('id', id);
+            if (error) throw error;
+            alert('삭제되었습니다.');
+            fetchMyEvents();
+        } catch (err) {
+            console.error(err);
+            alert('삭제에 실패했습니다.');
+        }
+    };
+
     if (loading || isFetching) return (
         <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ color: T.gray, fontSize: 15 }}>로딩 중...</div>
@@ -65,8 +80,9 @@ export default function MyEventsPage() {
                                     }}>
                                         {event.is_approved ? '승인됨' : '승인 대기중'}
                                     </div>
-                                    <div style={{ fontSize: 12, color: T.gray }}>
-                                        {new Date(event.created_at).toLocaleDateString()}
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        <span onClick={(e) => { e.stopPropagation(); alert('수정 기능은 준비중입니다.'); }} style={{ fontSize: 13, color: T.gray, cursor: 'pointer', fontWeight: 600 }}>수정</span>
+                                        <span onClick={(e) => handleDelete(e, event.id)} style={{ fontSize: 13, color: T.red, cursor: 'pointer', fontWeight: 600 }}>삭제</span>
                                     </div>
                                 </div>
                                 <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>

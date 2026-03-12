@@ -35,8 +35,8 @@ export default function MyPage() {
             <div className="page-padding">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {/* 프로필 카드 */}
-                    <Card>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <Card padding={0}>
+                        <div onClick={() => router.push('/mypage/profile')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px', cursor: 'pointer' }}>
                             <div style={{
                                 width: 56, height: 56, borderRadius: '50%',
                                 background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
@@ -46,8 +46,9 @@ export default function MyPage() {
                                 {(user.email?.[0] || user.user_metadata?.name?.[0] || '?').toUpperCase()}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 4 }}>
+                                <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                                     {user.user_metadata?.full_name || user.user_metadata?.name || '셀러'}
+                                    <span style={{ fontSize: 13, color: T.gray, fontWeight: 500 }}>›</span>
                                 </div>
                                 <div style={{
                                     fontSize: 13, color: T.gray,
@@ -73,20 +74,18 @@ export default function MyPage() {
                         {[
                             { icon: '✏️', label: '내가 쓴 리뷰', href: '/mypage/reviews' },
                             { icon: '📢', label: '내가 제보한 행사', href: '/mypage/events' },
-                            { icon: '🔔', label: '알림 설정', href: '#' },
+                            { icon: '🔔', label: '알림 설정', href: '/mypage/settings' },
                         ].map((item, i, arr) => (
-                            <div key={item.label} onClick={() => item.href !== '#' && router.push(item.href)} style={{
+                            <div key={item.label} onClick={() => router.push(item.href)} style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '16px 20px', cursor: item.href !== '#' ? 'pointer' : 'default',
+                                padding: '16px 20px', cursor: 'pointer',
                                 borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                     <span style={{ fontSize: 18 }}>{item.icon}</span>
                                     <span style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{item.label}</span>
                                 </div>
-                                <span style={{ fontSize: 14, color: T.gray }}>
-                                    {item.href === '#' ? '준비중' : '›'}
-                                </span>
+                                <span style={{ fontSize: 14, color: T.gray }}>›</span>
                             </div>
                         ))}
                     </Card>
