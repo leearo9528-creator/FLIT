@@ -20,8 +20,8 @@ export default function EventRegisterPage() {
 
         setIsSubmitting(true);
         try {
-            const { getSupabase } = await import('@/lib/supabase');
-            const sb = getSupabase();
+            const { createClient } = await import('@/utils/supabase/client');
+            const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
 
             if (!session?.user) {

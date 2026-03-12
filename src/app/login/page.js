@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
-import { getSupabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
@@ -19,7 +19,7 @@ export default function LoginPage() {
     async function handleSocialLogin(provider) {
         try {
             setError('');
-            const sb = getSupabase();
+            const sb = createClient();
             const { error: authError } = await sb.auth.signInWithOAuth({
                 provider,
                 options: { redirectTo: `${window.location.origin}/auth/callback` },

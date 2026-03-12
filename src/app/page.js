@@ -13,8 +13,8 @@ export default function HomePage() {
 
     useEffect(() => {
         const fetchEvents = async () => {
-            const { getSupabase } = await import('@/lib/supabase');
-            const sb = getSupabase();
+            const { createClient } = await import('@/utils/supabase/client');
+            const sb = createClient();
             const { data } = await sb.from('events')
                 .select('*')
                 .eq('is_approved', true)

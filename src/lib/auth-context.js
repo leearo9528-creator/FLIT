@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getSupabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
 
 const AuthContext = createContext({ user: null, loading: true, signOut: async () => {} });
 
@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const sb = getSupabase();
+        const sb = createClient();
 
         // 현재 세션 확인
         sb.auth.getSession().then(({ data: { session } }) => {
@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
     }, []);
 
     const signOut = async () => {
-        const sb = getSupabase();
+        const sb = createClient();
         await sb.auth.signOut();
         setUser(null);
     };

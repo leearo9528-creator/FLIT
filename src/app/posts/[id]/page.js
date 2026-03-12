@@ -15,8 +15,8 @@ export default function PostDetailPage() {
 
     useEffect(() => {
         const fetchPost = async () => {
-            const { getSupabase } = await import('@/lib/supabase');
-            const sb = getSupabase();
+            const { createClient } = await import('@/utils/supabase/client');
+            const sb = createClient();
             const { data, error } = await sb
                 .from('posts')
                 .select('*, event:events(*)')
