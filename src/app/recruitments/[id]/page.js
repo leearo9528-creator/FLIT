@@ -25,9 +25,9 @@ export default async function RecruitmentPage({ params }) {
     // 모집 공고 가져오기 (이벤트, 주최측 조인)
     const { data: recruitment } = await supabase.from('recruitments')
         .select(`
-            *, 
+            *,
             organizer:organizers(id, name, logo_url, average_support, average_manners, total_reviews),
-            event:events(id, name, location, average_profit, average_traffic, total_reviews)
+            event:events(id, name, location, location_sido, category, avg_rating, average_profit, average_traffic, total_reviews, review_count)
         `)
         .eq('id', id)
         .single();
