@@ -27,7 +27,7 @@ export default async function RecruitmentPage({ params }) {
         .select(`
             *,
             organizer:organizers(id, name, logo_url, average_support, average_manners, total_reviews),
-            event:events(id, name, location, location_sido, category, avg_rating, average_profit, average_traffic, total_reviews, review_count)
+            event:events(id, name, location, category, average_profit, average_traffic, total_reviews)
         `)
         .eq('id', id)
         .single();
