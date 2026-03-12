@@ -124,7 +124,7 @@ export default function SearchPage() {
                         transition: 'all 0.2s'
                     }}
                 >
-                    📍 장소평가
+                    📍 행사평가
                 </div>
                 <div 
                     onClick={() => setActiveTab('organizers')}
@@ -197,7 +197,7 @@ export default function SearchPage() {
                             ))
                         ) : filteredEvents.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 15 }}>
-                                등록된 장소가 없습니다.
+                                등록된 행사가 없습니다.
                             </div>
                         ) : (
                             filteredEvents.map(evt => (

@@ -8,16 +8,26 @@ import Card from '@/components/ui/Card';
 
 export default function ReviewWritePage() {
     const router = useRouter();
-    const [brands, setBrands] = useState([]);
-    const [selectedBrandId, setSelectedBrandId] = useState('');
-    const [searchKeyword, setSearchKeyword] = useState('');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     
-    // 평가 핢목
-    const [rProfit, setRProfit] = useState(0);    // 수익성
-    const [rTraffic, setRTraffic] = useState(0);  // 집객력
-    const [rSupport, setRSupport] = useState(0);  // 운영지원
-    const [rManners, setRManners] = useState(0);  // 주최측 매너
+    // 데이터 목록
+    const [events, setEvents] = useState([]);
+    const [organizers, setOrganizers] = useState([]);
+
+    // 선택된 값
+    const [selectedEventId, setSelectedEventId] = useState('');
+    const [selectedOrgId, setSelectedOrgId] = useState('');
+
+    // 검색 키워드 및 드롭다운 상태
+    const [evtKeyword, setEvtKeyword] = useState('');
+    const [orgKeyword, setOrgKeyword] = useState('');
+    const [isEvtOpen, setIsEvtOpen] = useState(false);
+    const [isOrgOpen, setIsOrgOpen] = useState(false);
+    
+    // 평가 항목
+    const [rProfit, setRProfit] = useState(0);    // 수익성 (행사/장소)
+    const [rTraffic, setRTraffic] = useState(0);  // 집객력 (행사/장소)
+    const [rSupport, setRSupport] = useState(0);  // 운영지원 (주최측)
+    const [rManners, setRManners] = useState(0);  // 주최측 매너 (주최측)
 
     const [title, setTitle] = useState('');       // 한줄평
     const [content, setContent] = useState('');   // 종합 리뷰
@@ -26,19 +36,22 @@ export default function ReviewWritePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const fetchBrands = async () => {
+        const fetchData = async () => {
              const { createClient } = await import('@/utils/supabase/client');
              const sb = createClient();
-             const { data } = await sb.from('brands')
-                 .select('id, name, category')
-                 .order('name', { ascending: true });
-             if (data) setBrands(data);
+             
+             const { data: eData } = await sb.from('events').select('id, name, location').order('name');
+             const { data: oData } = await sb.from('organizers').select('id, name').order('name');
+             
+             if (eData) setEvents(eData);
+             if (oData) setOrganizers(oData);
         };
-        fetchBrands();
+        fetchData();
     }, []);
 
     const handleSubmit = async () => {
-        if (!selectedBrandId) return alert('브랜드(주최측)를 선택해주세요.');
+        if (!selectedEventId) return alert('참여하신 행사(장소)를 선택해주세요.');
+        if (!selectedOrgId) return alert('주최측(기획사)을 선택해주세요.');
         if (!rProfit || !rTraffic || !rSupport || !rManners) return alert('모든 항목의 별점을 입력해주세요.');
         if (!title.trim()) return alert('한줄평(제목)을 입력해주세요.');
 
@@ -55,7 +68,8 @@ export default function ReviewWritePage() {
             }
 
             const { error } = await sb.from('company_reviews').insert({
-                brand_id: selectedBrandId,
+                event_id: selectedEventId,
+                organizer_id: selectedOrgId,
                 user_id: session.user.id,
                 rating_profit: rProfit,
                 rating_traffic: rTraffic,
@@ -80,110 +94,150 @@ export default function ReviewWritePage() {
         }
     };
 
-    const filteredBrands = brands.filter(b => b.name.includes(searchKeyword));
+    const filteredEvents = events.filter(e => e.name.includes(evtKeyword) || e.location?.includes(evtKeyword));
+    const filteredOrganizers = organizers.filter(o => o.name.includes(orgKeyword));
     const overall = rProfit && rTraffic && rSupport && rManners ? ((rProfit + rTraffic + rSupport + rManners) / 4).toFixed(1) : null;
 
     return (
-        <div style={{ minHeight: '100vh', background: T.bg }}>
-            <TopBar title="브랜드 리뷰 작성" hasBack onBack={() => router.back()} />
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 60 }}>
+            <TopBar title="행사 리뷰 작성" hasBack onBack={() => router.back()} />
 
             <div className="page-padding">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                    {/* 주최측 선택 */}
+                    
+                    {/* 대상 선택 구역 */}
                     <Card>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 14 }}>어떤 주최측의 리뷰인가요?</div>
-                        <div style={{ position: 'relative' }}>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', background: T.bg, borderRadius: T.radiusMd,
-                                border: `1.5px solid ${selectedBrandId ? T.blue : T.border}`, padding: '0 16px',
-                            }}>
-                                <span style={{ fontSize: 16 }}>🔍</span>
-                                <input
-                                    type="text"
-                                    placeholder="주최측 브랜드명을 검색해주세요"
-                                    value={searchKeyword}
-                                    onChange={(e) => {
-                                        setSearchKeyword(e.target.value);
-                                        setIsDropdownOpen(true);
-                                        if (selectedBrandId) setSelectedBrandId('');
-                                    }}
-                                    onFocus={() => setIsDropdownOpen(true)}
-                                    style={{
-                                        flex: 1, padding: '13px 8px', border: 'none', background: 'transparent',
-                                        fontSize: 14, color: T.text, outline: 'none'
-                                    }}
-                                />
-                                {isDropdownOpen && (
-                                    <div
-                                        onClick={() => {
-                                            setSearchKeyword(''); setSelectedBrandId(''); setIsDropdownOpen(false);
-                                        }}
-                                        style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: T.gray, fontSize: 18 }}
-                                    >×</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 18 }}>어디서, 누구와 진행하셨나요?</div>
+                        
+                        {/* 행사/장소 선택 */}
+                        <div style={{ marginBottom: 20 }}>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: T.gray, marginBottom: 8, display: 'block' }}>진행된 행사(장소)</label>
+                            <div style={{ position: 'relative' }}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', background: T.bg, borderRadius: T.radiusMd,
+                                    border: `1.5px solid ${selectedEventId ? T.blue : T.border}`, padding: '0 16px',
+                                }}>
+                                    <input
+                                        type="text"
+                                        placeholder="어떤 행사였나요? (예: 한강 달빛야시장)"
+                                        value={evtKeyword}
+                                        onChange={(e) => { setEvtKeyword(e.target.value); setIsEvtOpen(true); if(selectedEventId) setSelectedEventId(''); }}
+                                        onFocus={() => setIsEvtOpen(true)}
+                                        style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                                    />
+                                </div>
+                                {isEvtOpen && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                        background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 200, overflowY: 'auto', zIndex: 100
+                                    }}>
+                                        {filteredEvents.map(e => (
+                                            <div key={e.id} onClick={() => { setSelectedEventId(e.id); setEvtKeyword(e.name); setIsEvtOpen(false); }}
+                                                style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 700 }}>{e.name}</div>
+                                                <div style={{ fontSize: 12, color: T.gray }}>{e.location}</div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
-                            
-                            {isDropdownOpen && (
+                        </div>
+
+                        {/* 주최측 선택 */}
+                        <div>
+                            <label style={{ fontSize: 13, fontWeight: 700, color: T.gray, marginBottom: 8, display: 'block' }}>주최측(기획사)</label>
+                            <div style={{ position: 'relative' }}>
                                 <div style={{
-                                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                                    background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 240, overflowY: 'auto', zIndex: 10
+                                    display: 'flex', alignItems: 'center', background: T.bg, borderRadius: T.radiusMd,
+                                    border: `1.5px solid ${selectedOrgId ? T.blue : T.border}`, padding: '0 16px',
                                 }}>
-                                    {filteredBrands.length > 0 ? (
-                                        filteredBrands.map(b => (
-                                            <div
-                                                key={b.id}
-                                                onClick={() => {
-                                                    setSelectedBrandId(b.id);
-                                                    setSearchKeyword(b.name);
-                                                    setIsDropdownOpen(false);
-                                                }}
-                                                style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}
-                                            >
-                                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{b.name}</div>
-                                                <div style={{ fontSize: 12, color: T.gray }}>{b.category || '기획사'}</div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div style={{ padding: '24px 16px', textAlign: 'center', color: T.gray, fontSize: 13 }}>
-                                            검색 결과가 없습니다 😢
-                                        </div>
-                                    )}
+                                    <input
+                                        type="text"
+                                        placeholder="주최측을 선택해주세요"
+                                        value={orgKeyword}
+                                        onChange={(e) => { setOrgKeyword(e.target.value); setIsOrgOpen(true); if(selectedOrgId) setSelectedOrgId(''); }}
+                                        onFocus={() => setIsOrgOpen(true)}
+                                        style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                                    />
                                 </div>
-                            )}
+                                {isOrgOpen && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                        background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 200, overflowY: 'auto', zIndex: 100
+                                    }}>
+                                        {filteredOrganizers.map(o => (
+                                            <div key={o.id} onClick={() => { setSelectedOrgId(o.id); setOrgKeyword(o.name); setIsOrgOpen(false); }}
+                                                style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, cursor: 'pointer' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 700 }}>{o.name}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </Card>
 
                     {/* 항목별 별점 */}
                     <Card>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>항목별 별점</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>상세 평가</div>
                             {overall && (
                                 <div style={{ background: T.blueLt, borderRadius: 10, padding: '6px 14px', fontSize: 13, fontWeight: 700, color: T.blue }}>
                                     종합 ★ {overall}
                                 </div>
                             )}
                         </div>
-                        {[['💰 수익성', rProfit, setRProfit], ['👥 집객력', rTraffic, setRTraffic], ['🤝 운영지원', rSupport, setRSupport], ['😊 주최측 매너', rManners, setRManners]].map(([l, v, sv]) => (
-                            <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                <span style={{ fontSize: 14, fontWeight: 600, color: T.text, width: 140, flexShrink: 0 }}>{l}</span>
-                                <div style={{ display: 'flex', gap: 4 }}>
-                                    {[1, 2, 3, 4, 5].map((s) => (
-                                        <span key={s} onClick={() => sv(s)} style={{
-                                            fontSize: 28, cursor: 'pointer',
-                                            filter: s <= v ? 'none' : 'grayscale(1) opacity(0.3)',
-                                            transition: 'filter 0.1s',
-                                        }}>⭐</span>
-                                    ))}
+                        
+                        <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 12, color: T.gray, marginBottom: 12 }}>📍 행사/장소 관련</div>
+                            {[
+                                ['💰 수익성 (매출)', rProfit, setRProfit],
+                                ['👥 집객력 (유동인구)', rTraffic, setRTraffic]
+                            ].map(([l, v, sv]) => (
+                                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: T.text, width: 140, flexShrink: 0 }}>{l}</span>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <span key={s} onClick={() => sv(s)} style={{
+                                                fontSize: 26, cursor: 'pointer',
+                                                filter: s <= v ? 'none' : 'grayscale(1) opacity(0.3)',
+                                                transition: 'filter 0.1s',
+                                            }}>⭐</span>
+                                        ))}
+                                    </div>
+                                    {v > 0 && <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{v}.0</span>}
                                 </div>
-                                {v > 0 && <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{v}.0</span>}
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        <div>
+                            <div style={{ fontSize: 12, color: T.gray, marginBottom: 12 }}>🏢 주최측/기획사 관련</div>
+                            {[
+                                ['🤝 운영지원', rSupport, setRSupport],
+                                ['😊 주최측 매너', rManners, setRManners]
+                            ].map(([l, v, sv]) => (
+                                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                                    <span style={{ fontSize: 14, fontWeight: 600, color: T.text, width: 140, flexShrink: 0 }}>{l}</span>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <span key={s} onClick={() => sv(s)} style={{
+                                                fontSize: 26, cursor: 'pointer',
+                                                filter: s <= v ? 'none' : 'grayscale(1) opacity(0.3)',
+                                                transition: 'filter 0.1s',
+                                            }}>⭐</span>
+                                        ))}
+                                    </div>
+                                    {v > 0 && <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{v}.0</span>}
+                                </div>
+                            ))}
+                        </div>
                     </Card>
 
                     {/* 한줄평 & 상세리뷰 */}
                     <Card>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 14 }}>리뷰 내용 작성</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 14 }}>상세 내용</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 8, display: 'block' }}>한줄평 (제목)</label>
@@ -193,13 +247,13 @@ export default function ReviewWritePage() {
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 8, display: 'block' }}>장점 <span style={{ color: T.blue, fontWeight: 400 }}>(선택)</span></label>
                                 <textarea value={pros} onChange={(e) => setPros(e.target.value)}
-                                    placeholder="주최측의 좋았던 점을 적어주세요." rows={2}
+                                    placeholder="좋았던 점을 적어주세요." rows={2}
                                     style={{ ...inputStyle(pros), resize: 'none' }} />
                             </div>
                             <div>
                                 <label style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 8, display: 'block' }}>단점 <span style={{ color: T.blue, fontWeight: 400 }}>(선택)</span></label>
                                 <textarea value={cons} onChange={(e) => setCons(e.target.value)}
-                                    placeholder="주최측의 아쉬웠던 점을 적어주세요." rows={2}
+                                    placeholder="아쉬웠던 점을 적어주세요." rows={2}
                                     style={{ ...inputStyle(cons), resize: 'none' }} />
                             </div>
                             <div>
@@ -216,7 +270,7 @@ export default function ReviewWritePage() {
                         onClick={isSubmitting ? null : handleSubmit}
                         style={{
                             background: isSubmitting ? T.gray : T.blue, borderRadius: T.radiusMd,
-                            padding: 16, textAlign: 'center', color: '#fff', fontSize: 16,
+                            padding: 18, textAlign: 'center', color: '#fff', fontSize: 16,
                             fontWeight: 800, cursor: isSubmitting ? 'default' : 'pointer',
                         }}
                     >

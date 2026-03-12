@@ -8,12 +8,12 @@ export async function generateMetadata({ params }) {
     const { data: event } = await supabase.from('events').select('name, location').eq('id', id).single();
     
     if (!event) {
-        return { title: '장소를 찾을 수 없습니다 - 플릿(FLIT)' };
+        return { title: '행사를 찾을 수 없습니다 - 플릿(FLIT)' };
     }
     
     return {
-        title: `${event.name} 장소 진짜 리뷰 - 플릿(FLIT)`,
-        description: `${event.name} 장소에 대한 셀러들의 수익성, 집객력 진짜 평가를 확인해보세요.`,
+        title: `${event.name} 행사 진짜 리뷰 - 플릿(FLIT)`,
+        description: `${event.name} 행사에 대한 셀러들의 수익성, 집객력 진짜 평가를 확인해보세요.`,
     };
 }
 

@@ -56,7 +56,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: T.bg, padding: 16, borderRadius: 12, marginBottom: 24 }}>
                         {event && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: T.gray, fontSize: 14 }}>장소 정보</span>
+                            <span style={{ color: T.gray, fontSize: 14 }}>행사 정보</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ fontWeight: 700, fontSize: 14, color: T.text }}>{event.location}</span>
                                 <Link href={`/events/${event.id}`} style={{ fontSize: 12, color: T.blue, textDecoration: 'none', background: T.blueLt, padding: '4px 8px', borderRadius: 4, fontWeight: 700 }}>

@@ -53,12 +53,12 @@ export default function EventDetailClient({ event, initialReviews }) {
             </div>
 
             <div style={{ padding: '24px 20px', minHeight: 400 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, color: T.text }}>장소 리뷰 ({initialReviews.length})</div>
+                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, color: T.text }}>행사 리뷰 ({initialReviews.length})</div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {initialReviews.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 15 }}>
-                            아직 등록된 장소 리뷰가 없습니다.<br/>
+                            아직 등록된 행사 리뷰가 없습니다.<br/>
                         </div>
                     ) : (
                         initialReviews.map(review => (
