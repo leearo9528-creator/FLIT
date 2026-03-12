@@ -6,7 +6,7 @@ import BottomTab from "@/components/ui/BottomTab";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-    title: "플리 (Flea)",
+    title: "플릿 (FLIT)",
     description: "셀러들이 말하는 진짜 행사 정보",
 };
 

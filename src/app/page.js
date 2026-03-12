@@ -37,7 +37,7 @@ export default function HomePage() {
                 position: 'sticky', top: 0, zIndex: 10
             }}>
                 <div style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: -0.5 }}>
-                    플리 <span style={{ color: T.blue }}>●</span>
+                    플릿 <span style={{ color: T.blue }}>●</span>
                 </div>
                 <div style={{ fontSize: 13, color: T.gray, marginTop: 4 }}>셀러들이 직접 말하는 진짜 행사 정보</div>
             </div>

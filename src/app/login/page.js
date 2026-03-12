@@ -55,7 +55,7 @@ function LoginContent() {
                 {/* 로고 */}
                 <div style={{ textAlign: 'center', marginBottom: 50 }}>
                     <div style={{ fontSize: 36, fontWeight: 900, color: T.text, letterSpacing: -1 }}>
-                        플리 <span style={{ color: T.blue }}>●</span>
+                        플릿 <span style={{ color: T.blue }}>●</span>
                     </div>
                     <div style={{ fontSize: 15, color: T.gray, marginTop: 12 }}>3초 만에 시작하는 진짜 행사 안내</div>
                 </div>

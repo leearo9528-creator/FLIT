@@ -78,7 +78,7 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px' }}>
                         <div>
                             <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 4 }}>이메일 뉴스레터</div>
-                            <div style={{ fontSize: 13, color: T.gray }}>플리의 주요 소식과 꿀팁을 이메일로 받아보세요.</div>
+                            <div style={{ fontSize: 13, color: T.gray }}>플릿의 주요 소식과 꿀팁을 이메일로 받아보세요.</div>
                         </div>
                         <Toggle active={emailEnabled} onChange={setEmailEnabled} />
                     </div>
