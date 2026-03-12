@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
@@ -13,12 +13,34 @@ const tabs = [
     { key: 'my', label: '마이', icon: '👤', href: '/mypage' },
 ];
 
+const FREE_REVIEW_TARGET = 3;
+
 export default function BottomTab() {
     const pathname = usePathname();
     const { user } = useAuth();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [reviewCount, setReviewCount] = useState(null);
     const router = useRouter();
+
+    /* fetch user review count for the tooltip */
+    useEffect(() => {
+        if (!user) { setReviewCount(null); return; }
+        (async () => {
+            const { createClient } = await import('@/utils/supabase/client');
+            const sb = createClient();
+            const { data } = await sb
+                .from('profiles')
+                .select('review_count, is_subscribed')
+                .eq('id', user.id)
+                .single();
+            if (data) setReviewCount(data.review_count ?? 0);
+        })();
+    }, [user]);
+
+    const remaining = reviewCount !== null
+        ? Math.max(0, FREE_REVIEW_TARGET - reviewCount)
+        : null;
 
     const getHref = (tab) => {
         if (tab.key === 'my') return user ? '/mypage' : '/login';
@@ -96,14 +118,20 @@ export default function BottomTab() {
 
                     {!isMenuOpen && (
                         <div style={{
-                            background: '#333', color: '#fff', fontSize: 12, fontWeight: 700,
-                            padding: '6px 12px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                            position: 'relative', animation: 'fadeIn 0.3s ease-in'
+                            background: '#1A1A1A', color: '#fff', fontSize: 12, fontWeight: 700,
+                            padding: '7px 13px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                            position: 'relative', animation: 'fadeIn 0.3s ease-in',
+                            whiteSpace: 'nowrap',
                         }}>
-                            리뷰 3개 쓰면 첫 달 0원! 🎁
+                            {remaining !== null && remaining > 0
+                                ? `이번 달 무료 혜택까지 ${remaining}개 남음 🎁`
+                                : remaining === 0
+                                    ? '혜택 달성! 구독하고 혜택 받기 🎉'
+                                    : '리뷰 3개 쓰면 첫 달 0원! 🎁'
+                            }
                             <div style={{
                                 position: 'absolute', bottom: -4, right: 24, width: 8, height: 8,
-                                background: '#333', transform: 'rotate(45deg)'
+                                background: '#1A1A1A', transform: 'rotate(45deg)',
                             }} />
                         </div>
                     )}
