@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { T, FILTERS } from '@/lib/design-tokens';
 import Card from '@/components/ui/Card';
+import BottomTab from '@/components/ui/BottomTab';
 
 export default function HomePage() {
     const [events, setEvents] = useState([]);
@@ -113,17 +114,7 @@ export default function HomePage() {
                 </div>
             </div>
 
-            {/* 하단 탭바 (임시) */}
-            <div style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, height: 64,
-                background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
-                borderTop: `1px solid ${T.border}`, display: 'flex',
-                justifyContent: 'space-around', alignItems: 'center', zIndex: 100
-            }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: T.blue }}>홈</div>
-                <Link href="/reviews/write"><div style={{ fontSize: 12, fontWeight: 500, color: T.gray }}>리뷰작성</div></Link>
-                <div style={{ fontSize: 12, fontWeight: 500, color: T.gray }}>마이</div>
-            </div>
+            <BottomTab />
         </div>
     );
 }
