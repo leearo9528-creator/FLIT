@@ -1,8 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 
-export default function TopBar({ title, subtitle, hasBack, onBack, action }) {
+export default function TopBar({ title, subtitle, back, hasBack, onBack, action }) {
+    const router = useRouter();
+    const showBack = back || hasBack;
+    const handleBack = onBack || (() => router.back());
+
     return (
         <div style={{
             position: 'sticky', top: 0, zIndex: 100,
@@ -13,8 +18,8 @@ export default function TopBar({ title, subtitle, hasBack, onBack, action }) {
             justifyContent: 'space-between'
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {hasBack && (
-                    <div onClick={onBack} style={{ cursor: 'pointer', fontSize: 20 }}>
+                {showBack && (
+                    <div onClick={handleBack} style={{ cursor: 'pointer', fontSize: 20 }}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>

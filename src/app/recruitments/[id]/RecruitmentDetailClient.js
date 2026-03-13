@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
     ArrowLeft, Bookmark, MapPin, Calendar, Banknote,
     Star, TrendingUp, Users, Handshake, Smile, PenLine,
-    ChevronRight, MessageSquare, Clock,
+    ChevronRight, Clock,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import SubscriptionLock from '@/components/ui/SubscriptionLock';
@@ -135,7 +135,7 @@ function ReviewCard({ review, blurred }) {
     );
 }
 
-const TABS = ['상세요강', '셀러 리뷰', '커뮤니티'];
+const TABS = ['상세요강', '셀러 리뷰', '주최 리뷰'];
 
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
@@ -144,10 +144,10 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
     const [activeTab, setActiveTab] = useState(0);
     const [reviews, setReviews] = useState([]);
-    const [posts, setPosts] = useState([]);
+    const [orgReviews, setOrgReviews] = useState([]);
     const [profile, setProfile] = useState(null);
     const [reviewsLoading, setReviewsLoading] = useState(false);
-    const [postsLoading, setPostsLoading] = useState(false);
+    const [orgReviewsLoading, setOrgReviewsLoading] = useState(false);
     const [scrapped, setScrapped] = useState(false);
 
     const event = recruitment.event || {};
@@ -193,22 +193,23 @@ export default function RecruitmentDetailClient({ recruitment }) {
         })();
     }, [activeTab, event.id]);
 
-    /* fetch community posts when that tab first activates */
+    /* fetch organizer reviews when that tab first activates */
     useEffect(() => {
-        if (activeTab !== 2 || posts.length > 0) return;
-        setPostsLoading(true);
+        if (activeTab !== 2 || !organizer.id || orgReviews.length > 0) return;
+        setOrgReviewsLoading(true);
         (async () => {
             const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
-                .from('posts')
-                .select('id, title, category, created_at')
+                .from('company_reviews')
+                .select('*')
+                .eq('organizer_id', organizer.id)
                 .order('created_at', { ascending: false })
-                .limit(10);
-            if (data) setPosts(data);
-            setPostsLoading(false);
+                .limit(20);
+            if (data) setOrgReviews(data);
+            setOrgReviewsLoading(false);
         })();
-    }, [activeTab]);
+    }, [activeTab, organizer.id]);
 
     const isSubscribed = profile?.is_subscribed ?? false;
     const reviewCount = profile?.review_count ?? 0;
@@ -399,64 +400,94 @@ export default function RecruitmentDetailClient({ recruitment }) {
         </div>
     );
 
-    /* ── Tab 2: 커뮤니티 ────────────────────────────────────── */
-    const renderCommunity = () => (
+    /* ── Tab 2: 주최 리뷰 ───────────────────────────────────── */
+    const renderOrgReviews = () => (
         <div>
-            <div style={{
-                background: T.white, borderRadius: T.radiusXl,
-                padding: 16, border: `1px solid ${T.border}`,
-            }}>
-                {postsLoading
-                    ? Array(4).fill(0).map((_, i) => (
-                        <div key={i} style={{ height: 52, background: T.grayLt, borderRadius: T.radiusMd, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
-                    ))
-                    : posts.length === 0
-                        ? <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 14 }}>아직 커뮤니티 글이 없어요.</div>
-                        : posts.map((post, i) => (
-                            <Link key={post.id} href={`/posts/${post.id}`} style={{ textDecoration: 'none' }}>
-                                <div style={{
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    paddingBottom: 14, marginBottom: 14,
-                                    borderBottom: i < posts.length - 1 ? `1px solid ${T.border}` : 'none',
-                                }}>
-                                    <div style={{ flex: 1, marginRight: 10 }}>
-                                        <div style={{
-                                            fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 5,
-                                            display: '-webkit-box', WebkitLineClamp: 1,
-                                            WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                                        }}>
-                                            {post.title}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {post.category && (
-                                                <span style={{
-                                                    fontSize: 11, fontWeight: 600, color: T.blue,
-                                                    background: T.blueLt, padding: '2px 7px', borderRadius: 4,
-                                                }}>
-                                                    {post.category}
-                                                </span>
-                                            )}
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, color: T.gray }}>
-                                                <Clock size={11} />{timeAgo(post.created_at)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={16} color={T.gray} />
-                                </div>
-                            </Link>
-                        ))
-                }
-            </div>
-            <Link href="/community" style={{ textDecoration: 'none' }}>
+            {/* organizer summary */}
+            {organizer.id && (
                 <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    background: T.white, border: `1px solid ${T.border}`,
-                    borderRadius: T.radiusXl, padding: 14, marginTop: 12,
-                    fontSize: 14, fontWeight: 700, color: T.textSub,
+                    background: T.white, borderRadius: T.radiusXl,
+                    padding: 20, border: `1px solid ${T.border}`, marginBottom: 16,
                 }}>
-                    <MessageSquare size={15} />커뮤니티 전체 보기
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                        {/* big score */}
+                        <div style={{ textAlign: 'center', minWidth: 72 }}>
+                            <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
+                                {((avgSupport + avgManners) / 2).toFixed(1)}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 6 }}>
+                                {[1, 2, 3, 4, 5].map(s => (
+                                    <Star key={s} size={13}
+                                        fill={s <= Math.round((avgSupport + avgManners) / 2) ? '#FFB800' : T.border}
+                                        color={s <= Math.round((avgSupport + avgManners) / 2) ? '#FFB800' : T.border} />
+                                ))}
+                            </div>
+                            <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {organizer.total_reviews || 0}개</div>
+                        </div>
+
+                        {/* bars */}
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>
+                                {organizer.name} 평가
+                            </div>
+                            <RatingBar icon={<Handshake size={13} color={T.yellow} />} label="운영지원" value={avgSupport} color={T.yellow} />
+                            <RatingBar icon={<Smile size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
+                        </div>
+                    </div>
                 </div>
-            </Link>
+            )}
+
+            {/* review list */}
+            {orgReviewsLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {Array(3).fill(0).map((_, i) => (
+                        <div key={i} style={{ height: 160, background: T.grayLt, borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite' }} />
+                    ))}
+                </div>
+            ) : orgReviews.length === 0 ? (
+                <div style={{
+                    textAlign: 'center', padding: '40px 20px',
+                    background: T.white, borderRadius: T.radiusXl, border: `1px solid ${T.border}`,
+                }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>📝</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>아직 주최측 리뷰가 없어요</div>
+                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 16 }}>첫 번째 리뷰를 작성해보세요!</div>
+                    <Link href="/reviews/write" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: T.blue, color: '#fff',
+                        padding: '10px 20px', borderRadius: T.radiusFull,
+                        fontSize: 14, fontWeight: 700, textDecoration: 'none',
+                    }}>
+                        <PenLine size={14} />리뷰 작성하기
+                    </Link>
+                </div>
+            ) : (
+                <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {orgReviews.map((r, i) => (
+                            <ReviewCard key={r.id} review={r} blurred={!isSubscribed && i >= FREE_PREVIEW} />
+                        ))}
+                    </div>
+
+                    {!isSubscribed && orgReviews.length > FREE_PREVIEW && (
+                        <div style={{ marginTop: -200, position: 'relative', zIndex: 5 }}>
+                            <div style={{
+                                height: 200,
+                                background: `linear-gradient(to bottom, transparent, ${T.bg} 90%)`,
+                            }} />
+                            <div style={{ background: T.bg, paddingBottom: 16 }}>
+                                <SubscriptionLock reviewCount={reviewCount} variant="inline" />
+                            </div>
+                        </div>
+                    )}
+
+                    {!isSubscribed && orgReviews.length <= FREE_PREVIEW && (
+                        <div style={{ marginTop: 16 }}>
+                            <SubscriptionLock reviewCount={reviewCount} variant="inline" />
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 
@@ -590,7 +621,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     {renderReviews()}
                 </div>
                 <div style={{ display: activeTab === 2 ? 'block' : 'none', animation: 'fadeSlideIn 0.25s ease-out' }}>
-                    {renderCommunity()}
+                    {renderOrgReviews()}
                 </div>
             </div>
 
