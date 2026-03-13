@@ -172,7 +172,7 @@ export default function CommunityPage() {
             <div style={{ padding: '16px 16px 0' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {posts.map(post => (
-                        <div key={post.id} style={{
+                        <div key={post.id} onClick={() => router.push(`/community/${post.id}`)} style={{
                             background: T.white, borderRadius: T.radiusLg,
                             border: `1px solid ${T.border}`,
                             padding: '14px 16px', cursor: 'pointer',
