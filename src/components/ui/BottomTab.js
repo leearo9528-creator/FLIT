@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/utils/supabase/client';
 
 const tabs = [
     { key: 'home', label: '홈', icon: '🏠', href: '/' },
-    { key: 'search', label: '마켓 찾기', icon: '🔍', href: '/search' },
+    { key: 'search', label: '행사 찾기', icon: '🔍', href: '/search' },
     { key: 'community', label: '커뮤니티', icon: '💬', href: '/community' },
     { key: 'my', label: '마이', icon: '👤', href: '/mypage' },
 ];
@@ -21,13 +21,16 @@ export default function BottomTab() {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [reviewCount, setReviewCount] = useState(null);
+    const [pendingPath, setPendingPath] = useState(null);
     const router = useRouter();
+
+    // 실제 navigation 완료되면 pending 초기화
+    useEffect(() => { setPendingPath(null); }, [pathname]);
 
     /* fetch user review count for the tooltip */
     useEffect(() => {
         if (!user) { setReviewCount(null); return; }
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
                 .from('profiles')
@@ -49,8 +52,15 @@ export default function BottomTab() {
     };
 
     const isActive = (tab) => {
-        if (tab.key === 'home') return pathname === '/';
-        return pathname.startsWith(tab.href);
+        const activePath = pendingPath ?? pathname;
+        if (tab.key === 'home') return activePath === '/';
+        return activePath.startsWith(tab.href);
+    };
+
+    const handleTabClick = (tab) => {
+        const href = getHref(tab);
+        setPendingPath(href);
+        router.push(href);
     };
 
     const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/community');
@@ -153,17 +163,6 @@ export default function BottomTab() {
                 </div>
             )}
 
-            <style jsx global>{`
-                @keyframes slideUp {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-            `}</style>
-
             {/* 하단 탭 바 */}
             <div style={{
                 position: 'fixed', bottom: 0, left: 0, right: 0, height: 64,
@@ -175,22 +174,30 @@ export default function BottomTab() {
                 {tabs.map(tab => {
                     const active = isActive(tab);
                     return (
-                        <Link key={tab.key} href={getHref(tab)} style={{ textDecoration: 'none', flex: 1 }}>
-                            <div style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                                padding: '8px 0', cursor: 'pointer',
+                        <div
+                            key={tab.key}
+                            onClick={() => handleTabClick(tab)}
+                            style={{
+                                flex: 1, display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', gap: 4, padding: '8px 0',
+                                cursor: 'pointer', touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                                userSelect: 'none', WebkitUserSelect: 'none',
+                                transition: 'transform 0.08s',
+                                transform: active ? 'scale(1.08)' : 'scale(1)',
+                            }}
+                        >
+                            <span style={{ fontSize: 22, filter: active ? 'none' : 'grayscale(1) opacity(0.3)', transition: 'filter 0.1s' }}>
+                                {tab.icon}
+                            </span>
+                            <span style={{
+                                fontSize: 10, fontWeight: active ? 700 : 500,
+                                color: active ? T.blue : T.gray,
+                                transition: 'color 0.1s',
                             }}>
-                                <span style={{ fontSize: 22, filter: active ? 'none' : 'grayscale(1) opacity(0.3)' }}>
-                                    {tab.icon}
-                                </span>
-                                <span style={{
-                                    fontSize: 10, fontWeight: active ? 700 : 500,
-                                    color: active ? T.blue : T.gray,
-                                }}>
-                                    {tab.label}
-                                </span>
-                            </div>
-                        </Link>
+                                {tab.label}
+                            </span>
+                        </div>
                     );
                 })}
             </div>

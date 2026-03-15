@@ -6,11 +6,13 @@ import Link from 'next/link';
 import {
     ArrowLeft, Bookmark, MapPin, Calendar, Banknote,
     Star, TrendingUp, Users, Handshake, Smile, PenLine,
-    ChevronRight, Clock,
+    Clock,
 } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 import { T } from '@/lib/design-tokens';
 import SubscriptionLock from '@/components/ui/SubscriptionLock';
 import { useAuth } from '@/lib/auth-context';
+import { timeAgo } from '@/lib/helpers';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 function calcDDay(dateStr) {
@@ -21,20 +23,11 @@ function calcDDay(dateStr) {
     return { label: `D-${diff}`, color: diff <= 3 ? T.red : T.blue };
 }
 
-function formatDate(dateStr, opts = {}) {
+function formatDate(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('ko-KR', {
-        year: 'numeric', month: 'long', day: 'numeric', ...opts,
+        year: 'numeric', month: 'long', day: 'numeric',
     });
-}
-
-function timeAgo(dateStr) {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}분 전`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}시간 전`;
-    return `${Math.floor(hours / 24)}일 전`;
 }
 
 /* ─── Rating Progress Bar ──────────────────────────────────── */
@@ -164,7 +157,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
     useEffect(() => {
         if (!user) { setProfile(null); return; }
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
                 .from('profiles')
@@ -180,7 +172,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
         if (activeTab !== 1 || !event.id || reviews.length > 0) return;
         setReviewsLoading(true);
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
                 .from('company_reviews')
@@ -198,7 +189,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
         if (activeTab !== 2 || !organizer.id || orgReviews.length > 0) return;
         setOrgReviewsLoading(true);
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
                 .from('company_reviews')
@@ -218,7 +208,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
     /* ── Tab 0: 상세요강 ────────────────────────────────────── */
     const renderDetail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* key info */}
+            {/* 공고 핵심 정보 */}
             <div style={{
                 background: T.white, borderRadius: T.radiusXl,
                 padding: 20, border: `1px solid ${T.border}`,
@@ -226,18 +216,20 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>공고 핵심 정보</div>
                 {[
                     { icon: <Calendar size={15} color={T.blue} />, label: '행사 일자', value: formatDate(recruitment.event_date) },
-                    { icon: <Clock size={15} color={T.red} />, label: '모집 마감', value: `${formatDate(recruitment.end_date)} 까지`, valueColor: T.red },
+                    { icon: <Clock size={15} color={T.red} />, label: '모집 마감', value: formatDate(recruitment.end_date), valueColor: T.red },
                     { icon: <MapPin size={15} color={T.green} />, label: '장소', value: event.location || '미정' },
                     {
                         icon: <Banknote size={15} color={T.yellow} />, label: '참가비',
                         value: recruitment.fee === 0 || recruitment.fee === null ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`,
                         valueColor: T.blue,
                     },
-                ].map(row => (
+                ].map((row, i, arr) => (
                     <div key={row.label} style={{
                         display: 'flex', justifyContent: 'space-between',
-                        alignItems: 'center', paddingBottom: 12, marginBottom: 12,
-                        borderBottom: `1px solid ${T.border}`,
+                        alignItems: 'center',
+                        paddingBottom: i < arr.length - 1 ? 12 : 0,
+                        marginBottom: i < arr.length - 1 ? 12 : 0,
+                        borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.gray, fontSize: 14 }}>
                             {row.icon}{row.label}
@@ -247,22 +239,9 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         </span>
                     </div>
                 ))}
-                {event.id && (
-                    <Link href={`/events/${event.id}`} style={{ textDecoration: 'none' }}>
-                        <div style={{
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            background: T.blueLt, borderRadius: T.radiusMd, padding: '12px 14px',
-                        }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>
-                                {event.name} 행사 평가 보기
-                            </div>
-                            <ChevronRight size={16} color={T.blue} />
-                        </div>
-                    </Link>
-                )}
             </div>
 
-            {/* body */}
+            {/* 상세 모집 요강 */}
             <div style={{
                 background: T.white, borderRadius: T.radiusXl,
                 padding: 20, border: `1px solid ${T.border}`,
@@ -272,35 +251,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     {recruitment.content || '상세 내용이 없습니다.'}
                 </div>
             </div>
-
-            {/* organizer */}
-            {organizer.id && (
-                <Link href={`/organizers/${organizer.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        background: T.white, borderRadius: T.radiusXl,
-                        padding: 16, border: `1px solid ${T.border}`,
-                        display: 'flex', alignItems: 'center', gap: 14,
-                    }}>
-                        <div style={{
-                            width: 52, height: 52, borderRadius: T.radiusMd,
-                            background: T.grayLt, flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, overflow: 'hidden',
-                        }}>
-                            {organizer.logo_url
-                                ? <img src={organizer.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                : '🏢'}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, color: T.gray, marginBottom: 2 }}>주최측</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{organizer.name}</div>
-                            <div style={{ fontSize: 12, color: T.textSub, marginTop: 4 }}>
-                                운영지원 ⭐ {Number(avgSupport).toFixed(1)} · 리뷰 {organizer.total_reviews || 0}개
-                            </div>
-                        </div>
-                        <ChevronRight size={18} color={T.gray} />
-                    </div>
-                </Link>
-            )}
         </div>
     );
 
@@ -313,7 +263,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 padding: 20, border: `1px solid ${T.border}`, marginBottom: 16,
             }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                    {/* big score */}
                     <div style={{ textAlign: 'center', minWidth: 72 }}>
                         <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
                             {((avgProfit + avgTraffic) / 2).toFixed(1)}
@@ -327,24 +276,14 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         </div>
                         <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {totalEventReviews}개</div>
                     </div>
-
-                    {/* bars */}
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>행사 평가</div>
                         <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
                         <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
-                        {organizer.id && (
-                            <>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10, marginTop: 6 }}>주최측 평가</div>
-                                <RatingBar icon={<Handshake size={13} color={T.yellow} />} label="운영지원" value={avgSupport} color={T.yellow} />
-                                <RatingBar icon={<Smile size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
-                            </>
-                        )}
                     </div>
                 </div>
             </div>
 
-            {/* reviews */}
             {reviewsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {Array(3).fill(0).map((_, i) => (
@@ -375,21 +314,14 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             <ReviewCard key={r.id} review={r} blurred={!isSubscribed && i >= FREE_PREVIEW} />
                         ))}
                     </div>
-
-                    {/* paywall: gradient fade + lock card */}
                     {!isSubscribed && reviews.length > FREE_PREVIEW && (
                         <div style={{ marginTop: -200, position: 'relative', zIndex: 5 }}>
-                            <div style={{
-                                height: 200,
-                                background: `linear-gradient(to bottom, transparent, ${T.bg} 90%)`,
-                            }} />
+                            <div style={{ height: 200, background: `linear-gradient(to bottom, transparent, ${T.bg} 90%)` }} />
                             <div style={{ background: T.bg, paddingBottom: 16 }}>
                                 <SubscriptionLock reviewCount={reviewCount} variant="inline" />
                             </div>
                         </div>
                     )}
-
-                    {/* paywall when only 1 review exists */}
                     {!isSubscribed && reviews.length <= FREE_PREVIEW && (
                         <div style={{ marginTop: 16 }}>
                             <SubscriptionLock reviewCount={reviewCount} variant="inline" />
@@ -403,14 +335,12 @@ export default function RecruitmentDetailClient({ recruitment }) {
     /* ── Tab 2: 주최 리뷰 ───────────────────────────────────── */
     const renderOrgReviews = () => (
         <div>
-            {/* organizer summary */}
             {organizer.id && (
                 <div style={{
                     background: T.white, borderRadius: T.radiusXl,
                     padding: 20, border: `1px solid ${T.border}`, marginBottom: 16,
                 }}>
                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                        {/* big score */}
                         <div style={{ textAlign: 'center', minWidth: 72 }}>
                             <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
                                 {((avgSupport + avgManners) / 2).toFixed(1)}
@@ -424,8 +354,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             </div>
                             <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {organizer.total_reviews || 0}개</div>
                         </div>
-
-                        {/* bars */}
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>
                                 {organizer.name} 평가
@@ -437,7 +365,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 </div>
             )}
 
-            {/* review list */}
             {orgReviewsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {Array(3).fill(0).map((_, i) => (
@@ -468,19 +395,14 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             <ReviewCard key={r.id} review={r} blurred={!isSubscribed && i >= FREE_PREVIEW} />
                         ))}
                     </div>
-
                     {!isSubscribed && orgReviews.length > FREE_PREVIEW && (
                         <div style={{ marginTop: -200, position: 'relative', zIndex: 5 }}>
-                            <div style={{
-                                height: 200,
-                                background: `linear-gradient(to bottom, transparent, ${T.bg} 90%)`,
-                            }} />
+                            <div style={{ height: 200, background: `linear-gradient(to bottom, transparent, ${T.bg} 90%)` }} />
                             <div style={{ background: T.bg, paddingBottom: 16 }}>
                                 <SubscriptionLock reviewCount={reviewCount} variant="inline" />
                             </div>
                         </div>
                     )}
-
                     {!isSubscribed && orgReviews.length <= FREE_PREVIEW && (
                         <div style={{ marginTop: 16 }}>
                             <SubscriptionLock reviewCount={reviewCount} variant="inline" />
@@ -514,16 +436,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 </div>
 
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
-                    {event.name && (
-                        <div style={{
-                            display: 'inline-block', background: 'rgba(255,255,255,0.20)',
-                            padding: '4px 10px', borderRadius: T.radiusFull,
-                            fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 10,
-                        }}>
-                            📍 {event.name}
-                        </div>
-                    )}
-
+                    {/* 상태 + D-Day */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <div style={{
                             padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
@@ -541,50 +454,16 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         )}
                     </div>
 
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 16 }}>
+                    {/* 날짜 */}
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Calendar size={13} />
+                        {formatDate(recruitment.event_date)}
+                    </div>
+
+                    {/* 행사명 */}
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35 }}>
                         {recruitment.title}
                     </div>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {[
-                            { icon: <MapPin size={12} />, text: event.location || '장소 미정' },
-                            { icon: <Calendar size={12} />, text: formatDate(recruitment.event_date, { month: 'short', day: 'numeric' }) },
-                            {
-                                icon: <Banknote size={12} />,
-                                text: recruitment.fee === 0 || recruitment.fee === null ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`,
-                            },
-                        ].map((pill, i) => (
-                            <div key={i} style={{
-                                display: 'flex', alignItems: 'center', gap: 5,
-                                background: 'rgba(255,255,255,0.18)', padding: '6px 12px',
-                                borderRadius: T.radiusFull, fontSize: 12, fontWeight: 600, color: '#fff',
-                            }}>
-                                {pill.icon}{pill.text}
-                            </div>
-                        ))}
-                    </div>
-
-                    {totalEventReviews > 0 && (
-                        <div style={{
-                            marginTop: 16, display: 'flex', alignItems: 'center', gap: 10,
-                            background: 'rgba(255,255,255,0.15)', padding: '10px 14px', borderRadius: T.radiusMd,
-                        }}>
-                            <Star size={14} fill="#FFB800" color="#FFB800" />
-                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>
-                                {((avgProfit + avgTraffic) / 2).toFixed(1)}
-                            </span>
-                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
-                                리뷰 {totalEventReviews}개
-                            </span>
-                            <div onClick={() => setActiveTab(1)} style={{
-                                marginLeft: 'auto', fontSize: 12, fontWeight: 700,
-                                color: 'rgba(255,255,255,0.9)', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: 3,
-                            }}>
-                                리뷰 보기 <ChevronRight size={13} />
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -614,13 +493,13 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
             {/* ── Tab Content ── */}
             <div style={{ padding: '20px 16px 0' }}>
-                <div style={{ display: activeTab === 0 ? 'block' : 'none', animation: 'fadeSlideIn 0.25s ease-out' }}>
+                <div style={{ display: activeTab === 0 ? 'block' : 'none' }}>
                     {renderDetail()}
                 </div>
-                <div style={{ display: activeTab === 1 ? 'block' : 'none', animation: 'fadeSlideIn 0.25s ease-out' }}>
+                <div style={{ display: activeTab === 1 ? 'block' : 'none' }}>
                     {renderReviews()}
                 </div>
-                <div style={{ display: activeTab === 2 ? 'block' : 'none', animation: 'fadeSlideIn 0.25s ease-out' }}>
+                <div style={{ display: activeTab === 2 ? 'block' : 'none' }}>
                     {renderOrgReviews()}
                 </div>
             </div>
@@ -656,16 +535,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 </div>
             </div>
 
-            <style jsx global>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50%       { opacity: 0.5; }
-                }
-                @keyframes fadeSlideIn {
-                    from { opacity: 0; transform: translateY(8px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-            `}</style>
         </div>
     );
 }

@@ -10,6 +10,13 @@ export const metadata = {
     description: "셀러들이 말하는 진짜 행사 정보",
 };
 
+export const viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+};
+
 export default function RootLayout({ children }) {
     return (
         <html lang="ko">

@@ -21,7 +21,7 @@ function LoginContent() {
     async function handleSocialLogin(provider) {
         try {
             setError('');
-            setLoginStatus('구글 창으로 이동 중...');
+            setLoginStatus(`${provider === 'kakao' ? '카카오' : '구글'} 로그인 중...`);
             const sb = createClient();
             
             const { error: authError } = await sb.auth.signInWithOAuth({

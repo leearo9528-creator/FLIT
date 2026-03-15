@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { T } from '@/lib/design-tokens';
+import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
 
@@ -15,7 +16,6 @@ export default function PostDetailPage() {
 
     useEffect(() => {
         const fetchPost = async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data, error } = await sb
                 .from('posts')

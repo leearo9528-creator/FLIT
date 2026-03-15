@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { T, FILTERS, inputStyle } from '@/lib/design-tokens';
+import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
 
@@ -20,7 +21,6 @@ export default function EventRegisterPage() {
 
         setIsSubmitting(true);
         try {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
 

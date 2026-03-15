@@ -3,31 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Bell } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
-
-/* ─── helpers ──────────────────────────────────────────────── */
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-}
-
-function calcRating(event) {
-    if (!event) return '0.0';
-    if (event.avg_rating) return parseFloat(event.avg_rating).toFixed(1);
-    if (event.average_profit && event.average_traffic)
-        return ((event.average_profit + event.average_traffic) / 2).toFixed(1);
-    return '0.0';
-}
-
-function timeAgo(dateStr) {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}분 전`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}시간 전`;
-    return `${Math.floor(hours / 24)}일 전`;
-}
+import { calcRating, timeAgo, formatDate } from '@/lib/helpers';
+import { createClient } from '@/utils/supabase/client';
+import NotificationDrawer from '@/components/ui/NotificationDrawer';
+import SubscriptionModal from '@/components/ui/SubscriptionModal';
 
 /* ─── Hero Banner (carousel) ────────────────────────────────── */
 const BANNERS = [
@@ -55,22 +37,42 @@ function HeroBanner() {
     const router = useRouter();
     const [idx, setIdx] = useState(0);
     const timerRef = useRef(null);
+    const touchStartX = useRef(null);
+
+    const resetTimer = () => {
+        clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => setIdx(i => (i + 1) % BANNERS.length), 4000);
+    };
 
     useEffect(() => {
         timerRef.current = setInterval(() => setIdx(i => (i + 1) % BANNERS.length), 4000);
         return () => clearInterval(timerRef.current);
     }, []);
 
+    const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+    const handleTouchEnd = (e) => {
+        if (touchStartX.current === null) return;
+        const diff = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 40) {
+            setIdx(i => (i + (diff > 0 ? 1 : -1) + BANNERS.length) % BANNERS.length);
+            resetTimer();
+        }
+        touchStartX.current = null;
+    };
+
     const b = BANNERS[idx];
 
     return (
         <div style={{ padding: '0 16px 16px' }}>
             <div
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
                 onClick={() => router.push(b.href)}
                 style={{
                     background: b.gradient, borderRadius: T.radiusXl,
                     padding: '24px 24px 20px', cursor: 'pointer',
                     position: 'relative', overflow: 'hidden',
+                    userSelect: 'none',
                 }}
             >
                 {/* decorative circles */}
@@ -117,7 +119,7 @@ function HeroBanner() {
                     {BANNERS.map((_, i) => (
                         <div
                             key={i}
-                            onClick={e => { e.stopPropagation(); setIdx(i); }}
+                            onClick={e => { e.stopPropagation(); setIdx(i); resetTimer(); }}
                             style={{
                                 width: i === idx ? 20 : 6, height: 6, borderRadius: 3,
                                 background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
@@ -189,55 +191,40 @@ function RecruitmentCard({ rec }) {
         <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
             <div style={{
                 background: T.white, borderRadius: T.radiusXl, padding: 16,
-                boxShadow: T.shadowMd, minWidth: 200, maxWidth: 200,
-                flexShrink: 0, border: `1px solid ${T.border}`,
+                boxShadow: T.shadowMd, border: `1px solid ${T.border}`,
+                display: 'flex', flexDirection: 'column', gap: 6,
             }}>
-                {/* status badge */}
-                <div style={{
-                    display: 'inline-block', padding: '3px 8px', borderRadius: 4,
-                    background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
-                    color: rec.status === 'OPEN' ? T.green : T.gray,
-                    fontSize: 11, fontWeight: 700, marginBottom: 8,
-                }}>
-                    {rec.status === 'OPEN' ? '모집중' : '마감'}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{
+                        display: 'inline-block', padding: '3px 8px', borderRadius: 4,
+                        background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
+                        color: rec.status === 'OPEN' ? T.green : T.gray,
+                        fontSize: 11, fontWeight: 700,
+                    }}>
+                        {rec.status === 'OPEN' ? '모집중' : '마감'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: 13 }}>⭐</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{rating}</span>
+                        <span style={{ fontSize: 12, color: T.gray, marginLeft: 2 }}>({reviewCount})</span>
+                    </div>
                 </div>
 
-                {/* title */}
                 <div style={{
-                    fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6, lineHeight: 1.4,
+                    fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.4,
                     display: '-webkit-box', WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical', overflow: 'hidden',
                 }}>
                     {rec.title || ev.name || '-'}
                 </div>
 
-                {/* location */}
-                <div style={{ fontSize: 12, color: T.gray, marginBottom: 6 }}>
-                    📍 {ev.location || ev.location_sido || '-'}
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: T.gray }}>📍 {ev.location || ev.location_sido || '-'}</span>
+                    <span style={{ fontSize: 12, color: T.textSub }}>🗓 {formatDate(rec.event_date || rec.start_date)}</span>
                 </div>
 
-                {/* date */}
-                <div style={{ fontSize: 12, color: T.textSub, marginBottom: 10 }}>
-                    🗓 {formatDate(rec.event_date || rec.start_date)}
-                </div>
-
-                {/* fee */}
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 10 }}>
-                    참가비{' '}
-                    {rec.fee ? `${Number(rec.fee).toLocaleString()}원` : '미정'}
-                </div>
-
-                {/* rating row */}
-                <div style={{
-                    borderTop: `1px solid ${T.border}`, paddingTop: 10,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 13 }}>⭐</span>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{rating}</span>
-                    </div>
-                    <span style={{ color: T.border, fontSize: 14 }}>|</span>
-                    <span style={{ fontSize: 12, color: T.gray }}>리뷰 {reviewCount}개</span>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>
+                    참가비 {rec.fee ? `${Number(rec.fee).toLocaleString()}원` : '미정'}
                 </div>
             </div>
         </Link>
@@ -260,23 +247,17 @@ function HotRecruitmentSection({ recruitments, loading }) {
                 </Link>
             </div>
 
-            <div style={{
-                display: 'flex', gap: 12,
-                overflowX: 'auto', paddingLeft: 16, paddingRight: 16,
-                scrollbarWidth: 'none', msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch',
-            }}>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {loading
-                    ? Array(4).fill(0).map((_, i) => (
+                    ? Array(3).fill(0).map((_, i) => (
                         <div key={i} style={{
-                            minWidth: 200, height: 210, background: T.grayLt,
-                            borderRadius: T.radiusXl, flexShrink: 0,
-                            animation: 'pulse 1.5s infinite',
+                            height: 120, background: T.grayLt,
+                            borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite',
                         }} />
                     ))
                     : recruitments.length === 0
                         ? (
-                            <div style={{ padding: '20px 0', color: T.gray, fontSize: 14 }}>
+                            <div style={{ textAlign: 'center', padding: '28px 0', color: T.gray, fontSize: 14 }}>
                                 현재 모집 중인 공고가 없어요.
                             </div>
                         )
@@ -299,7 +280,7 @@ function StarRow({ value }) {
     );
 }
 
-function ReviewCard({ review, isSubscribed }) {
+function ReviewCard({ review, isSubscribed, onSubscribe }) {
     const ev = review.events || {};
     const avgRating = ((review.rating_profit || 0) + (review.rating_traffic || 0)) / 2;
 
@@ -365,23 +346,25 @@ function ReviewCard({ review, isSubscribed }) {
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 12, textAlign: 'center' }}>
                         구독하고 전체 리뷰 보기
                     </div>
-                    <Link
-                        href="/mypage"
+                    <div
+                        onClick={onSubscribe}
                         style={{
                             background: T.blue, color: '#fff',
                             padding: '8px 20px', borderRadius: T.radiusFull,
-                            fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                            fontSize: 13, fontWeight: 700, cursor: 'pointer',
                         }}
                     >
                         구독하기
-                    </Link>
+                    </div>
                 </div>
             )}
         </div>
     );
 }
 
-function RecentReviewsSection({ reviews, loading, isSubscribed }) {
+function RecentReviewsSection({ reviews, loading, isSubscribed, reviewCount }) {
+    const [showSubModal, setShowSubModal] = useState(false);
+
     return (
         <div style={{ marginBottom: 36 }}>
             <div style={{
@@ -412,10 +395,21 @@ function RecentReviewsSection({ reviews, loading, isSubscribed }) {
                             </div>
                         )
                         : reviews.map(r => (
-                            <ReviewCard key={r.id} review={r} isSubscribed={isSubscribed} />
+                            <ReviewCard
+                                key={r.id}
+                                review={r}
+                                isSubscribed={isSubscribed}
+                                onSubscribe={() => setShowSubModal(true)}
+                            />
                         ))
                 }
             </div>
+
+            <SubscriptionModal
+                open={showSubModal}
+                onClose={() => setShowSubModal(false)}
+                reviewCount={reviewCount}
+            />
         </div>
     );
 }
@@ -423,7 +417,7 @@ function RecentReviewsSection({ reviews, loading, isSubscribed }) {
 /* ─── Community Snippets ─────────────────────────────────────── */
 function PostItem({ post, isLast }) {
     return (
-        <Link href={`/posts/${post.id}`} style={{ textDecoration: 'none' }}>
+        <Link href={`/community/${post.id}`} style={{ textDecoration: 'none' }}>
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '14px 0',
@@ -510,25 +504,28 @@ export default function HomePage() {
     const [reviews, setReviews] = useState([]);
     const [posts, setPosts] = useState([]);
     const [profile, setProfile] = useState(null);
+    const [notifOpen, setNotifOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const [loading, setLoading] = useState({ rec: true, rev: true, post: true });
 
     /* fetch all data in parallel */
     useEffect(() => {
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
 
+            // 공고: 최신순 5개
             sb.from('recruitments')
-                .select('*, events(name, location, location_sido, avg_rating, average_profit, average_traffic, total_reviews, review_count)')
+                .select('*, events(name, location, location_sido, average_profit, average_traffic, total_reviews)')
                 .eq('status', 'OPEN')
                 .order('created_at', { ascending: false })
-                .limit(10)
+                .limit(5)
                 .then(({ data }) => {
                     if (data) setRecruitments(data);
                     setLoading(p => ({ ...p, rec: false }));
                 });
 
+            // 리뷰: 최신순 5개
             sb.from('company_reviews')
                 .select('*, events(name)')
                 .order('created_at', { ascending: false })
@@ -538,9 +535,10 @@ export default function HomePage() {
                     setLoading(p => ({ ...p, rev: false }));
                 });
 
+            // 커뮤니티: 좋아요 많은 순 5개
             sb.from('posts')
-                .select('id, title, category, created_at')
-                .order('created_at', { ascending: false })
+                .select('id, title, category, likes, created_at')
+                .order('likes', { ascending: false })
                 .limit(5)
                 .then(({ data }) => {
                     if (data) setPosts(data);
@@ -551,9 +549,8 @@ export default function HomePage() {
 
     /* fetch user profile for subscription status */
     useEffect(() => {
-        if (!user) { setProfile(null); return; }
+        if (!user) { setProfile(null); setUnreadCount(0); return; }
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data } = await sb
                 .from('profiles')
@@ -561,6 +558,13 @@ export default function HomePage() {
                 .eq('id', user.id)
                 .single();
             if (data) setProfile(data);
+
+            const { count } = await sb
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+            setUnreadCount(count || 0);
         })();
     }, [user]);
 
@@ -568,6 +572,11 @@ export default function HomePage() {
 
     return (
         <div style={{ minHeight: '100vh', paddingBottom: 100, background: T.bg }}>
+            <NotificationDrawer
+                open={notifOpen}
+                onClose={() => { setNotifOpen(false); setUnreadCount(0); }}
+                userId={user?.id}
+            />
 
             {/* sticky header */}
             <div style={{
@@ -585,29 +594,59 @@ export default function HomePage() {
                         </div>
                     </div>
 
-                    {user ? (
-                        <Link href="/mypage" style={{ textDecoration: 'none' }}>
-                            <div style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                background: T.blueLt,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 18,
-                            }}>
-                                👤
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {/* 알림 벨 */}
+                        {user && (
+                            <div
+                                onClick={() => setNotifOpen(true)}
+                                style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: T.bg, border: `1.5px solid ${T.border}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', position: 'relative', flexShrink: 0,
+                                }}
+                            >
+                                <Bell size={18} color={T.text} strokeWidth={2} />
+                                {unreadCount > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: -2, right: -2,
+                                        minWidth: 16, height: 16,
+                                        background: '#EF4444', borderRadius: 8,
+                                        border: '1.5px solid #fff',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 10, fontWeight: 800, color: '#fff',
+                                        padding: '0 3px',
+                                    }}>
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </div>
+                                )}
                             </div>
-                        </Link>
-                    ) : (
-                        <Link
-                            href="/login"
-                            style={{
-                                background: T.blue, color: '#fff',
-                                padding: '8px 14px', borderRadius: T.radiusFull,
-                                fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                            }}
-                        >
-                            로그인
-                        </Link>
-                    )}
+                        )}
+
+                        {user ? (
+                            <Link href="/mypage" style={{ textDecoration: 'none' }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: T.blueLt,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18,
+                                }}>
+                                    👤
+                                </div>
+                            </Link>
+                        ) : (
+                            <Link
+                                href="/login"
+                                style={{
+                                    background: T.blue, color: '#fff',
+                                    padding: '8px 14px', borderRadius: T.radiusFull,
+                                    fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                                }}
+                            >
+                                로그인
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -616,7 +655,7 @@ export default function HomePage() {
                 <HeroBanner />
                 <SearchBar />
                 <HotRecruitmentSection recruitments={recruitments} loading={loading.rec} />
-                <RecentReviewsSection reviews={reviews} loading={loading.rev} isSubscribed={isSubscribed} />
+                <RecentReviewsSection reviews={reviews} loading={loading.rev} isSubscribed={isSubscribed} reviewCount={profile?.review_count ?? 0} />
                 <CommunitySection posts={posts} loading={loading.post} />
             </div>
 

@@ -4,16 +4,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, MapPin, UserCheck, UserX, Search, X, ChevronRight } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
+import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
+import ChipGroup from '@/components/ui/ChipGroup';
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const CATEGORIES = [
-    { key: 'realtime', label: '📡 실시간 현황' },
+    { key: 'realtime', label: '📡 실시간 행사 현황' },
     { key: 'free', label: '💬 자유게시판' },
     { key: 'qna', label: '❓ 질문/답변' },
-    { key: 'tips', label: '💡 팁 & 정보' },
-    { key: 'recruit', label: '📢 셀러 모집' },
+    { key: 'tips', label: '💡 팁/정보' },
+    { key: 'trade', label: '🛒 사고팔고' },
 ];
 
 const QUICK_CHIPS = {
@@ -38,37 +40,6 @@ function randomAnonName() {
     const adj = ANON_ADJECTIVES[Math.floor(Math.random() * ANON_ADJECTIVES.length)];
     const noun = ANON_NOUNS[Math.floor(Math.random() * ANON_NOUNS.length)];
     return `${adj} ${noun}`;
-}
-
-/* ─── Chip Group ─────────────────────────────────────────────── */
-function ChipGroup({ chips, selected, onToggle }) {
-    return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {chips.map(chip => {
-                const active = selected.has(chip.text);
-                return (
-                    <button
-                        key={chip.text}
-                        type="button"
-                        onClick={() => onToggle(chip.text)}
-                        style={{
-                            padding: '8px 14px',
-                            borderRadius: T.radiusFull,
-                            fontSize: 13, fontWeight: 600,
-                            cursor: 'pointer',
-                            border: `1.5px solid ${active ? T.blue : T.border}`,
-                            background: active ? T.blue : T.blueLt,
-                            color: active ? '#fff' : T.blue,
-                            transition: 'all 0.15s',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {chip.label}
-                    </button>
-                );
-            })}
-        </div>
-    );
 }
 
 /* ─── Photo Upload Slot ──────────────────────────────────────── */
@@ -136,6 +107,7 @@ export default function CommunityWritePage() {
     const [userNickname, setUserNickname] = useState('');
 
     // form fields
+    const [mainType, setMainType] = useState('');
     const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -166,7 +138,6 @@ export default function CommunityWritePage() {
     /* fetch user + events */
     useEffect(() => {
         (async () => {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
             if (session?.user) {
@@ -221,14 +192,14 @@ export default function CommunityWritePage() {
 
         setIsSubmitting(true);
         try {
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
             if (!session?.user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
             const { error } = await sb.from('posts').insert({
                 user_id: session.user.id,
-                category: CATEGORIES.find(c => c.key === category)?.label.replace(/^.{2}/, '').trim() || category,
+                seller_type: mainType || null,
+                category: { realtime: '실시간 행사 현황', free: '자유게시판', qna: '질문/답변', tips: '팁/정보', trade: '사고팔고' }[category] || category,
                 title: title.trim(),
                 content: content.trim(),
                 location: locationSelected || null,
@@ -250,23 +221,7 @@ export default function CommunityWritePage() {
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
-            <TopBar
-                title="글쓰기"
-                back
-                action={
-                    <button
-                        onClick={isSubmitting ? null : handleSubmit}
-                        disabled={isSubmitting}
-                        style={{
-                            background: T.blue, border: 'none', borderRadius: T.radiusFull,
-                            padding: '8px 18px', color: '#fff', fontSize: 14, fontWeight: 700,
-                            cursor: isSubmitting ? 'default' : 'pointer', opacity: isSubmitting ? 0.6 : 1,
-                        }}
-                    >
-                        {isSubmitting ? '게시 중...' : '게시'}
-                    </button>
-                }
-            />
+            <TopBar title="글쓰기" back />
 
             <div className="page-padding">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -306,6 +261,37 @@ export default function CommunityWritePage() {
                                 </div>
                             </div>
                         </div>
+                    </Card>
+
+                    {/* ── 대카테고리 ── */}
+                    <Card>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>
+                            누구를 위한 글인가요?
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            {[
+                                { key: 'seller', label: '💎 일반셀러' },
+                                { key: 'foodtruck', label: '🚚 푸드트럭' },
+                                { key: 'organizer', label: '🏢 주최사' },
+                            ].map(t => (
+                                <div
+                                    key={t.key}
+                                    onClick={() => setMainType(prev => prev === t.key ? '' : t.key)}
+                                    style={{
+                                        flex: 1, padding: '12px 6px', borderRadius: T.radiusMd,
+                                        textAlign: 'center', cursor: 'pointer',
+                                        border: `1.5px solid ${mainType === t.key ? T.blue : T.border}`,
+                                        background: mainType === t.key ? T.blueLt : T.white,
+                                        fontSize: 13, fontWeight: 700,
+                                        color: mainType === t.key ? T.blue : T.gray,
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    {t.label}
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ fontSize: 11, color: T.gray, marginTop: 8 }}>선택하지 않으면 전체 공개입니다.</div>
                     </Card>
 
                     {/* ── 카테고리 (필수) ── */}
@@ -493,7 +479,7 @@ export default function CommunityWritePage() {
                                     boxShadow: T.shadowMd, maxHeight: 200, overflowY: 'auto', zIndex: 200,
                                 }}>
                                     {filteredEvents.length === 0 ? (
-                                        <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없습니다.</div>
+                                        <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없어요.</div>
                                     ) : filteredEvents.map((e, i) => (
                                         <div
                                             key={e.id}
@@ -512,28 +498,22 @@ export default function CommunityWritePage() {
                         </div>
                     </Card>
 
-                </div>
-            </div>
+                    {/* ── 게시 버튼 ── */}
+                    <button
+                        onClick={isSubmitting ? null : handleSubmit}
+                        disabled={isSubmitting}
+                        style={{
+                            width: '100%', padding: 16, borderRadius: T.radiusMd,
+                            background: isSubmitting ? T.gray : T.blue,
+                            border: 'none', color: '#fff', fontSize: 16, fontWeight: 800,
+                            cursor: isSubmitting ? 'default' : 'pointer', transition: 'background 0.15s',
+                            marginTop: 8,
+                        }}
+                    >
+                        {isSubmitting ? '게시 중...' : '게시하기'}
+                    </button>
 
-            {/* ── Fixed bottom submit ── */}
-            <div style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)',
-                padding: '12px 20px 28px',
-                borderTop: `1px solid ${T.border}`,
-            }}>
-                <button
-                    onClick={isSubmitting ? null : handleSubmit}
-                    disabled={isSubmitting}
-                    style={{
-                        width: '100%', padding: 16, borderRadius: T.radiusMd,
-                        background: isSubmitting ? T.gray : T.blue,
-                        border: 'none', color: '#fff', fontSize: 16, fontWeight: 800,
-                        cursor: isSubmitting ? 'default' : 'pointer', transition: 'background 0.15s',
-                    }}
-                >
-                    {isSubmitting ? '게시 중...' : '게시하기'}
-                </button>
+                </div>
             </div>
         </div>
     );

@@ -10,6 +10,16 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+button, a, [role="button"] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+button:active, a:active {
+    opacity: 0.7;
+}
+
 body {
     background: var(--background);
     color: var(--foreground);
@@ -25,4 +35,22 @@ a {
 .page-padding {
     padding: 20px;
 }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* 스크롤바 숨김 */
+div::-webkit-scrollbar { display: none; }
 

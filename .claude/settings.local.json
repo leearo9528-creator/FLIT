@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(node:*)",
+      "Bash(cd:*)",
+      "Bash(which npm:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(find:*)",
+      "Bash(for file:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

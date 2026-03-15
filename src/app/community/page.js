@@ -1,128 +1,172 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, PenLine } from 'lucide-react';
+import { Heart, Search, SlidersHorizontal, X } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
+import { timeAgo } from '@/lib/helpers';
+import { createClient } from '@/utils/supabase/client';
+import { SellerBadge, LocationTag } from '@/components/ui/SellerBadge';
 
-/* ─── Mock data ─────────────────────────────────────────────── */
-const MOCK_POSTS = {
-    '실시간 현황': [
-        {
-            id: 1, sellerType: 'foodtruck', location: '여의도 한강',
-            title: '여의도 오늘 자리 잡았어요! 팟타이 특가 이벤트 중',
-            summary: '드디어 자리 잡았습니다 🎉 오늘 팟타이 6,000원에 팔아요. 날씨 좋으니 많이 와주세요!',
-            likes: 18, comments: 6, time: '5분 전',
-        },
-        {
-            id: 2, sellerType: 'seller', location: '성수동',
-            title: '성수 팝업 현황 — 오전 11시 기준 매출 중간 점검',
-            summary: '오전에만 35만원 찍었어요. 예상보다 잘 팔리는 아이템은 키링이랑 파우치입니다.',
-            likes: 32, comments: 11, time: '23분 전',
-        },
-        {
-            id: 3, sellerType: 'foodtruck', location: '홍대 걷고싶은거리',
-            title: '홍대 오후 3시 현재 웨이팅 없음! 붕어빵 가판대',
-            summary: '점심 피크 지나고 한산해졌어요. 오후에 오시면 바로 받아가실 수 있어요 😊',
-            likes: 9, comments: 3, time: '1시간 전',
-        },
-        {
-            id: 4, sellerType: 'seller', location: '잠실 석촌호수',
-            title: '석촌호수 벚꽃 시즌 대박났다 진짜로',
-            summary: '어제 역대 최고 매출 갱신했어요. 핸드메이드 엽서가 특히 잘 나갔고, 사람이 너무 많아서 체력이 바닥났습니다 ㅋㅋ',
-            likes: 55, comments: 22, time: '2시간 전',
-        },
-    ],
-    '자유게시판': [
-        {
-            id: 5, sellerType: 'seller',
-            title: '처음 플리마켓 나가는데 필수 준비물 알려주세요',
-            summary: '다음 달에 첫 출전이에요. 선배 셀러분들 필수 준비물이나 팁 좀 알려주시면 너무 감사할 것 같아요 🙏',
-            likes: 14, comments: 28, time: '30분 전',
-        },
-        {
-            id: 6, sellerType: 'foodtruck',
-            title: '푸드트럭 허가증 갱신 절차 바뀐 거 아세요?',
-            summary: '작년이랑 서류가 달라진 것 같던데, 혹시 최근에 갱신하신 분 계신가요? 구청마다 다르다는 얘기도 있어서...',
-            likes: 7, comments: 15, time: '1시간 전',
-        },
-        {
-            id: 7, sellerType: 'seller',
-            title: '카드 단말기 추천 — 수수료 낮은 곳 비교해봤어요',
-            summary: '토스, 카카오페이, 나이스페이 수수료 직접 비교해봤습니다. 결론은 연 매출 기준으로 갈리더라고요.',
-            likes: 41, comments: 19, time: '3시간 전',
-        },
-        {
-            id: 8, sellerType: 'foodtruck',
-            title: '비 오는 날 매출 어떻게들 관리하세요?',
-            summary: '오늘 같은 날 그냥 쉬어야 하나 vs 그래도 나가야 하나 고민중이에요. 비 맞으면서 나가봐야 본전도 못 뽑을 것 같고.',
-            likes: 22, comments: 34, time: '5시간 전',
-        },
-    ],
-    '질문/답변': [
-        {
-            id: 9, sellerType: 'seller',
-            title: '재고 관리 앱 추천 받습니다',
-            summary: '엑셀로 하다가 한계가 왔어요 ㅠ 소규모 핸드메이드 셀러에게 맞는 재고 관리 앱 있으면 알려주세요.',
-            likes: 5, comments: 8, time: '2시간 전',
-        },
-        {
-            id: 10, sellerType: 'foodtruck',
-            title: '영업신고증 없으면 플리마켓 못 나가나요?',
-            summary: '주최 측에서 서류 요청하는 경우가 있다고 들었는데, 없으면 무조건 탈락인가요?',
-            likes: 3, comments: 12, time: '4시간 전',
-        },
-    ],
-};
+const PAGE_SIZE = 10;
 
-/* ─── Sub-components ────────────────────────────────────────── */
-function SellerBadge({ type }) {
-    const isFoodTruck = type === 'foodtruck';
+const TABS = [
+    { key: 'all', label: '전체 게시글' },
+    { key: 'anonymous', label: '익명' },
+    { key: 'trade', label: '사고팔고' },
+];
+
+const FILTER_CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보', '사고팔고'];
+
+const SORT_OPTIONS = [
+    { key: 'latest', label: '최신순' },
+    { key: 'likes', label: '좋아요순' },
+];
+
+const SELLER_TYPES = ['전체', '일반셀러', '푸드트럭'];
+
+/* ─── Post Card ──────────────────────────────────────────────── */
+function PostCard({ post, onClick }) {
     return (
-        <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            fontSize: 11, fontWeight: 700,
-            padding: '3px 8px', borderRadius: T.radiusFull,
-            background: isFoodTruck ? T.yellowLt : T.blueLt,
-            color: isFoodTruck ? T.yellow : T.blue,
+        <div onClick={onClick} style={{
+            background: T.white, borderRadius: T.radiusLg,
+            border: `1px solid ${T.border}`,
+            padding: '14px 16px', cursor: 'pointer',
+            boxShadow: T.shadowSm,
         }}>
-            {isFoodTruck ? '🚚' : '💎'} {isFoodTruck ? '푸드트럭' : '일반셀러'}
-        </span>
-    );
-}
+            {/* 배지 */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {post.category && (
+                    <span style={{
+                        fontSize: 11, fontWeight: 700, color: T.blue,
+                        background: T.blueLt, padding: '2px 8px', borderRadius: 4,
+                    }}>
+                        {post.category}
+                    </span>
+                )}
+                {post.seller_type && !post.is_anonymous && <SellerBadge type={post.seller_type} />}
+                {post.location && !post.is_anonymous && <LocationTag location={post.location} />}
+                {post.is_anonymous && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '2px 8px', borderRadius: 4 }}>
+                        익명
+                    </span>
+                )}
+            </div>
 
-function LocationTag({ location }) {
-    return (
-        <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            fontSize: 11, fontWeight: 700,
-            padding: '3px 8px', borderRadius: T.radiusFull,
-            background: T.greenLt, color: T.green,
-        }}>
-            📍 {location}
-        </span>
+            {/* 제목 */}
+            <div style={{
+                fontSize: 15, fontWeight: 700, color: T.text,
+                marginBottom: 5, lineHeight: 1.4,
+                display: '-webkit-box', WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+                {post.title}
+            </div>
+
+            {/* 내용 미리보기 */}
+            {post.content && (
+                <div style={{
+                    fontSize: 13, color: T.textSub, lineHeight: 1.6,
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    marginBottom: 10,
+                }}>
+                    {post.content}
+                </div>
+            )}
+
+            {/* 하단 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: T.gray }}>
+                    <Heart size={12} /> {post.likes ?? 0}
+                </span>
+                <span style={{ marginLeft: 'auto', fontSize: 12, color: T.gray }}>
+                    {timeAgo(post.created_at)}
+                </span>
+            </div>
+        </div>
     );
 }
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function CommunityPage() {
     const router = useRouter();
-    const [tab, setTab] = useState('실시간 현황');
-    const [scrolled, setScrolled] = useState(false);
-    const [showTooltip, setShowTooltip] = useState(true);
 
-    const tabs = ['실시간 현황', '자유게시판', '질문/답변'];
-    const isLive = tab === '실시간 현황';
-    const posts = MOCK_POSTS[tab] || [];
+    const [activeTab, setActiveTab] = useState('all');
+    const [query, setQuery] = useState('');
+    const [category, setCategory] = useState('전체');
+    const [sellerType, setSellerType] = useState('전체');
+    const [sortBy, setSortBy] = useState('latest');
+    const [showFilters, setShowFilters] = useState(false);
 
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(0);
+
+    const sentinelRef = useRef(null);
+    const observerRef = useRef(null);
+
+    /* ── 데이터 fetch ── */
+    const fetchPosts = useCallback(async (pageIndex, reset = false) => {
+        if (pageIndex === 0) setLoading(true);
+        else setLoadingMore(true);
+
+        const sb = createClient();
+        let q = sb
+            .from('posts')
+            .select('id, title, content, category, location, seller_type, likes, created_at, is_anonymous');
+
+        if (activeTab === 'anonymous') q = q.eq('is_anonymous', true);
+        else if (activeTab === 'trade') q = q.eq('category', '사고팔고');
+
+        if (category !== '전체') q = q.eq('category', category);
+        if (sellerType !== '전체') q = q.eq('seller_type', sellerType === '일반셀러' ? 'seller' : 'foodtruck');
+
+        q = q.order(sortBy === 'likes' ? 'likes' : 'created_at', { ascending: false })
+             .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
+
+        const { data } = await q;
+        const fetched = data || [];
+
+        setPosts(prev => reset ? fetched : [...prev, ...fetched]);
+        setHasMore(fetched.length === PAGE_SIZE);
+        setLoading(false);
+        setLoadingMore(false);
+    }, [activeTab, sellerType, sortBy]);
+
+    /* 탭/필터 변경 시 초기화 */
     useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 40);
-            if (window.scrollY > 60) setShowTooltip(false);
-        };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+        setPage(0);
+        setHasMore(true);
+        fetchPosts(0, true);
+    }, [activeTab, category, sellerType, sortBy]);
+
+    /* 무한 스크롤 */
+    useEffect(() => {
+        if (observerRef.current) observerRef.current.disconnect();
+        observerRef.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+                const nextPage = page + 1;
+                setPage(nextPage);
+                fetchPosts(nextPage);
+            }
+        }, { threshold: 0.1 });
+
+        if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
+        return () => observerRef.current?.disconnect();
+    }, [hasMore, loadingMore, loading, page, fetchPosts]);
+
+    /* 클라이언트 검색 필터 */
+    const filtered = query.trim()
+        ? posts.filter(p =>
+            p.title?.toLowerCase().includes(query.toLowerCase()) ||
+            p.content?.toLowerCase().includes(query.toLowerCase())
+          )
+        : posts;
+
+    const activeFilterCount = [category !== '전체', sellerType !== '전체', sortBy !== 'latest'].filter(Boolean).length;
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 110 }}>
@@ -130,143 +174,171 @@ export default function CommunityPage() {
             {/* ── Sticky Header ── */}
             <div style={{
                 position: 'sticky', top: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.92)',
+                background: 'rgba(255,255,255,0.97)',
                 backdropFilter: 'blur(16px)',
                 borderBottom: `1px solid ${T.border}`,
-                transition: 'padding 0.25s ease',
-                padding: scrolled ? '10px 20px 0' : '18px 20px 0',
             }}>
-                {/* Title area — collapses on scroll */}
-                <div style={{
-                    overflow: 'hidden',
-                    transition: 'max-height 0.25s ease, opacity 0.2s ease',
-                    maxHeight: scrolled ? 0 : 64,
-                    opacity: scrolled ? 0 : 1,
-                }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: -0.5 }}>
+                <div style={{ padding: '18px 16px 12px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: T.text, letterSpacing: -0.5, marginBottom: 12 }}>
                         커뮤니티 💬
                     </div>
-                    <div style={{ fontSize: 13, color: T.gray, marginTop: 3, paddingBottom: 12 }}>
-                        셀러들과 소통하고 정보를 나누세요
+
+                    {/* 검색바 */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        background: T.bg, borderRadius: T.radiusMd,
+                        border: `1.5px solid ${query ? T.blue : T.border}`, padding: '0 14px',
+                    }}>
+                        <Search size={15} color={T.gray} style={{ flexShrink: 0 }} />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            placeholder="제목, 내용 검색"
+                            style={{ flex: 1, padding: '11px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                        />
+                        {query ? (
+                            <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setQuery('')} />
+                        ) : (
+                            <div
+                                onClick={() => setShowFilters(f => !f)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 4,
+                                    padding: '5px 10px', borderRadius: T.radiusMd,
+                                    background: showFilters || activeFilterCount > 0 ? T.text : T.white,
+                                    color: showFilters || activeFilterCount > 0 ? T.white : T.gray,
+                                    border: `1px solid ${T.border}`,
+                                    fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                                }}
+                            >
+                                <SlidersHorizontal size={13} />
+                                필터{activeFilterCount > 0 ? ` ${activeFilterCount}` : ''}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Tab bar */}
-                <div style={{ display: 'flex', overflowX: 'auto', scrollbarWidth: 'none' }}>
-                    {tabs.map(t => (
-                        <button key={t} onClick={() => setTab(t)} style={{
-                            padding: '12px 16px',
-                            fontSize: 14, fontWeight: tab === t ? 800 : 500,
-                            color: tab === t ? T.blue : T.gray,
-                            background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                            borderBottom: tab === t ? `2.5px solid ${T.blue}` : '2.5px solid transparent',
-                            transition: 'all 0.15s',
-                        }}>
-                            {t}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* ── Post list ── */}
-            <div style={{ padding: '16px 16px 0' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {posts.map(post => (
-                        <div key={post.id} onClick={() => router.push(`/community/${post.id}`)} style={{
-                            background: T.white, borderRadius: T.radiusLg,
-                            border: `1px solid ${T.border}`,
-                            padding: '14px 16px', cursor: 'pointer',
-                            boxShadow: T.shadowSm,
-                        }}>
-                            {/* Badges */}
-                            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-                                <SellerBadge type={post.sellerType} />
-                                {isLive && post.location && <LocationTag location={post.location} />}
+                {/* 필터 패널 */}
+                {showFilters && (
+                    <div style={{ background: T.bg, borderTop: `1px solid ${T.border}`, paddingBottom: 4 }}>
+                        <div style={{ padding: '10px 16px 8px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>정렬</div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                {SORT_OPTIONS.map(opt => (
+                                    <div key={opt.key} onClick={() => setSortBy(opt.key)} style={{
+                                        padding: '7px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
+                                        fontSize: 13, fontWeight: 600,
+                                        background: sortBy === opt.key ? T.text : T.white,
+                                        color: sortBy === opt.key ? T.white : T.gray,
+                                        border: `1px solid ${sortBy === opt.key ? T.text : T.border}`,
+                                        transition: 'all 0.15s',
+                                    }}>{opt.label}</div>
+                                ))}
                             </div>
-
-                            {/* Title */}
-                            <div style={{
-                                fontSize: 16, fontWeight: 700, color: T.text,
-                                marginBottom: 5, lineHeight: 1.4,
-                                display: '-webkit-box', WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                            }}>
-                                {post.title}
+                        </div>
+                        <div style={{ padding: '0 16px 8px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>카테고리</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {FILTER_CATEGORIES.map(cat => (
+                                    <div key={cat} onClick={() => setCategory(cat)} style={{
+                                        padding: '7px 14px', borderRadius: T.radiusFull, cursor: 'pointer',
+                                        fontSize: 13, fontWeight: 600,
+                                        background: category === cat ? T.text : T.white,
+                                        color: category === cat ? T.white : T.gray,
+                                        border: `1px solid ${category === cat ? T.text : T.border}`,
+                                        transition: 'all 0.15s',
+                                    }}>{cat}</div>
+                                ))}
                             </div>
+                        </div>
 
-                            {/* Summary */}
-                            <div style={{
-                                fontSize: 14, color: T.textSub, lineHeight: 1.6,
-                                display: '-webkit-box', WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                                marginBottom: 12,
-                            }}>
-                                {post.summary}
+                        <div style={{ padding: '0 16px 12px' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>셀러 유형</div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                {SELLER_TYPES.map(type => (
+                                    <div key={type} onClick={() => setSellerType(type)} style={{
+                                        padding: '7px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
+                                        fontSize: 13, fontWeight: 600,
+                                        background: sellerType === type ? T.text : T.white,
+                                        color: sellerType === type ? T.white : T.gray,
+                                        border: `1px solid ${sellerType === type ? T.text : T.border}`,
+                                        transition: 'all 0.15s',
+                                    }}>{type}</div>
+                                ))}
                             </div>
+                        </div>
+                    </div>
+                )}
 
-                            {/* Activity indicators */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: T.gray }}>
-                                    <Heart size={12} /> {post.likes}
-                                </span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: T.gray }}>
-                                    <MessageCircle size={12} /> {post.comments}
-                                </span>
-                                <span style={{ marginLeft: 'auto', fontSize: 12, color: T.gray }}>
-                                    {post.time}
-                                </span>
-                            </div>
+                {/* 탭 바 */}
+                <div style={{ display: 'flex', borderTop: `1px solid ${T.border}` }}>
+                    {TABS.map(tab => (
+                        <div
+                            key={tab.key}
+                            onClick={() => { setActiveTab(tab.key); setQuery(''); }}
+                            style={{
+                                flex: 1, textAlign: 'center', padding: '13px 0',
+                                fontSize: 13, fontWeight: activeTab === tab.key ? 800 : 500,
+                                color: activeTab === tab.key ? T.text : T.gray,
+                                cursor: 'pointer',
+                                borderBottom: activeTab === tab.key ? `2.5px solid ${T.text}` : '2.5px solid transparent',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            {tab.label}
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* ── FAB + Tooltip ── */}
-            <div style={{
-                position: 'fixed', bottom: 90, right: 20, zIndex: 200,
-                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10,
-            }}>
-                {/* Tooltip */}
-                <div style={{
-                    background: T.text, color: '#fff',
-                    fontSize: 13, fontWeight: 600,
-                    padding: '9px 14px', borderRadius: T.radiusMd,
-                    boxShadow: T.shadowMd, whiteSpace: 'nowrap',
-                    opacity: showTooltip ? 1 : 0,
-                    transform: showTooltip ? 'translateY(0)' : 'translateY(6px)',
-                    transition: 'opacity 0.3s ease, transform 0.3s ease',
-                    pointerEvents: 'none',
-                    position: 'relative',
-                }}>
-                    리뷰 3개 쓰면 첫 달 0원! ✨
-                    <div style={{
-                        position: 'absolute', bottom: -6, right: 22,
-                        width: 12, height: 6,
-                        clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-                        background: T.text,
-                    }} />
-                </div>
+            {/* ── 게시글 목록 ── */}
+            <div style={{ padding: '16px 16px 0' }}>
+                {loading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {Array(4).fill(0).map((_, i) => (
+                            <div key={i} style={{ height: 130, background: T.grayLt, borderRadius: T.radiusLg, animation: 'pulse 1.5s infinite' }} />
+                        ))}
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
+                        {query ? `"${query}" 검색 결과가 없어요.` : '아직 게시글이 없어요.'}
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {filtered.map(post => (
+                            <PostCard
+                                key={post.id}
+                                post={post}
+                                onClick={() => router.push(`/community/${post.id}`)}
+                            />
+                        ))}
+                    </div>
+                )}
 
-                {/* FAB */}
-                <button
-                    onClick={() => router.push('/community/write')}
-                    style={{
-                        width: 56, height: 56, borderRadius: '50%',
-                        background: T.blue, border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: T.shadowLg,
-                        transition: 'transform 0.15s',
-                    }}
-                >
-                    <PenLine size={22} color="#fff" />
-                </button>
+                {/* 무한 스크롤 sentinel */}
+                <div ref={sentinelRef} style={{ height: 1 }} />
+
+                {/* 로딩 더보기 */}
+                {loadingMore && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                        {Array(3).fill(0).map((_, i) => (
+                            <div key={i} style={{ height: 120, background: T.grayLt, borderRadius: T.radiusLg, animation: 'pulse 1.5s infinite' }} />
+                        ))}
+                    </div>
+                )}
+
+                {/* 더 이상 없을 때 */}
+                {!loading && !loadingMore && !hasMore && filtered.length > 0 && (
+                    <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 13 }}>
+                        모든 게시글을 불러왔습니다.
+                    </div>
+                )}
             </div>
 
             <style jsx global>{`
                 @keyframes pulse {
-                    0% { opacity: 1; }
+                    0%, 100% { opacity: 1; }
                     50% { opacity: 0.5; }
-                    100% { opacity: 1; }
                 }
             `}</style>
         </div>

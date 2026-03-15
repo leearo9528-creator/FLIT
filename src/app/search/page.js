@@ -1,20 +1,13 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, MapPin, Tag, ArrowUpDown } from 'lucide-react';
 import { T, FILTERS } from '@/lib/design-tokens';
+import { calcRating } from '@/lib/helpers';
+import { createClient } from '@/utils/supabase/client';
 import Card from '@/components/ui/Card';
-
-/* ─── helpers ────────────────────────────────────────────────── */
-function calcRating(event) {
-    if (!event) return '0.0';
-    if (event.avg_rating) return parseFloat(event.avg_rating).toFixed(1);
-    if (event.average_profit && event.average_traffic)
-        return ((event.average_profit + event.average_traffic) / 2).toFixed(1);
-    return '0.0';
-}
 
 /* ─── Filter Chip Row ─────────────────────────────────────────── */
 function ChipRow({ label, icon, options, value, onChange }) {
@@ -64,35 +57,36 @@ const SORT_OPTIONS = [
 
 function SortBar({ value, onChange }) {
     return (
-        <div style={{
-            display: 'flex', gap: 8, overflowX: 'auto',
-            padding: '0 16px 12px',
-            scrollbarWidth: 'none',
-        }}>
+        <div style={{ padding: '10px 16px 12px' }}>
             <div style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                marginRight: 4, fontSize: 12, color: T.gray, flexShrink: 0,
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8,
             }}>
-                <ArrowUpDown size={13} />
+                <ArrowUpDown size={12} />
                 정렬
             </div>
-            {SORT_OPTIONS.map(opt => (
-                <div
-                    key={opt.key}
-                    onClick={() => onChange(opt.key)}
-                    style={{
-                        padding: '6px 12px', borderRadius: T.radiusFull,
-                        fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        whiteSpace: 'nowrap', flexShrink: 0,
-                        background: value === opt.key ? T.blue : T.white,
-                        color: value === opt.key ? T.white : T.gray,
-                        border: `1px solid ${value === opt.key ? T.blue : T.border}`,
-                        transition: 'all 0.15s',
-                    }}
-                >
-                    {opt.label}
-                </div>
-            ))}
+            <div style={{
+                display: 'flex', gap: 8, overflowX: 'auto',
+                scrollbarWidth: 'none', msOverflowStyle: 'none',
+            }}>
+                {SORT_OPTIONS.map(opt => (
+                    <div
+                        key={opt.key}
+                        onClick={() => onChange(opt.key)}
+                        style={{
+                            padding: '7px 14px', borderRadius: T.radiusFull,
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            whiteSpace: 'nowrap', flexShrink: 0,
+                            background: value === opt.key ? T.text : T.white,
+                            color: value === opt.key ? T.white : T.gray,
+                            border: `1px solid ${value === opt.key ? T.text : T.border}`,
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        {opt.label}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -145,17 +139,17 @@ function RecruitCard({ rec }) {
                     </div>
                 )}
 
-                {/* location + fee row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: T.textSub }}>
-                        <MapPin size={13} color={T.gray} />
-                        {ev.location || '장소 미정'}
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: T.blue }}>
-                        {rec.fee === 0 || rec.fee === null
-                            ? '참가비 무료'
-                            : `${Number(rec.fee).toLocaleString()}원`}
-                    </div>
+                {/* fee */}
+                <div style={{ fontSize: 15, fontWeight: 800, color: T.blue, marginBottom: 6 }}>
+                    {rec.fee === 0 || rec.fee === null
+                        ? '참가비 무료'
+                        : `참가비 ${Number(rec.fee).toLocaleString()}원`}
+                </div>
+
+                {/* location */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: T.textSub, marginBottom: 12 }}>
+                    <MapPin size={13} color={T.gray} />
+                    {ev.location || '장소 미정'}
                 </div>
 
                 {/* event date */}
@@ -302,7 +296,7 @@ function Skeleton({ count = 3, height = 130 }) {
 
 /* ─── Tab Bar ────────────────────────────────────────────────── */
 const TABS = [
-    { key: 'recruitments', label: '📢 현재공고' },
+    { key: 'recruitments', label: '📢 모집공고' },
     { key: 'events', label: '📍 행사평가' },
     { key: 'organizers', label: '🏢 주최측평가' },
 ];
@@ -328,7 +322,6 @@ function SearchContent() {
     useEffect(() => {
         (async () => {
             setLoading(true);
-            const { createClient } = await import('@/utils/supabase/client');
             const sb = createClient();
 
             const [{ data: recData }, { data: evtData }, { data: orgData }] = await Promise.all([
@@ -351,7 +344,7 @@ function SearchContent() {
     }, []);
 
     /* ── filtered & sorted recruitments ── */
-    const filteredRecruitments = useCallback(() => {
+    const filteredRecruitments = useMemo(() => {
         let list = recruitments;
 
         if (query.trim()) {
@@ -365,10 +358,7 @@ function SearchContent() {
         }
 
         if (regionFilter !== '전체') {
-            list = list.filter(r => {
-                const loc = r.event?.location || '';
-                return loc.includes(regionFilter);
-            });
+            list = list.filter(r => (r.event?.location || '').includes(regionFilter));
         }
 
         if (categoryFilter !== '전체') {
@@ -378,28 +368,24 @@ function SearchContent() {
         if (sortBy === 'fee_asc') list = [...list].sort((a, b) => (a.fee ?? 0) - (b.fee ?? 0));
         else if (sortBy === 'fee_desc') list = [...list].sort((a, b) => (b.fee ?? 0) - (a.fee ?? 0));
         else if (sortBy === 'rating') {
-            list = [...list].sort((a, b) => {
-                const rA = parseFloat(calcRating(a.event));
-                const rB = parseFloat(calcRating(b.event));
-                return rB - rA;
-            });
+            list = [...list].sort((a, b) => parseFloat(calcRating(b.event)) - parseFloat(calcRating(a.event)));
         }
 
         return list;
-    }, [recruitments, query, regionFilter, categoryFilter, sortBy])();
+    }, [recruitments, query, regionFilter, categoryFilter, sortBy]);
 
-    const filteredEvents = events.filter(e => {
+    const filteredEvents = useMemo(() => events.filter(e => {
         if (!query.trim()) return true;
         const q = query.toLowerCase();
         return (e.name || '').toLowerCase().includes(q) ||
             (e.location || '').toLowerCase().includes(q) ||
             (e.category || '').toLowerCase().includes(q);
-    });
+    }), [events, query]);
 
-    const filteredOrganizers = organizers.filter(o => {
+    const filteredOrganizers = useMemo(() => organizers.filter(o => {
         if (!query.trim()) return true;
         return (o.name || '').toLowerCase().includes(query.toLowerCase());
-    });
+    }), [organizers, query]);
 
     const activeFilterCount = [regionFilter !== '전체', categoryFilter !== '전체', sortBy !== 'latest']
         .filter(Boolean).length;
@@ -413,7 +399,7 @@ function SearchContent() {
             }}>
                 <div style={{ padding: '20px 16px 12px' }}>
                     <div style={{ fontSize: 20, fontWeight: 900, color: T.text, letterSpacing: -0.5, marginBottom: 12 }}>
-                        마켓 찾기
+                        행사 찾기
                     </div>
 
                     {/* search bar */}
@@ -457,6 +443,7 @@ function SearchContent() {
                 {/* filter panel (collapse) */}
                 {activeTab === 'recruitments' && showFilters && (
                     <div style={{ borderTop: `1px solid ${T.border}`, background: T.bg, paddingBottom: 4 }}>
+                        <SortBar value={sortBy} onChange={setSortBy} />
                         <ChipRow
                             label="지역"
                             icon={<MapPin size={12} />}
@@ -471,7 +458,6 @@ function SearchContent() {
                             value={categoryFilter}
                             onChange={setCategoryFilter}
                         />
-                        <SortBar value={sortBy} onChange={setSortBy} />
                     </div>
                 )}
 
@@ -513,7 +499,7 @@ function SearchContent() {
                             ? <Skeleton />
                             : filteredRecruitments.length === 0
                                 ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 15 }}>
-                                    진행 중인 공고가 없습니다.
+                                    진행 중인 공고가 없어요.
                                 </div>
                                 : filteredRecruitments.map(r => <RecruitCard key={r.id} rec={r} />)
                         }
@@ -526,7 +512,7 @@ function SearchContent() {
                         ? <Skeleton count={4} height={110} />
                         : filteredEvents.length === 0
                             ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 15 }}>
-                                등록된 행사가 없습니다.
+                                등록된 행사가 없어요.
                             </div>
                             : filteredEvents.map(e => <EventCard key={e.id} evt={e} />)
                 )}
@@ -537,19 +523,12 @@ function SearchContent() {
                         ? <Skeleton count={4} height={100} />
                         : filteredOrganizers.length === 0
                             ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 15 }}>
-                                등록된 주최측이 없습니다.
+                                등록된 주최사가 없어요.
                             </div>
                             : filteredOrganizers.map(o => <OrganizerCard key={o.id} org={o} />)
                 )}
             </div>
 
-            <style jsx global>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-                div::-webkit-scrollbar { display: none; }
-            `}</style>
         </div>
     );
 }

@@ -2,29 +2,45 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronRight, Settings, Bell, LogOut, HelpCircle, FileText, Star, Bookmark, MessageSquare } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
-import Card from '@/components/ui/Card';
+
+const ACTIVITY_MENUS = [
+    { icon: Star,        label: '내가 쓴 리뷰',   href: '/mypage/reviews',  countKey: 'reviews' },
+    { icon: Bookmark,    label: '관심 가는 행사', href: '/mypage/events',   countKey: 'events' },
+    { icon: MessageSquare, label: '내가 쓴 글',  href: '/mypage/posts',    countKey: 'posts' },
+];
+
+const SETTING_MENUS = [
+    { icon: Bell,       label: '알림 설정',  href: '/mypage/settings' },
+    { icon: FileText,   label: '내 프로필', href: '/mypage/profile' },
+    { icon: HelpCircle, label: '공지사항 / 도움말', href: null },
+];
 
 export default function MyPage() {
     const { user, loading, signOut } = useAuth();
     const router = useRouter();
-    const [reviewCount, setReviewCount] = useState(0);
+    const [counts, setCounts] = useState({ reviews: 0, events: 0, posts: 0 });
 
     useEffect(() => {
         if (!loading && !user) router.replace('/login');
-        if (user) {
-            // 내가 쓴 리뷰 개수 가져오기 (3개 혜택 체크용)
-            const fetchReviewCount = async () => {
-                const { createClient } = await import('@/utils/supabase/client');
-                const sb = createClient();
-                const { count } = await sb.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
-                setReviewCount(count || 0);
-            };
-            fetchReviewCount();
-        }
     }, [user, loading, router]);
+
+    useEffect(() => {
+        if (!user) return;
+        (async () => {
+            const sb = createClient();
+            const [rv, ev, pt] = await Promise.all([
+                sb.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+                sb.from('events').select('*', { count: 'exact', head: true }).eq('submitted_by', user.id),
+                sb.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+            ]);
+            setCounts({ reviews: rv.count || 0, events: ev.count || 0, posts: pt.count || 0 });
+        })();
+    }, [user]);
 
     if (loading) return (
         <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -34,127 +50,182 @@ export default function MyPage() {
 
     if (!user) return null;
 
+    const displayName = user.user_metadata?.full_name || user.user_metadata?.name || '셀러';
+    const initial = (displayName[0] || '?').toUpperCase();
+    const provider = user.app_metadata?.provider;
+
     const handleLogout = async () => {
         await signOut();
         router.replace('/login');
     };
 
-    const isFreeMonthEligible = reviewCount >= 3;
-
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 80 }}>
-            <TopBar title="마이페이지" />
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
+            <TopBar
+                title="나의 플릿"
+                action={
+                    <div onClick={() => router.push('/mypage/profile')} style={{ cursor: 'pointer', padding: 4 }}>
+                        <Settings size={20} color={T.gray} />
+                    </div>
+                }
+            />
 
-            <div className="page-padding">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    
-                    {/* 구독 정보 박스 */}
-                    <Card padding={20} style={{ background: `linear-gradient(135deg, ${T.text}, #1a1a1a)`, color: T.white }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                            <div>
-                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>내 구독 상태</div>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: T.white }}>
-                                    셀러 멤버십 <span style={{ fontSize: 13, fontWeight: 500, color: T.blueLt, marginLeft: 4, background: 'rgba(59,130,246,0.2)', padding: '2px 8px', borderRadius: 10 }}>월 5,900원</span>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', textDecoration: 'underline' }}>
-                                관리
-                            </div>
-                        </div>
-
-                        {/* 리뷰 카운터 UI */}
-                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: 16, borderRadius: T.radiusMd }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
-                                <div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.white, marginBottom: 2 }}>
-                                        {isFreeMonthEligible ? '🎉 첫 달 무료 혜택 달성!' : '첫 달 무료 혜택까지'}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
-                                        {isFreeMonthEligible ? '결제 시 자동으로 0원 적용됩니다.' : '솔직한 리뷰 3개를 남겨주세요.'}
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: 18, fontWeight: 900, color: isFreeMonthEligible ? T.greenLt : T.white }}>
-                                    <span style={{ fontSize: 24, letterSpacing: -1 }}>{reviewCount}</span><span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>/3</span>
-                                </div>
-                            </div>
-                            
-                            {/* Progress bar */}
-                            <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden' }}>
-                                <div style={{ 
-                                    width: `${Math.min((reviewCount / 3) * 100, 100)}%`, height: '100%', 
-                                    background: isFreeMonthEligible ? T.greenLt : T.blueLt, 
-                                    transition: 'width 0.5s ease' 
-                                }} />
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* 프로필 카드 */}
-                    <Card padding={0}>
-                        <div onClick={() => router.push('/mypage/profile')} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px', cursor: 'pointer' }}>
-                            <div style={{
-                                width: 56, height: 56, borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 24, color: T.white, fontWeight: 700, flexShrink: 0,
-                            }}>
-                                {(user.email?.[0] || user.user_metadata?.name?.[0] || '?').toUpperCase()}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {user.user_metadata?.full_name || user.user_metadata?.name || '셀러'}
-                                    <span style={{ fontSize: 13, color: T.gray, fontWeight: 500 }}>›</span>
-                                </div>
-                                <div style={{
-                                    fontSize: 13, color: T.gray,
-                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                                }}>
-                                    {user.email || '이메일 없음'}
-                                </div>
-                                <div style={{
-                                    marginTop: 6, display: 'inline-block',
-                                    padding: '3px 8px', borderRadius: 6,
-                                    background: T.blueLt, color: T.blue,
-                                    fontSize: 11, fontWeight: 700,
-                                }}>
-                                    {user.app_metadata?.provider === 'kakao' ? '카카오' :
-                                     user.app_metadata?.provider === 'google' ? '구글' : 'SNS'} 로그인
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* 메뉴 */}
-                    <Card padding={0}>
-                        {[
-                            { icon: '✏️', label: '내가 쓴 리뷰', href: '/mypage/reviews' },
-                            { icon: '📢', label: '내가 제보한 행사', href: '/mypage/events' },
-                            { icon: '🔔', label: '알림 설정', href: '/mypage/settings' },
-                        ].map((item, i, arr) => (
-                            <div key={item.label} onClick={() => router.push(item.href)} style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '16px 20px', cursor: 'pointer',
-                                borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                    <span style={{ fontSize: 18 }}>{item.icon}</span>
-                                    <span style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{item.label}</span>
-                                </div>
-                                <span style={{ fontSize: 14, color: T.gray }}>›</span>
-                            </div>
-                        ))}
-                    </Card>
-
-                    {/* 로그아웃 */}
-                    <div onClick={handleLogout} style={{
-                        padding: 16, borderRadius: T.radiusMd, textAlign: 'center',
-                        fontSize: 15, fontWeight: 600, color: T.red,
-                        background: T.white, border: `1px solid ${T.border}`,
-                        cursor: 'pointer', transition: 'all 0.15s',
+            {/* ── 프로필 영역 ── */}
+            <div style={{ background: T.white, padding: '28px 20px 24px', borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                    {/* 아바타 */}
+                    <div style={{
+                        width: 64, height: 64, borderRadius: '50%',
+                        background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 26, color: '#fff', fontWeight: 800, flexShrink: 0,
                     }}>
-                        로그아웃
+                        {initial}
+                    </div>
+                    {/* 이름 + 이메일 */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 3 }}>
+                            {displayName}
+                        </div>
+                        <div style={{
+                            fontSize: 13, color: T.gray,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                            {user.email}
+                        </div>
+                        {provider && (
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                marginTop: 6, padding: '3px 8px', borderRadius: 6,
+                                background: provider === 'kakao' ? '#FFF3CD' : T.blueLt,
+                                color: provider === 'kakao' ? '#92400E' : T.blue,
+                                fontSize: 11, fontWeight: 700,
+                            }}>
+                                {provider === 'kakao' ? '카카오' : '구글'} 연결됨
+                            </div>
+                        )}
+                    </div>
+                    {/* 프로필 수정 */}
+                    <div
+                        onClick={() => router.push('/mypage/profile')}
+                        style={{
+                            padding: '7px 14px', borderRadius: T.radiusFull,
+                            border: `1.5px solid ${T.border}`, background: T.white,
+                            fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer',
+                            flexShrink: 0,
+                        }}
+                    >
+                        프로필 수정
                     </div>
                 </div>
+
+                {/* 활동 통계 */}
+                <div style={{
+                    display: 'flex', background: T.bg, borderRadius: T.radiusLg,
+                    overflow: 'hidden',
+                }}>
+                    {[
+                        { label: '리뷰', count: counts.reviews, href: '/mypage/reviews' },
+                        { label: '관심 행사', count: counts.events, href: '/mypage/events' },
+                        { label: '게시글', count: counts.posts, href: '/mypage/posts' },
+                    ].map((item, i, arr) => (
+                        <div
+                            key={item.label}
+                            onClick={() => router.push(item.href)}
+                            style={{
+                                flex: 1, padding: '14px 0', textAlign: 'center', cursor: 'pointer',
+                                borderRight: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
+                            }}
+                        >
+                            <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1.2 }}>
+                                {item.count}
+                            </div>
+                            <div style={{ fontSize: 12, color: T.gray, marginTop: 3, fontWeight: 500 }}>
+                                {item.label}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── 나의 활동 ── */}
+            <div style={{ marginTop: 8, background: T.white, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ padding: '14px 20px 6px', fontSize: 12, fontWeight: 700, color: T.gray }}>
+                    나의 활동
+                </div>
+                {ACTIVITY_MENUS.map((item, i) => {
+                    const Icon = item.icon;
+                    return (
+                        <div
+                            key={item.label}
+                            onClick={() => router.push(item.href)}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '14px 20px', cursor: 'pointer',
+                                borderBottom: i < ACTIVITY_MENUS.length - 1 ? `1px solid ${T.border}` : 'none',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <Icon size={20} color={T.text} strokeWidth={1.8} />
+                                <span style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{item.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {counts[item.countKey] > 0 && (
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>
+                                        {counts[item.countKey]}
+                                    </span>
+                                )}
+                                <ChevronRight size={16} color={T.gray} />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* ── 설정 ── */}
+            <div style={{ marginTop: 8, background: T.white, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ padding: '14px 20px 6px', fontSize: 12, fontWeight: 700, color: T.gray }}>
+                    설정
+                </div>
+                {SETTING_MENUS.map((item, i) => {
+                    const Icon = item.icon;
+                    return (
+                        <div
+                            key={item.label}
+                            onClick={() => item.href ? router.push(item.href) : alert('준비 중이에요.')}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '14px 20px', cursor: 'pointer',
+                                borderBottom: i < SETTING_MENUS.length - 1 ? `1px solid ${T.border}` : 'none',
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <Icon size={20} color={T.text} strokeWidth={1.8} />
+                                <span style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{item.label}</span>
+                            </div>
+                            <ChevronRight size={16} color={T.gray} />
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* ── 로그아웃 ── */}
+            <div style={{ marginTop: 8, background: T.white, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+                <div
+                    onClick={handleLogout}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '14px 20px', cursor: 'pointer',
+                    }}
+                >
+                    <LogOut size={20} color={T.red} strokeWidth={1.8} />
+                    <span style={{ fontSize: 15, fontWeight: 600, color: T.red }}>로그아웃</span>
+                </div>
+            </div>
+
+            {/* 앱 버전 */}
+            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: T.gray }}>
+                플릿(FLIT) v1.0.0
             </div>
         </div>
     );
