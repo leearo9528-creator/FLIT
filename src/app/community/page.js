@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, PenLine } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 
@@ -105,6 +106,7 @@ function LocationTag({ location }) {
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function CommunityPage() {
+    const router = useRouter();
     const [tab, setTab] = useState('실시간 현황');
     const [scrolled, setScrolled] = useState(false);
     const [showTooltip, setShowTooltip] = useState(true);
@@ -170,7 +172,7 @@ export default function CommunityPage() {
             <div style={{ padding: '16px 16px 0' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {posts.map(post => (
-                        <div key={post.id} style={{
+                        <div key={post.id} onClick={() => router.push(`/community/${post.id}`)} style={{
                             background: T.white, borderRadius: T.radiusLg,
                             border: `1px solid ${T.border}`,
                             padding: '14px 16px', cursor: 'pointer',
@@ -246,13 +248,16 @@ export default function CommunityPage() {
                 </div>
 
                 {/* FAB */}
-                <button style={{
-                    width: 56, height: 56, borderRadius: '50%',
-                    background: T.blue, border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: T.shadowLg,
-                    transition: 'transform 0.15s',
-                }}>
+                <button
+                    onClick={() => router.push('/community/write')}
+                    style={{
+                        width: 56, height: 56, borderRadius: '50%',
+                        background: T.blue, border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: T.shadowLg,
+                        transition: 'transform 0.15s',
+                    }}
+                >
                     <PenLine size={22} color="#fff" />
                 </button>
             </div>
