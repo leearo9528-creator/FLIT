@@ -184,7 +184,6 @@ export default function ReviewWritePage() {
     // 인라인 신규 추가 폼
     const [showAddEvent, setShowAddEvent] = useState(false);
     const [newEvtName, setNewEvtName] = useState('');
-    const [newEvtLocation, setNewEvtLocation] = useState('');
     const [addingEvent, setAddingEvent] = useState(false);
 
     const [showAddOrg, setShowAddOrg] = useState(false);
@@ -262,17 +261,16 @@ export default function ReviewWritePage() {
 
     const handleAddEvent = async () => {
         if (!newEvtName.trim()) return alert('행사명을 입력해주세요.');
-        if (!newEvtLocation.trim()) return alert('장소를 입력해주세요.');
         setAddingEvent(true);
         try {
             const sb = createClient();
             const { data, error } = await sb.from('events').insert({
-                name: newEvtName.trim(), location: newEvtLocation.trim(), is_approved: false, source: 'user',
+                name: newEvtName.trim(), is_approved: false, source: 'user',
             }).select('id, name, location').single();
             if (error) throw error;
             setEvents(prev => [...prev, data]);
             setSelectedEventId(data.id); setEvtKeyword(data.name);
-            setShowAddEvent(false); setNewEvtName(''); setNewEvtLocation('');
+            setShowAddEvent(false); setNewEvtName('');
         } catch { alert('행사 추가 중 오류가 발생했습니다.'); }
         finally { setAddingEvent(false); }
     };
@@ -416,9 +414,8 @@ export default function ReviewWritePage() {
                                     <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 12 }}>새 행사 추가</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                         <input value={newEvtName} onChange={e => setNewEvtName(e.target.value)} placeholder="행사명을 입력해주세요" style={{ ...inputStyle(newEvtName), marginBottom: 0 }} />
-                                        <input value={newEvtLocation} onChange={e => setNewEvtLocation(e.target.value)} placeholder="장소 (예: 서울숲, 한강공원 뚝섬)" style={{ ...inputStyle(newEvtLocation), marginBottom: 0 }} />
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); setNewEvtLocation(''); }} style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
+                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); }} style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
                                             <div onClick={addingEvent ? null : handleAddEvent} style={{ flex: 2, padding: '11px 0', textAlign: 'center', background: addingEvent ? T.gray : T.blue, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer' }}>{addingEvent ? '추가 중...' : '추가하기'}</div>
                                         </div>
                                     </div>

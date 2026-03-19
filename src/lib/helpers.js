@@ -1,5 +1,6 @@
 export function calcRating(event) {
     if (!event) return '0.0';
+    if (event.avg_event_rating) return parseFloat(event.avg_event_rating).toFixed(1);
     if (event.avg_rating) return parseFloat(event.avg_rating).toFixed(1);
     if (event.average_profit && event.average_traffic)
         return ((event.average_profit + event.average_traffic) / 2).toFixed(1);

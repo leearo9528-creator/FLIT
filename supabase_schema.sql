@@ -17,8 +17,11 @@ CREATE TABLE public.profiles (
   name                 TEXT,
   avatar_url           TEXT,
 
-  -- 셀러 유형 (일반셀러 / 푸드트럭)
+  -- 셀러 유형 (일반셀러 / 푸드트럭) - 커뮤니티 게시글 표시용
   seller_type          TEXT CHECK (seller_type IN ('seller', 'foodtruck')),
+
+  -- 멤버십 플랜
+  plan                 TEXT DEFAULT 'free' CHECK (plan IN ('free', 'flea_market', 'foodtruck', 'organizer')),
 
   -- 구독 관련
   is_subscribed        BOOLEAN DEFAULT false,
@@ -228,6 +231,9 @@ CREATE TABLE public.posts (
 
   -- 셀러 유형
   seller_type     TEXT CHECK (seller_type IN ('seller', 'foodtruck')),
+
+  -- 작성자
+  author          TEXT,
 
   -- 익명 처리
   is_anonymous    BOOLEAN DEFAULT false,

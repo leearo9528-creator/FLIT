@@ -26,8 +26,11 @@ export default function MyEventsPage() {
             .select(`
                 created_at,
                 recruitment:recruitments (
-                    id, title, fee, start_date, end_date, event_date, status,
-                    event:events (name, location, location_sido, category)
+                    id, title, fee, start_date, end_date, status,
+                    instance:event_instances(
+                        id, location, location_sido, event_date, event_date_end,
+                        base_event:base_events(id, name, category)
+                    )
                 )
             `)
             .eq('user_id', user.id)
@@ -71,11 +74,12 @@ export default function MyEventsPage() {
             ) : (
                 <div style={{ background: T.white }}>
                     {scraps.map((scrap, i) => {
-                        const rec = scrap.recruitment;
-                        const ev = rec?.event;
+                        const rec  = scrap.recruitment;
+                        const inst = rec?.instance || {};
+                        const ev   = inst.base_event || {};
                         const isOpen = rec?.status === 'OPEN';
-                        const eventDate = rec?.event_date
-                            ? new Date(rec.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+                        const eventDate = inst.event_date
+                            ? new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
                             : null;
 
                         return (
@@ -117,7 +121,7 @@ export default function MyEventsPage() {
 
                                 {/* 공고 제목 */}
                                 <div
-                                    onClick={() => router.push(`/recruitments/${rec.id}`)}
+                                    onClick={() => ev.id ? router.push(`/events/${ev.id}`) : router.push(`/recruitments/${rec.id}`)}
                                     style={{
                                         fontSize: 15, fontWeight: 700, color: T.text,
                                         marginBottom: 6, lineHeight: 1.4, cursor: 'pointer',
@@ -135,9 +139,9 @@ export default function MyEventsPage() {
                                             🎪 {ev.name}
                                         </span>
                                     )}
-                                    {ev?.location_sido && (
+                                    {inst?.location_sido && (
                                         <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13, color: T.gray }}>
-                                            <MapPin size={12} /> {ev.location_sido}
+                                            <MapPin size={12} /> {inst.location_sido}
                                         </span>
                                     )}
                                     {eventDate && (

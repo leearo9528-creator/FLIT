@@ -144,7 +144,7 @@ export default function CommunityWritePage() {
                 const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러';
                 setUserNickname(name);
             }
-            const { data: eData } = await sb.from('events').select('id, name, location').order('name');
+            const { data: eData } = await sb.from('base_events').select('id, name').order('name');
             if (eData) setEvents(eData);
         })();
     }, []);
@@ -198,6 +198,7 @@ export default function CommunityWritePage() {
 
             const { error } = await sb.from('posts').insert({
                 user_id: session.user.id,
+                author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
                 seller_type: mainType || null,
                 category: { realtime: '실시간 행사 현황', free: '자유게시판', qna: '질문/답변', tips: '팁/정보', trade: '사고팔고' }[category] || category,
                 title: title.trim(),

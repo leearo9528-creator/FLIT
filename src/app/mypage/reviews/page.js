@@ -2,27 +2,38 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
+import { timeAgo } from '@/lib/helpers';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
+import Link from 'next/link';
 
-function StarDisplay({ value }) {
+const REVENUE_COLOR = {
+    '100만원 이상': { bg: '#DCFCE7', color: '#16A34A' },
+    '50-100만원':   { bg: '#DCFCE7', color: '#16A34A' },
+    '30-50만원':    { bg: '#DBEAFE', color: '#2563EB' },
+    '10-30만원':    { bg: '#FEF3C7', color: '#D97706' },
+    '10만원 미만':  { bg: '#FEE2E2', color: '#DC2626' },
+};
+
+function Stars({ value }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {[1,2,3,4,5].map(s => (
-                <Star
-                    key={s}
-                    size={13}
-                    fill={s <= value ? '#FFB800' : 'none'}
-                    color={s <= value ? '#FFB800' : T.border}
-                    strokeWidth={1.5}
-                />
+        <div style={{ display: 'flex', gap: 1 }}>
+            {[1,2,3,4,5].map(i => (
+                <span key={i} style={{ fontSize: 13, color: i <= value ? '#F59E0B' : '#E5E7EB' }}>★</span>
             ))}
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#FFB800', marginLeft: 4 }}>
-                {value?.toFixed(1) || '-'}
-            </span>
+        </div>
+    );
+}
+
+function MiniRating({ label, value }) {
+    if (value == null) return null;
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11, color: T.gray, flexShrink: 0 }}>{label}</span>
+            <Stars value={value} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{value}</span>
         </div>
     );
 }
@@ -41,8 +52,17 @@ export default function MyReviewsPage() {
     async function fetchReviews() {
         const sb = createClient();
         const { data } = await sb
-            .from('company_reviews')
-            .select('*, event:events(name, location), organizer:organizers(name)')
+            .from('reviews')
+            .select(`
+                id, seller_type, is_verified, created_at,
+                rating_profit, rating_traffic, rating_support, rating_manners, rating_promotion,
+                revenue_range, age_groups, visitor_types, pros, cons, content,
+                event_instance:event_instances(
+                    id, location, event_date,
+                    base_event:base_events(id, name),
+                    organizer:organizers(name)
+                )
+            `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
         if (data) setReviews(data);
@@ -52,7 +72,7 @@ export default function MyReviewsPage() {
     const handleDelete = async (id) => {
         if (!window.confirm('리뷰를 삭제할까요?')) return;
         const sb = createClient();
-        const { error } = await sb.from('company_reviews').delete().eq('id', id);
+        const { error } = await sb.from('reviews').delete().eq('id', id);
         if (!error) setReviews(prev => prev.filter(r => r.id !== id));
     };
 
@@ -62,8 +82,15 @@ export default function MyReviewsPage() {
         </div>
     );
 
+    const allScoresList = reviews.map(r =>
+        [r.rating_profit, r.rating_traffic, r.rating_support, r.rating_manners, r.rating_promotion]
+            .filter(v => v != null)
+    );
     const avgRating = reviews.length
-        ? (reviews.reduce((s, r) => s + (r.rating_profit + r.rating_traffic) / 2, 0) / reviews.length).toFixed(1)
+        ? (allScoresList.reduce((sum, scores) => {
+            if (scores.length === 0) return sum;
+            return sum + scores.reduce((a, b) => a + b, 0) / scores.length;
+        }, 0) / reviews.length).toFixed(1)
         : null;
 
     return (
@@ -73,17 +100,17 @@ export default function MyReviewsPage() {
             {/* 요약 */}
             {reviews.length > 0 && (
                 <div style={{
-                    background: T.white, padding: '20px',
+                    background: T.white, padding: '16px 20px',
                     borderBottom: `1px solid ${T.border}`,
-                    display: 'flex', alignItems: 'center', gap: 20,
+                    display: 'flex', alignItems: 'center', gap: 24,
                 }}>
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: T.text }}>{reviews.length}</div>
+                        <div style={{ fontSize: 26, fontWeight: 900, color: T.text }}>{reviews.length}</div>
                         <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>총 리뷰</div>
                     </div>
-                    <div style={{ width: 1, height: 36, background: T.border }} />
+                    <div style={{ width: 1, height: 32, background: T.border }} />
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#FFB800' }}>{avgRating}</div>
+                        <div style={{ fontSize: 26, fontWeight: 900, color: '#F59E0B' }}>{avgRating}</div>
                         <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>평균 평점</div>
                     </div>
                 </div>
@@ -96,84 +123,127 @@ export default function MyReviewsPage() {
                     <div style={{ fontSize: 13, color: T.gray, marginBottom: 24 }}>행사 참가 후 솔직한 후기를 남겨보세요</div>
                     <div
                         onClick={() => router.push('/reviews/write')}
-                        style={{
-                            background: T.blue, color: '#fff',
-                            padding: '10px 24px', borderRadius: T.radiusFull,
-                            fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                        }}
+                        style={{ background: T.blue, color: '#fff', padding: '10px 24px', borderRadius: T.radiusFull, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
                     >
                         리뷰 작성하기
                     </div>
                 </div>
             ) : (
-                <div style={{ background: T.white }}>
-                    {reviews.map((review, i) => {
-                        const avgScore = ((review.rating_profit ?? 0) + (review.rating_traffic ?? 0)) / 2;
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 16px' }}>
+                    {reviews.map(review => {
+                        const inst = review.event_instance || {};
+                        const ev   = inst.base_event || {};
+                        const org  = inst.organizer || {};
+                        const isFoodtruck = review.seller_type === 'foodtruck';
+                        const scores = [review.rating_profit, review.rating_traffic, review.rating_support, review.rating_manners, review.rating_promotion].filter(v => v != null);
+                        const overall = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+                        const prosChips = review.pros ? review.pros.split('\n').map(s => s.trim()).filter(Boolean) : [];
+                        const consChips = review.cons ? review.cons.split('\n').map(s => s.trim()).filter(Boolean) : [];
+                        const ageGroups    = Array.isArray(review.age_groups)    ? review.age_groups    : [];
+                        const visitorTypes = Array.isArray(review.visitor_types) ? review.visitor_types : [];
+                        const revStyle = REVENUE_COLOR[review.revenue_range] || { bg: '#F3F4F6', color: '#6B7280' };
+
                         return (
-                            <div
-                                key={review.id}
-                                style={{
-                                    padding: '18px 20px',
-                                    borderBottom: i < reviews.length - 1 ? `1px solid ${T.border}` : 'none',
-                                }}
-                            >
-                                {/* 상단: 행사명 + 삭제 */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 2 }}>
-                                            {review.event?.name || '행사 정보 없음'}
+                            <div key={review.id} style={{
+                                background: T.white, borderRadius: 14,
+                                border: `1px solid ${T.border}`, padding: '16px',
+                                boxShadow: T.shadowSm,
+                            }}>
+                                {/* 행사명 */}
+                                {ev.id && (
+                                    <Link href={`/events/${ev.id}`} style={{ textDecoration: 'none' }}>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: T.blue, marginBottom: 6 }}>
+                                            🎪 {ev.name || '행사명 없음'}
+                                            {inst.event_date && (
+                                                <span style={{ fontWeight: 400, color: T.gray, marginLeft: 6, fontSize: 12 }}>
+                                                    {new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                                                </span>
+                                            )}
                                         </div>
-                                        {review.event?.location && (
-                                            <div style={{ fontSize: 12, color: T.gray }}>📍 {review.event.location}</div>
+                                    </Link>
+                                )}
+
+                                {/* 헤더: 셀러 유형 + 종합 점수 */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                                            background: isFoodtruck ? T.greenLt : T.blueLt,
+                                            color: isFoodtruck ? T.green : T.blue,
+                                        }}>
+                                            {isFoodtruck ? '🚚 푸드트럭' : '🛍️ 일반 셀러'}
+                                        </span>
+                                        {review.is_verified && (
+                                            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: T.greenLt, color: T.green }}>✅ 인증</span>
                                         )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <Stars value={Math.round(overall)} />
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{overall.toFixed(1)}</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
+
+                                {/* 매출 */}
+                                {review.revenue_range && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                        <span style={{ fontSize: 12, color: T.gray }}>💰 매출</span>
+                                        <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: revStyle.bg, color: revStyle.color }}>
+                                            {review.revenue_range}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* 항목별 평점 (2열) */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 12px', marginBottom: 8 }}>
+                                    {review.rating_profit    != null && <MiniRating label={isFoodtruck ? '수익성' : '구매력'} value={review.rating_profit} />}
+                                    {review.rating_support   != null && <MiniRating label="운영지원" value={review.rating_support} />}
+                                    {review.rating_traffic   != null && <MiniRating label="유동인구" value={review.rating_traffic} />}
+                                    {review.rating_manners   != null && <MiniRating label="주최매너" value={review.rating_manners} />}
+                                    {review.rating_promotion != null && <MiniRating label="홍보"     value={review.rating_promotion} />}
+                                </div>
+
+                                {/* 방문객 */}
+                                {(ageGroups.length > 0 || visitorTypes.length > 0) && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                                        <span style={{ fontSize: 11, color: T.gray }}>👥</span>
+                                        {ageGroups.map(a => (
+                                            <span key={a} style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: '#EDE9FE', color: '#7C3AED' }}>{a}</span>
+                                        ))}
+                                        {visitorTypes.map(v => (
+                                            <span key={v} style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: '#FEF3C7', color: '#D97706' }}>{v}</span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* 장단점 */}
+                                {(prosChips.length > 0 || consChips.length > 0) && (
+                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        {prosChips.map(c => <span key={c} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: T.greenLt, color: T.green, fontWeight: 600 }}>👍 {c}</span>)}
+                                        {consChips.map(c => <span key={c} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#FEE2E2', color: '#EF4444', fontWeight: 600 }}>👎 {c}</span>)}
+                                    </div>
+                                )}
+
+                                {/* 종합 평가 */}
+                                {review.content && (
+                                    <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.6, marginBottom: 8 }}>
+                                        {review.content}
+                                    </div>
+                                )}
+
+                                {/* 주최사 + 날짜 + 삭제 */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                    <div style={{ fontSize: 11, color: T.gray }}>
+                                        {org.name && <span>🏢 {org.name} · </span>}
+                                        {timeAgo(review.created_at)}
                                     </div>
                                     <span
                                         onClick={() => handleDelete(review.id)}
-                                        style={{ fontSize: 12, color: T.gray, cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+                                        style={{ fontSize: 12, color: T.gray, cursor: 'pointer' }}
                                     >
                                         삭제
                                     </span>
-                                </div>
-
-                                {/* 별점 */}
-                                <div style={{ marginBottom: 8 }}>
-                                    <StarDisplay value={avgScore} />
-                                </div>
-
-                                {/* 상세 평점 칩 */}
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                                    {review.rating_profit && (
-                                        <span style={{ fontSize: 11, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
-                                            수익성 {review.rating_profit}점
-                                        </span>
-                                    )}
-                                    {review.rating_traffic && (
-                                        <span style={{ fontSize: 11, color: T.green, background: T.greenLt, padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
-                                            집객력 {review.rating_traffic}점
-                                        </span>
-                                    )}
-                                    {review.seller_type && (
-                                        <span style={{ fontSize: 11, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
-                                            {review.seller_type === 'foodtruck' ? '🚚 푸드트럭' : '💎 일반셀러'}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* 장점 */}
-                                {review.pros && (
-                                    <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.5, marginBottom: 4 }}>
-                                        <span style={{ fontWeight: 700, color: T.green }}>👍 </span>{review.pros}
-                                    </div>
-                                )}
-                                {review.cons && (
-                                    <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.5 }}>
-                                        <span style={{ fontWeight: 700, color: T.red }}>👎 </span>{review.cons}
-                                    </div>
-                                )}
-
-                                {/* 날짜 */}
-                                <div style={{ fontSize: 12, color: T.gray, marginTop: 10 }}>
-                                    {new Date(review.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </div>
                             </div>
                         );

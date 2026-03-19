@@ -5,40 +5,59 @@ import { notFound } from 'next/navigation';
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: organizer } = await supabase.from('organizers').select('name, description').eq('id', id).single();
-    
-    if (!organizer) {
-        return { title: '주최측을 찾을 수 없습니다 - 플릿(FLIT)' };
-    }
-    
+    const { data: org } = await supabase.from('organizers').select('name, description').eq('id', id).single();
+    if (!org) return { title: '주최사를 찾을 수 없습니다 - 플릿(FLIT)' };
     return {
-        title: `${organizer.name} 셀러 진짜 리뷰 - 플릿(FLIT)`,
-        description: `${organizer.name} 기획사에 대한 운영지원, 매너 평점과 현재 진행 중인 공고를 확인해보세요.`,
+        title: `${org.name} 주최사 리뷰 - 플릿(FLIT)`,
+        description: `${org.name}의 운영지원·매너 평점과 개최 행사, 셀러 리뷰를 확인해보세요.`,
     };
 }
 
 export default async function OrganizerPage({ params }) {
     const { id } = await params;
-    
     const supabase = await createClient();
-    
-    // 주최측 정보 가져오기
-    const { data: organizer } = await supabase.from('organizers').select('*').eq('id', id).single();
+
+    // 주최사 기본 정보
+    const { data: organizer } = await supabase
+        .from('organizers')
+        .select('*')
+        .eq('id', id)
+        .single();
     if (!organizer) return notFound();
 
-    // 해당 주최측의 모집 공고 목록 가져오기 (행사 주소 포함)
-    const { data: recruitments } = await supabase.from('recruitments')
-        .select('*, event:events(name, location)')
+    // 이 주최사가 개최한 행사 인스턴스
+    const { data: instances } = await supabase
+        .from('event_instances')
+        .select('*, base_event:base_events(id, name, category, image_url, total_reviews, avg_event_rating)')
         .eq('organizer_id', id)
-        .order('created_at', { ascending: false });
+        .order('event_date', { ascending: false });
 
-    // 해당 주최측의 리뷰 목록 가져오기
-    const { data: reviews } = await supabase.from('company_reviews')
-        .select('*')
-        .eq('organizer_id', id)
-        .order('created_at', { ascending: false });
+    const instanceIds = (instances || []).map(i => i.id);
+
+    // 모집공고 + 리뷰 병렬 조회
+    const [{ data: recruitments }, { data: reviews }] = await Promise.all([
+        instanceIds.length > 0
+            ? supabase
+                .from('recruitments')
+                .select('*, instance:event_instances(id, location, event_date, event_date_end, base_event:base_events(id, name))')
+                .in('event_instance_id', instanceIds)
+                .order('created_at', { ascending: false })
+            : { data: [] },
+        instanceIds.length > 0
+            ? supabase
+                .from('reviews')
+                .select('*, event_instance:event_instances(id, location, event_date, base_event:base_events(id, name))')
+                .in('event_instance_id', instanceIds)
+                .order('created_at', { ascending: false })
+            : { data: [] },
+    ]);
 
     return (
-        <OrganizerDetailClient organizer={organizer} initialRecruitments={recruitments || []} initialReviews={reviews || []} />
+        <OrganizerDetailClient
+            organizer={organizer}
+            instances={instances || []}
+            initialRecruitments={recruitments || []}
+            initialReviews={reviews || []}
+        />
     );
 }

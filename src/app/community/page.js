@@ -169,7 +169,7 @@ export default function CommunityPage() {
     const activeFilterCount = [category !== '전체', sellerType !== '전체', sortBy !== 'latest'].filter(Boolean).length;
 
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 110 }}>
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
 
             {/* ── Sticky Header ── */}
             <div style={{
@@ -178,24 +178,24 @@ export default function CommunityPage() {
                 backdropFilter: 'blur(16px)',
                 borderBottom: `1px solid ${T.border}`,
             }}>
-                <div style={{ padding: '18px 16px 12px' }}>
+                <div style={{ padding: '20px 16px 12px' }}>
                     <div style={{ fontSize: 20, fontWeight: 900, color: T.text, letterSpacing: -0.5, marginBottom: 12 }}>
                         커뮤니티 💬
                     </div>
 
                     {/* 검색바 */}
                     <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
+                        display: 'flex', alignItems: 'center', gap: 10,
                         background: T.bg, borderRadius: T.radiusMd,
-                        border: `1.5px solid ${query ? T.blue : T.border}`, padding: '0 14px',
+                        border: `1.5px solid ${query ? T.blue : T.border}`, padding: '11px 14px',
                     }}>
-                        <Search size={15} color={T.gray} style={{ flexShrink: 0 }} />
+                        <Search size={16} color={T.gray} strokeWidth={2} />
                         <input
                             type="text"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                             placeholder="제목, 내용 검색"
-                            style={{ flex: 1, padding: '11px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                            style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, color: T.text }}
                         />
                         {query ? (
                             <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setQuery('')} />
@@ -335,12 +335,6 @@ export default function CommunityPage() {
                 )}
             </div>
 
-            <style jsx global>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.5; }
-                }
-            `}</style>
         </div>
     );
 }

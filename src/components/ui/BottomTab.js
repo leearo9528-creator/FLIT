@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
-import { createClient } from '@/utils/supabase/client';
 
 const tabs = [
     { key: 'home', label: '홈', icon: '🏠', href: '/' },
@@ -13,41 +12,22 @@ const tabs = [
     { key: 'my', label: '마이', icon: '👤', href: '/mypage' },
 ];
 
-const FREE_REVIEW_TARGET = 3;
-
 export default function BottomTab() {
     const pathname = usePathname();
-    const { user } = useAuth();
+    const { user, plan } = useAuth();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [reviewCount, setReviewCount] = useState(null);
     const [pendingPath, setPendingPath] = useState(null);
     const router = useRouter();
 
     // 실제 navigation 완료되면 pending 초기화
     useEffect(() => { setPendingPath(null); }, [pathname]);
 
-    /* fetch user review count for the tooltip */
-    useEffect(() => {
-        if (!user) { setReviewCount(null); return; }
-        (async () => {
-            const sb = createClient();
-            const { data } = await sb
-                .from('profiles')
-                .select('review_count, is_subscribed')
-                .eq('id', user.id)
-                .single();
-            if (data) setReviewCount(data.review_count ?? 0);
-        })();
-    }, [user]);
-
-    const remaining = reviewCount !== null
-        ? Math.max(0, FREE_REVIEW_TARGET - reviewCount)
-        : null;
+    const isOrganizer = plan === 'organizer';
 
     const getHref = (tab) => {
         if (tab.key === 'my') return user ? '/mypage' : '/login';
-        if (tab.key === 'community') return user ? '/community' : '/login';
+        if (tab.key === 'community') return '/community';
         return tab.href;
     };
 
@@ -63,7 +43,7 @@ export default function BottomTab() {
         router.push(href);
     };
 
-    const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname.startsWith('/community');
+    const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname === '/community';
 
     const handleWriteClick = (path) => {
         setIsMenuOpen(false);
@@ -101,21 +81,37 @@ export default function BottomTab() {
                             display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end',
                             animation: 'slideUp 0.2s ease-out'
                         }}>
-                            <div 
-                                onClick={() => handleWriteClick('/reviews/write')}
-                                style={{ 
-                                    background: T.white, padding: '12px 20px', borderRadius: 24, 
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
-                                    fontSize: 15, fontWeight: 700, color: T.text,
-                                    display: 'flex', alignItems: 'center', gap: 8
-                                }}
-                            >
-                                ✏️ 리뷰 작성하기 
-                            </div>
-                            <div 
+                            {isOrganizer && (
+                                <div
+                                    onClick={() => handleWriteClick('/recruitments/write')}
+                                    style={{
+                                        background: '#FFFBEB', padding: '12px 20px', borderRadius: 24,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
+                                        fontSize: 15, fontWeight: 700, color: '#B45309',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        border: '1px solid #FCD34D',
+                                    }}
+                                >
+                                    📢 공고 올리기
+                                </div>
+                            )}
+                            {!isOrganizer && (
+                                <div
+                                    onClick={() => handleWriteClick('/reviews/write')}
+                                    style={{
+                                        background: T.white, padding: '12px 20px', borderRadius: 24,
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
+                                        fontSize: 15, fontWeight: 700, color: T.text,
+                                        display: 'flex', alignItems: 'center', gap: 8
+                                    }}
+                                >
+                                    ✏️ 리뷰 작성하기
+                                </div>
+                            )}
+                            <div
                                 onClick={() => handleWriteClick('/community/write')}
-                                style={{ 
-                                    background: T.white, padding: '12px 20px', borderRadius: 24, 
+                                style={{
+                                    background: T.white, padding: '12px 20px', borderRadius: 24,
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)', cursor: 'pointer',
                                     fontSize: 15, fontWeight: 700, color: T.text,
                                     display: 'flex', alignItems: 'center', gap: 8
@@ -123,26 +119,6 @@ export default function BottomTab() {
                             >
                                 💬 커뮤니티 글쓰기
                             </div>
-                        </div>
-                    )}
-
-                    {!isMenuOpen && (
-                        <div style={{
-                            background: '#1A1A1A', color: '#fff', fontSize: 12, fontWeight: 700,
-                            padding: '7px 13px', borderRadius: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
-                            position: 'relative', animation: 'fadeIn 0.3s ease-in',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            {remaining !== null && remaining > 0
-                                ? `이번 달 무료 혜택까지 ${remaining}개 남음 🎁`
-                                : remaining === 0
-                                    ? '혜택 달성! 구독하고 혜택 받기 🎉'
-                                    : '리뷰 3개 쓰면 첫 달 0원! 🎁'
-                            }
-                            <div style={{
-                                position: 'absolute', bottom: -4, right: 24, width: 8, height: 8,
-                                background: '#1A1A1A', transform: 'rotate(45deg)',
-                            }} />
                         </div>
                     )}
 

@@ -224,7 +224,7 @@ function RecruitmentCard({ rec }) {
                 </div>
 
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>
-                    참가비 {rec.fee ? `${Number(rec.fee).toLocaleString()}원` : '미정'}
+                    {rec.fee == null ? '참가비 미정' : rec.fee === 0 ? '참가비 무료' : `참가비 ${Number(rec.fee).toLocaleString()}원`}
                 </div>
             </div>
         </Link>
@@ -375,7 +375,7 @@ function RecentReviewsSection({ reviews, loading, isSubscribed, reviewCount }) {
                     <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>💬 실시간 리뷰</div>
                     <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>셀러들의 생생한 후기</div>
                 </div>
-                <Link href="/search" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
+                <Link href="/search?tab=events" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
                     전체보기 →
                 </Link>
             </div>
@@ -415,18 +415,18 @@ function RecentReviewsSection({ reviews, loading, isSubscribed, reviewCount }) {
 }
 
 /* ─── Community Snippets ─────────────────────────────────────── */
-function PostItem({ post, isLast }) {
+function PostItem({ post }) {
     return (
         <Link href={`/community/${post.id}`} style={{ textDecoration: 'none' }}>
             <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '14px 0',
-                borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
+                background: T.white, borderRadius: T.radiusXl, padding: 16,
+                boxShadow: T.shadowMd, border: `1px solid ${T.border}`,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
             }}>
-                <div style={{ flex: 1, marginRight: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                        fontSize: 14, fontWeight: 600, color: T.text,
-                        marginBottom: 5, lineHeight: 1.4,
+                        fontSize: 14, fontWeight: 700, color: T.text,
+                        marginBottom: 6, lineHeight: 1.4,
                         display: '-webkit-box', WebkitLineClamp: 1,
                         WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     }}>
@@ -446,7 +446,7 @@ function PostItem({ post, isLast }) {
                         </span>
                     </div>
                 </div>
-                <span style={{ fontSize: 14, color: T.gray }}>›</span>
+                <span style={{ fontSize: 16, color: T.gray, flexShrink: 0 }}>›</span>
             </div>
         </Link>
     );
@@ -456,7 +456,7 @@ function CommunitySection({ posts, loading }) {
     return (
         <div style={{ marginBottom: 36 }}>
             <div style={{
-                padding: '0 16px 4px',
+                padding: '0 16px 14px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
             }}>
                 <div>
@@ -468,17 +468,12 @@ function CommunitySection({ posts, loading }) {
                 </Link>
             </div>
 
-            <div style={{
-                margin: '0 16px', background: T.white,
-                borderRadius: T.radiusXl, padding: '0 16px',
-                boxShadow: T.shadowSm, border: `1px solid ${T.border}`,
-            }}>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {loading
                     ? Array(3).fill(0).map((_, i) => (
                         <div key={i} style={{
-                            height: 52, background: T.grayLt,
-                            borderRadius: T.radiusMd, marginBottom: 8,
-                            animation: 'pulse 1.5s infinite',
+                            height: 72, background: T.grayLt,
+                            borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite',
                         }} />
                     ))
                     : posts.length === 0
@@ -487,8 +482,8 @@ function CommunitySection({ posts, loading }) {
                                 아직 게시글이 없어요.
                             </div>
                         )
-                        : posts.map((post, i) => (
-                            <PostItem key={post.id} post={post} isLast={i === posts.length - 1} />
+                        : posts.map(post => (
+                            <PostItem key={post.id} post={post} />
                         ))
                 }
             </div>
@@ -559,12 +554,7 @@ export default function HomePage() {
                 .single();
             if (data) setProfile(data);
 
-            const { count } = await sb
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('is_read', false);
-            setUnreadCount(count || 0);
+            setUnreadCount(0);
         })();
     }, [user]);
 
@@ -623,18 +613,7 @@ export default function HomePage() {
                             </div>
                         )}
 
-                        {user ? (
-                            <Link href="/mypage" style={{ textDecoration: 'none' }}>
-                                <div style={{
-                                    width: 36, height: 36, borderRadius: '50%',
-                                    background: T.blueLt,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 18,
-                                }}>
-                                    👤
-                                </div>
-                            </Link>
-                        ) : (
+                        {!user && (
                             <Link
                                 href="/login"
                                 style={{
