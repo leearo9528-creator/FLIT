@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, MapPin, Tag, Calendar, Building2, Star, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Tag, Calendar, Building2, Star, Lock } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
 import Link from 'next/link';
@@ -434,7 +434,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
     const organizerStats = instances.reduce((acc, inst) => {
         if (!inst.organizer) return acc;
         const name = inst.organizer.name;
-        if (!acc[name]) acc[name] = { name, count: 0, reviewCount: 0, avgEvent: 0, avgOrg: 0 };
+        if (!acc[name]) acc[name] = { id: inst.organizer.id, name, count: 0, reviewCount: 0, avgEvent: 0, avgOrg: 0 };
         acc[name].count++;
         if (inst.review_count > 0) {
             acc[name].reviewCount += inst.review_count;
@@ -622,7 +622,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                         </div>
 
                         {/* 셀러 평가 요약 */}
-                        <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '20px' }}>
+                        <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '20px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 14 }}>셀러 평가 요약</div>
 
                             {activeReviews.length === 0 ? (
@@ -656,48 +656,28 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     {Object.keys(avgRatings).length > 0 && (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>⭐ 항목별 평균</div>
-                                            <div style={{ position: 'relative', marginBottom: 16 }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                                                    {[
-                                                        { field: 'rating_profit',    label: isFoodtruckTab ? '수익성' : '구매력' },
-                                                        { field: 'rating_traffic',   label: '유동인구' },
-                                                        { field: 'rating_support',   label: '운영지원' },
-                                                        { field: 'rating_manners',   label: '주최매너' },
-                                                        { field: 'rating_promotion', label: '홍보'     },
-                                                    ].filter(({ field }) => avgRatings[field] != null).map(({ field, label }) => {
-                                                        const val = avgRatings[field];
-                                                        const color = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
-                                                        return (
-                                                            <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
-                                                                <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
-                                                                <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-                                                                    <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
-                                                                </div>
-                                                                <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
-                                                                    {val.toFixed(1)}
-                                                                </span>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 16 }}>
+                                                {[
+                                                    { field: 'rating_profit',    label: isFoodtruckTab ? '수익성' : '구매력' },
+                                                    { field: 'rating_traffic',   label: '유동인구' },
+                                                    { field: 'rating_support',   label: '운영지원' },
+                                                    { field: 'rating_manners',   label: '주최매너' },
+                                                    { field: 'rating_promotion', label: '홍보'     },
+                                                ].filter(({ field }) => avgRatings[field] != null).map(({ field, label }) => {
+                                                    const val = avgRatings[field];
+                                                    const color = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
+                                                    return (
+                                                        <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
+                                                            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                                                <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {plan === 'free' && (
-                                                    <div style={{
-                                                        position: 'absolute', top: 0, right: 0,
-                                                        width: 'calc(100% - 56px)', height: '100%',
-                                                        background: T.grayLt,
-                                                        borderRadius: 10, border: `1px solid ${T.border}`,
-                                                        display: 'flex', flexDirection: 'column',
-                                                        alignItems: 'center', justifyContent: 'center', gap: 6,
-                                                    }}>
-                                                        <span style={{ fontSize: 20 }}>🔒</span>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
-                                                        <a href="/subscribe" style={{
-                                                            fontSize: 12, fontWeight: 700, color: '#fff',
-                                                            background: T.blue, padding: '6px 16px',
-                                                            borderRadius: 999, textDecoration: 'none',
-                                                        }}>업그레이드</a>
-                                                    </div>
-                                                )}
+                                                            <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
+                                                                {val.toFixed(1)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     )}
@@ -706,44 +686,22 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     {Object.keys(revenueDistribution).length > 0 && (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>💰 셀러 매출 분포</div>
-                                            <div style={{ position: 'relative', marginBottom: 14 }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                    {revenueOrder.filter(k => revenueDistribution[k]).map(range => {
-                                                        const cnt   = revenueDistribution[range];
-                                                        const total = activeReviews.filter(r => r.revenue_range).length;
-                                                        const pct   = Math.round((cnt / total) * 100);
-                                                        const s     = REVENUE_COLOR[range] || { bg: '#F3F4F6', color: '#6B7280' };
-                                                        return (
-                                                            <div key={range} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
-                                                                <span style={{ fontSize: 12, fontWeight: 700, color: s.color, width: 80, flexShrink: 0 }}>{range}</span>
-                                                                {plan !== 'free' && <>
-                                                                    <div style={{ flex: 1, height: 8, background: T.border, borderRadius: 4, overflow: 'hidden' }}>
-                                                                        <div style={{ width: `${pct}%`, height: '100%', background: s.color, borderRadius: 4 }} />
-                                                                    </div>
-                                                                    <span style={{ fontSize: 12, color: T.gray, width: 32, textAlign: 'right', flexShrink: 0 }}>{cnt}명</span>
-                                                                </>}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                                                {revenueOrder.filter(k => revenueDistribution[k]).map(range => {
+                                                    const cnt   = revenueDistribution[range];
+                                                    const total = activeReviews.filter(r => r.revenue_range).length;
+                                                    const pct   = Math.round((cnt / total) * 100);
+                                                    const s     = REVENUE_COLOR[range] || { bg: '#F3F4F6', color: '#6B7280' };
+                                                    return (
+                                                        <div key={range} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 12, fontWeight: 700, color: s.color, width: 80, flexShrink: 0 }}>{range}</span>
+                                                            <div style={{ flex: 1, height: 8, background: T.border, borderRadius: 4, overflow: 'hidden' }}>
+                                                                <div style={{ width: `${pct}%`, height: '100%', background: s.color, borderRadius: 4 }} />
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {plan === 'free' && (
-                                                    <div style={{
-                                                        position: 'absolute', top: 0, right: 0,
-                                                        width: 'calc(100% - 88px)', height: '100%',
-                                                        background: T.grayLt,
-                                                        borderRadius: 10, border: `1px solid ${T.border}`,
-                                                        display: 'flex', flexDirection: 'column',
-                                                        alignItems: 'center', justifyContent: 'center', gap: 6,
-                                                    }}>
-                                                        <span style={{ fontSize: 20 }}>🔒</span>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
-                                                        <a href="/subscribe" style={{
-                                                            fontSize: 12, fontWeight: 700, color: '#fff',
-                                                            background: T.blue, padding: '6px 16px',
-                                                            borderRadius: 999, textDecoration: 'none',
-                                                        }}>업그레이드</a>
-                                                    </div>
-                                                )}
+                                                            <span style={{ fontSize: 12, color: T.gray, width: 32, textAlign: 'right', flexShrink: 0 }}>{cnt}명</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     )}
@@ -752,41 +710,19 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     {ageGroupTotal > 0 && (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>👥 방문객 연령대</div>
-                                            <div style={{ position: 'relative', marginBottom: 14 }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                    {Object.entries(ageGroupCount).sort((a, b) => b[1] - a[1]).map(([age, cnt]) => {
-                                                        const pct = Math.round((cnt / ageGroupTotal) * 100);
-                                                        return (
-                                                            <div key={age} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
-                                                                <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 700, width: 36, flexShrink: 0 }}>{age}</span>
-                                                                {plan !== 'free' && <>
-                                                                    <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-                                                                        <div style={{ width: `${pct}%`, height: '100%', background: '#7C3AED', borderRadius: 3 }} />
-                                                                    </div>
-                                                                    <span style={{ fontSize: 12, color: T.gray, width: 32, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
-                                                                </>}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                                                {Object.entries(ageGroupCount).sort((a, b) => b[1] - a[1]).map(([age, cnt]) => {
+                                                    const pct = Math.round((cnt / ageGroupTotal) * 100);
+                                                    return (
+                                                        <div key={age} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 700, width: 36, flexShrink: 0 }}>{age}</span>
+                                                            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                                                <div style={{ width: `${pct}%`, height: '100%', background: '#7C3AED', borderRadius: 3 }} />
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {plan === 'free' && (
-                                                    <div style={{
-                                                        position: 'absolute', top: 0, right: 0,
-                                                        width: 'calc(100% - 44px)', height: '100%',
-                                                        background: T.grayLt,
-                                                        borderRadius: 10, border: `1px solid ${T.border}`,
-                                                        display: 'flex', flexDirection: 'column',
-                                                        alignItems: 'center', justifyContent: 'center', gap: 6,
-                                                    }}>
-                                                        <span style={{ fontSize: 20 }}>🔒</span>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
-                                                        <a href="/subscribe" style={{
-                                                            fontSize: 12, fontWeight: 700, color: '#fff',
-                                                            background: T.blue, padding: '6px 16px',
-                                                            borderRadius: 999, textDecoration: 'none',
-                                                        }}>업그레이드</a>
-                                                    </div>
-                                                )}
+                                                            <span style={{ fontSize: 12, color: T.gray, width: 32, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     )}
@@ -795,38 +731,16 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     {visitorTypeTotal > 0 && (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>🧭 방문 유형</div>
-                                            <div style={{ position: 'relative', marginBottom: 14 }}>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                                    {Object.entries(visitorTypeCount).sort((a, b) => b[1] - a[1]).map(([type, cnt]) => {
-                                                        const pct = Math.round((cnt / visitorTypeTotal) * 100);
-                                                        return (
-                                                            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20, background: '#FEF3C7' }}>
-                                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>{type}</span>
-                                                                {plan !== 'free' && (
-                                                                    <span style={{ fontSize: 11, color: '#92400E', fontWeight: 600 }}>{pct}%</span>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                                {plan === 'free' && (
-                                                    <div style={{
-                                                        position: 'absolute', top: 0, left: 0,
-                                                        width: '100%', height: '100%',
-                                                        background: T.grayLt,
-                                                        borderRadius: 10, border: `1px solid ${T.border}`,
-                                                        display: 'flex', flexDirection: 'column',
-                                                        alignItems: 'center', justifyContent: 'center', gap: 6,
-                                                    }}>
-                                                        <span style={{ fontSize: 20 }}>🔒</span>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
-                                                        <a href="/subscribe" style={{
-                                                            fontSize: 12, fontWeight: 700, color: '#fff',
-                                                            background: T.blue, padding: '6px 16px',
-                                                            borderRadius: 999, textDecoration: 'none',
-                                                        }}>업그레이드</a>
-                                                    </div>
-                                                )}
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                                                {Object.entries(visitorTypeCount).sort((a, b) => b[1] - a[1]).map(([type, cnt]) => {
+                                                    const pct = Math.round((cnt / visitorTypeTotal) * 100);
+                                                    return (
+                                                        <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20, background: '#FEF3C7' }}>
+                                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>{type}</span>
+                                                            <span style={{ fontSize: 11, color: '#92400E', fontWeight: 600 }}>{pct}%</span>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     )}
@@ -841,12 +755,12 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                                     const avgO = s.avgOrg / s.count;
                                                     const c = avgE >= 4.0 ? T.green : avgE >= 3.0 ? T.blue : T.gray;
                                                     return (
-                                                        <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
+                                                        <a key={s.name} href={s.id ? `/organizers/${s.id}` : '#'} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: T.bg, borderRadius: 10, cursor: 'pointer' }}>
                                                             <div>
                                                                 <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{s.name}</div>
                                                                 <div style={{ fontSize: 11, color: T.gray, marginTop: 2 }}>리뷰 {s.reviewCount}개</div>
                                                             </div>
-                                                            <div style={{ display: 'flex', gap: 14 }}>
+                                                            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                                                                 <div style={{ textAlign: 'center' }}>
                                                                     <div style={{ fontSize: 10, color: T.gray }}>행사</div>
                                                                     <div style={{ fontSize: 15, fontWeight: 800, color: c }}>{avgE.toFixed(1)}</div>
@@ -855,14 +769,33 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                                                     <div style={{ fontSize: 10, color: T.gray }}>운영</div>
                                                                     <div style={{ fontSize: 15, fontWeight: 800, color: '#F59E0B' }}>{avgO.toFixed(1)}</div>
                                                                 </div>
+                                                                <ChevronRight size={14} color={T.gray} />
                                                             </div>
-                                                        </div>
+                                                        </a>
                                                     );
                                                 })}
                                             </div>
                                         </>
                                     )}
                                 </>
+                            )}
+                            {plan === 'free' && (
+                                <div style={{
+                                    position: 'absolute', inset: 0,
+                                    background: T.grayLt,
+                                    borderRadius: 14,
+                                    display: 'flex', flexDirection: 'column',
+                                    alignItems: 'center', justifyContent: 'center', gap: 8,
+                                }}>
+                                    <span style={{ fontSize: 28 }}>🔒</span>
+                                    <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>구독 플랜 전용</span>
+                                    <span style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.5 }}>셀러 평가 요약은 구독 플랜에서<br />확인하실 수 있습니다</span>
+                                    <a href="/subscribe" style={{
+                                        marginTop: 4, fontSize: 13, fontWeight: 700, color: '#fff',
+                                        background: T.blue, padding: '8px 20px',
+                                        borderRadius: 999, textDecoration: 'none',
+                                    }}>업그레이드</a>
+                                </div>
                             )}
                         </div>
 
