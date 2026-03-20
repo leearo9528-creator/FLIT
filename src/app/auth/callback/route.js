@@ -4,24 +4,32 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  
-  // 로그인 후 이동할 대상 (기본값은 홈)
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    
+
     if (!error) {
-      // ✅ 쿠키 기반 세션이 적용된 후, 강제로 브라우저를 이동시킴
-      const redirectUrl = new URL(next, request.url);
-      return NextResponse.redirect(redirectUrl);
+      // 신규 유저 여부 확인 (seller_type 미설정)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('seller_type')
+          .eq('id', user.id)
+          .single()
+
+        if (!profile?.seller_type) {
+          return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+      }
+
+      return NextResponse.redirect(new URL(next, request.url))
     } else {
-      // ✅ 어떤 에러인지 정확히 볼 수 있도록 URL에 에러 원인 파라미터 추가
       return NextResponse.redirect(`${origin}/login?message=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // 에러 발생 시 로그인 페이지로 복귀, 알림 전달
   return NextResponse.redirect(`${origin}/login?message=no-code-found`)
 }

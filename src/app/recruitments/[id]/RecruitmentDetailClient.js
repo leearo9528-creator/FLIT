@@ -135,12 +135,13 @@ const TABS = ['상세요강', '주최사 리뷰'];
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
     const router = useRouter();
-    const { plan } = useAuth();
+    const { plan, user } = useAuth();
 
     const [activeTab, setActiveTab] = useState(0);
     const [reviews, setReviews] = useState([]);
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [scrapped, setScrapped] = useState(false);
+    const [scrapLoading, setScrapLoading] = useState(false);
 
     const instance = recruitment.instance || {};
     const baseEvent = instance.base_event || {};
@@ -162,6 +163,32 @@ export default function RecruitmentDetailClient({ recruitment }) {
             const scores = [r.rating_profit, r.rating_traffic, r.rating_support, r.rating_manners, r.rating_promotion].filter(v => v != null);
             return s + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
         }, 0) / reviews.length : 0;
+
+    // 스크랩 상태 초기 로드
+    useEffect(() => {
+        if (!user) return;
+        (async () => {
+            const sb = createClient();
+            const { data } = await sb.from('scraps')
+                .select('id').eq('user_id', user.id).eq('recruitment_id', recruitment.id).maybeSingle();
+            setScrapped(!!data);
+        })();
+    }, [user, recruitment.id]);
+
+    const handleScrap = async () => {
+        if (!user) { router.push('/login'); return; }
+        if (scrapLoading) return;
+        setScrapLoading(true);
+        const sb = createClient();
+        if (scrapped) {
+            await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recruitment.id);
+            setScrapped(false);
+        } else {
+            await sb.from('scraps').insert({ user_id: user.id, recruitment_id: recruitment.id });
+            setScrapped(true);
+        }
+        setScrapLoading(false);
+    };
 
     useEffect(() => {
         if (activeTab !== 1 || !organizer.id || reviews.length > 0) return;
@@ -406,7 +433,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     </button>
 
                     <button
-                        onClick={() => setScrapped(s => !s)}
+                        onClick={handleScrap}
                         style={{
                             background: scrapped ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
                             border: 'none', borderRadius: T.radiusFull,
