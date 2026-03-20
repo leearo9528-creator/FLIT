@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
-const AuthContext = createContext({ user: null, loading: true, plan: 'free', signOut: async () => {} });
+const AuthContext = createContext({ user: null, loading: true, plan: 'free', signOut: async () => {}, refreshPlan: async () => {} });
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -18,15 +18,26 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const sb = createClient();
+        let realtimeChannel = null;
 
-        // 현재 세션 확인
         sb.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
-            if (session?.user) fetchPlan(session.user.id);
+            if (session?.user) {
+                fetchPlan(session.user.id);
+                // profiles 변경 실시간 구독
+                realtimeChannel = sb
+                    .channel('profile-plan')
+                    .on('postgres_changes', {
+                        event: 'UPDATE', schema: 'public', table: 'profiles',
+                        filter: `id=eq.${session.user.id}`,
+                    }, (payload) => {
+                        if (payload.new?.plan) setPlan(payload.new.plan);
+                    })
+                    .subscribe();
+            }
             setLoading(false);
         });
 
-        // 인증 상태 변경 리스너
         const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) fetchPlan(session.user.id);
@@ -34,7 +45,10 @@ export function AuthProvider({ children }) {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            if (realtimeChannel) realtimeChannel.unsubscribe();
+        };
     }, []);
 
     const signOut = async () => {
@@ -44,8 +58,12 @@ export function AuthProvider({ children }) {
         setPlan('free');
     };
 
+    const refreshPlan = async () => {
+        if (user) await fetchPlan(user.id);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, plan, signOut }}>
+        <AuthContext.Provider value={{ user, loading, plan, signOut, refreshPlan }}>
             {children}
         </AuthContext.Provider>
     );
