@@ -329,10 +329,8 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             <div style={{
                                 position: 'absolute', top: 0, right: 0,
                                 width: 'calc(100% - 82px)', height: '100%',
-                                background: 'rgba(255,255,255,0.55)',
-                                backdropFilter: 'blur(6px)',
-                                WebkitBackdropFilter: 'blur(6px)',
-                                borderRadius: 10, border: `1px solid rgba(0,0,0,0.06)`,
+                                background: T.grayLt,
+                                borderRadius: 10, border: `1px solid ${T.border}`,
                                 display: 'flex', flexDirection: 'column',
                                 alignItems: 'center', justifyContent: 'center', gap: 6,
                             }}>
