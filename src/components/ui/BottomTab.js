@@ -44,6 +44,7 @@ export default function BottomTab() {
     };
 
     const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname === '/community';
+    const showPromo = showFAB && !isOrganizer;
 
     const handleWriteClick = (path) => {
         setIsMenuOpen(false);
@@ -75,6 +76,26 @@ export default function BottomTab() {
                     position: 'fixed', bottom: 84, right: 20, zIndex: 99,
                     display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12
                 }}>
+                    {/* 리뷰 홍보 말풍선 */}
+                    {showPromo && !isMenuOpen && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+                            color: '#fff', borderRadius: 20, padding: '8px 14px',
+                            fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                            boxShadow: '0 4px 14px rgba(255,107,107,0.45)',
+                            position: 'relative',
+                        }}>
+                            🎁 리뷰 3개 쓰면 첫달 무료!
+                            {/* 말풍선 꼬리 */}
+                            <div style={{
+                                position: 'absolute', bottom: -7, right: 20,
+                                width: 0, height: 0,
+                                borderLeft: '7px solid transparent',
+                                borderRight: '7px solid transparent',
+                                borderTop: '8px solid #FF8E53',
+                            }} />
+                        </div>
+                    )}
                     {/* 글쓰기 옵션 메뉴 */}
                     {isMenuOpen && (
                         <div style={{

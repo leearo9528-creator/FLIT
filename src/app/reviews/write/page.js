@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Search, X, Plus } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
@@ -38,7 +38,7 @@ const CHIPS = {
 };
 
 const REVENUE_RANGES = {
-    seller: ['0~20만', '20~40만', '40~60만', '60~80만', '80~100만', '100~150만', '150~200만', '200만 이상'],
+    seller:    ['0~20만', '20~40만', '40~60만', '60~80만', '80~100만', '100~150만', '150~200만', '200만 이상'],
     foodtruck: ['0~30만', '30~70만', '70~100만', '100~150만', '150~200만', '200~300만', '300~400만', '400~500만', '500만 이상'],
 };
 
@@ -59,15 +59,19 @@ function ProgressBar({ count }) {
     const isDone = filled >= MAX;
     const pct = Math.round((filled / MAX) * 100);
     return (
-        <div style={{ background: isDone ? T.greenLt : T.blueLt, borderRadius: T.radiusLg, padding: '14px 18px', marginBottom: 20 }}>
+        <div style={{ background: isDone ? T.greenLt : T.blueLt, borderRadius: T.radiusLg, padding: '16px 18px', marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: isDone ? T.green : T.blue }}>
-                    {isDone ? '🎉 첫 달 무료 혜택 달성!' : `리뷰 ${filled}/${MAX} 완료 — ${MAX - filled}개 더 쓰면 첫 달 0원!`}
+                    {isDone ? '🎉 첫 달 무료 혜택 달성!' : `리뷰 ${filled}/${MAX} — ${MAX - filled}개 더 쓰면 첫 달 0원! 🎁`}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 900, color: isDone ? T.green : T.blue }}>{filled}/{MAX}</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: isDone ? T.green : T.blue }}>{filled}/{MAX}</span>
             </div>
-            <div style={{ height: 7, background: isDone ? T.green + '33' : T.blue + '33', borderRadius: 99 }}>
-                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: isDone ? T.green : T.blue, transition: 'width 0.4s ease', minWidth: filled > 0 ? 24 : 0 }} />
+            <div style={{ height: 8, background: isDone ? T.green + '33' : T.blue + '33', borderRadius: 99 }}>
+                <div style={{
+                    height: '100%', borderRadius: 99, width: `${pct}%`,
+                    background: isDone ? T.green : T.blue,
+                    transition: 'width 0.4s ease', minWidth: filled > 0 ? 24 : 0,
+                }} />
             </div>
         </div>
     );
@@ -76,12 +80,12 @@ function ProgressBar({ count }) {
 /* ─── Star Rating Row ────────────────────────────────────────── */
 const STAR_LABELS = ['', '별로에요', '아쉬워요', '보통이에요', '좋아요', '최고예요'];
 
-function StarRow({ label, value, onChange }) {
+function StarRow({ label, value, onChange, color = '#FFB800' }) {
     return (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{label}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: value > 0 ? '#FFB800' : T.gray }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: value > 0 ? color : T.gray }}>
                     {value > 0 ? STAR_LABELS[value] : '선택하세요'}
                 </span>
             </div>
@@ -89,15 +93,16 @@ function StarRow({ label, value, onChange }) {
                 {[1, 2, 3, 4, 5].map(s => (
                     <div
                         key={s}
-                        onClick={() => onChange(s)}
+                        onClick={() => onChange(s === value ? 0 : s)}
                         style={{
                             flex: 1, height: 44, borderRadius: T.radiusMd,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer',
-                            background: s <= value ? '#FFB800' : T.bg,
-                            border: `1.5px solid ${s <= value ? '#FFB800' : T.border}`,
-                            transition: 'all 0.15s',
+                            background: s <= value ? color + '22' : T.bg,
+                            border: `1.5px solid ${s <= value ? color : T.border}`,
+                            transition: 'all 0.12s',
                             fontSize: 18,
+                            color: s <= value ? color : T.gray,
                         }}
                     >
                         {s <= value ? '★' : '☆'}
@@ -108,31 +113,24 @@ function StarRow({ label, value, onChange }) {
     );
 }
 
-/* ─── Single Select Chips ────────────────────────────────────── */
+/* ─── Chips ──────────────────────────────────────────────────── */
 function SingleChips({ options, value, onChange }) {
     return (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {options.map(opt => (
-                <div
-                    key={opt}
-                    onClick={() => onChange(opt === value ? '' : opt)}
-                    style={{
-                        padding: '8px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
-                        fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-                        background: value === opt ? T.text : T.white,
-                        color: value === opt ? T.white : T.gray,
-                        border: `1px solid ${value === opt ? T.text : T.border}`,
-                        transition: 'all 0.15s',
-                    }}
-                >
-                    {opt}
-                </div>
+                <div key={opt} onClick={() => onChange(opt === value ? '' : opt)} style={{
+                    padding: '8px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                    background: value === opt ? T.text : T.white,
+                    color: value === opt ? T.white : T.gray,
+                    border: `1px solid ${value === opt ? T.text : T.border}`,
+                    transition: 'all 0.15s',
+                }}>{opt}</div>
             ))}
         </div>
     );
 }
 
-/* ─── Multi Select Chips ─────────────────────────────────────── */
 function MultiChips({ options, values, onChange }) {
     const toggle = (opt) => {
         const next = new Set(values);
@@ -144,20 +142,14 @@ function MultiChips({ options, values, onChange }) {
             {options.map(opt => {
                 const active = values.has(opt);
                 return (
-                    <div
-                        key={opt}
-                        onClick={() => toggle(opt)}
-                        style={{
-                            padding: '8px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
-                            fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-                            background: active ? T.blue : T.white,
-                            color: active ? T.white : T.gray,
-                            border: `1px solid ${active ? T.blue : T.border}`,
-                            transition: 'all 0.15s',
-                        }}
-                    >
-                        {opt}
-                    </div>
+                    <div key={opt} onClick={() => toggle(opt)} style={{
+                        padding: '8px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
+                        fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                        background: active ? T.blue : T.white,
+                        color: active ? T.white : T.gray,
+                        border: `1px solid ${active ? T.blue : T.border}`,
+                        transition: 'all 0.15s',
+                    }}>{opt}</div>
                 );
             })}
         </div>
@@ -168,63 +160,53 @@ function MultiChips({ options, values, onChange }) {
 export default function ReviewWritePage() {
     const router = useRouter();
 
-    const [events, setEvents] = useState([]);
-    const [organizers, setOrganizers] = useState([]);
+    const [instances, setInstances] = useState([]);
     const [reviewCount, setReviewCount] = useState(0);
 
-    const [selectedEventId, setSelectedEventId] = useState('');
-    const [selectedOrgId, setSelectedOrgId] = useState('');
-    const [sellerType, setSellerType] = useState('seller');
+    // 행사 선택 (event_instance 기준)
+    const [selectedInstance, setSelectedInstance] = useState(null); // { id, event_date, base_event, organizer }
+    const [instKeyword, setInstKeyword] = useState('');
+    const [isInstOpen, setIsInstOpen] = useState(false);
 
-    const [evtKeyword, setEvtKeyword] = useState('');
-    const [orgKeyword, setOrgKeyword] = useState('');
-    const [isEvtOpen, setIsEvtOpen] = useState(false);
-    const [isOrgOpen, setIsOrgOpen] = useState(false);
-
-    // 인라인 신규 추가 폼
+    // 새 행사 직접 추가
     const [showAddEvent, setShowAddEvent] = useState(false);
     const [newEvtName, setNewEvtName] = useState('');
+    const [newEvtDate, setNewEvtDate] = useState('');
     const [addingEvent, setAddingEvent] = useState(false);
 
-    const [showAddOrg, setShowAddOrg] = useState(false);
-    const [newOrgName, setNewOrgName] = useState('');
-    const [addingOrg, setAddingOrg] = useState(false);
+    const [sellerType, setSellerType] = useState('seller');
 
-    // 별점 (일반셀러: 구매력/유동인구/운영지원/주최매너/홍보, 푸드트럭: 수익성/집객력/운영지원/매너)
-    const [rPurchase, setRPurchase] = useState(0);   // 구매력 (seller)
-    const [rProfit, setRProfit] = useState(0);        // 수익성 (foodtruck)
-    const [rTraffic, setRTraffic] = useState(0);      // 유동인구 / 집객력
-    const [rSupport, setRSupport] = useState(0);      // 운영지원
-    const [rManners, setRManners] = useState(0);      // 주최 매너
-    const [rPromotion, setRPromotion] = useState(0);  // 홍보 (seller only)
+    const [rProfit, setRProfit]     = useState(0);
+    const [rTraffic, setRTraffic]   = useState(0);
+    const [rSupport, setRSupport]   = useState(0);
+    const [rManners, setRManners]   = useState(0);
+    const [rPromotion, setRPromotion] = useState(0);
 
-    // 일반셀러 전용 추가 항목
-    const [revenueRange, setRevenueRange] = useState('');
-    const [ageGroups, setAgeGroups] = useState(new Set());
-    const [visitorTypes, setVisitorTypes] = useState(new Set());
+    const [revenueRange, setRevenueRange]   = useState('');
+    const [ageGroups, setAgeGroups]         = useState(new Set());
+    const [visitorTypes, setVisitorTypes]   = useState(new Set());
 
-    const [pros, setPros] = useState('');
-    const [cons, setCons] = useState('');
+    const [pros, setPros]     = useState('');
+    const [cons, setCons]     = useState('');
     const [content, setContent] = useState('');
-    const [showOverall, setShowOverall] = useState(false);
 
     const [prosChips, setProsChips] = useState(new Set());
     const [consChips, setConsChips] = useState(new Set());
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const evtRef = useRef(null);
-    const orgRef = useRef(null);
+    const instRef = useRef(null);
 
     useEffect(() => {
         (async () => {
             const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
-            const [eRes, oRes] = await Promise.all([
-                sb.from('events').select('id, name, location').order('name'),
-                sb.from('organizers').select('id, name').order('name'),
+            const [instRes] = await Promise.all([
+                sb.from('event_instances')
+                    .select('id, event_date, event_date_end, location, base_event:base_events(id, name), organizer:organizers(id, name)')
+                    .order('event_date', { ascending: false })
+                    .limit(200),
             ]);
-            if (eRes.data) setEvents(eRes.data);
-            if (oRes.data) setOrganizers(oRes.data);
+            if (instRes.data) setInstances(instRes.data);
             if (session?.user) {
                 const { data: p } = await sb.from('profiles').select('review_count').eq('id', session.user.id).single();
                 if (p) setReviewCount(p.review_count ?? 0);
@@ -234,8 +216,7 @@ export default function ReviewWritePage() {
 
     useEffect(() => {
         const handler = e => {
-            if (evtRef.current && !evtRef.current.contains(e.target)) setIsEvtOpen(false);
-            if (orgRef.current && !orgRef.current.contains(e.target)) setIsOrgOpen(false);
+            if (instRef.current && !instRef.current.contains(e.target)) setIsInstOpen(false);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -243,7 +224,7 @@ export default function ReviewWritePage() {
 
     useEffect(() => {
         setProsChips(new Set()); setConsChips(new Set()); setPros(''); setCons('');
-        setRPurchase(0); setRProfit(0); setRTraffic(0); setRSupport(0); setRManners(0); setRPromotion(0);
+        setRProfit(0); setRTraffic(0); setRSupport(0); setRManners(0); setRPromotion(0);
         setRevenueRange(''); setAgeGroups(new Set()); setVisitorTypes(new Set());
     }, [sellerType]);
 
@@ -261,38 +242,35 @@ export default function ReviewWritePage() {
 
     const handleAddEvent = async () => {
         if (!newEvtName.trim()) return alert('행사명을 입력해주세요.');
+        if (!newEvtDate) return alert('행사 날짜를 선택해주세요.');
         setAddingEvent(true);
         try {
             const sb = createClient();
-            const { data, error } = await sb.from('events').insert({
-                name: newEvtName.trim(), is_approved: false, source: 'user',
-            }).select('id, name, location').single();
-            if (error) throw error;
-            setEvents(prev => [...prev, data]);
-            setSelectedEventId(data.id); setEvtKeyword(data.name);
-            setShowAddEvent(false); setNewEvtName('');
-        } catch { alert('행사 추가 중 오류가 발생했습니다.'); }
-        finally { setAddingEvent(false); }
-    };
-
-    const handleAddOrg = async () => {
-        if (!newOrgName.trim()) return alert('주최사명을 입력해주세요.');
-        setAddingOrg(true);
-        try {
-            const sb = createClient();
-            const { data, error } = await sb.from('organizers').insert({ name: newOrgName.trim() }).select('id, name').single();
-            if (error) throw error;
-            setOrganizers(prev => [...prev, data]);
-            setSelectedOrgId(data.id); setOrgKeyword(data.name);
-            setShowAddOrg(false); setNewOrgName('');
-        } catch { alert('주최사 추가 중 오류가 발생했습니다.'); }
-        finally { setAddingOrg(false); }
+            // 1. base_event 생성
+            const { data: ev, error: evErr } = await sb
+                .from('base_events').insert({ name: newEvtName.trim() }).select('id, name').single();
+            if (evErr) throw evErr;
+            // 2. event_instance 생성
+            const { data: inst, error: instErr } = await sb
+                .from('event_instances').insert({
+                    base_event_id: ev.id,
+                    event_date: newEvtDate,
+                }).select('id, event_date, base_event:base_events(id, name), organizer:organizers(id, name)').single();
+            if (instErr) throw instErr;
+            setInstances(prev => [inst, ...prev]);
+            setSelectedInstance(inst);
+            setInstKeyword(ev.name);
+            setShowAddEvent(false); setNewEvtName(''); setNewEvtDate('');
+        } catch (err) {
+            console.error(err);
+            alert('행사 추가 중 오류가 발생했습니다.');
+        } finally {
+            setAddingEvent(false); }
     };
 
     const handleSubmit = async () => {
-        if (!selectedEventId) return alert('참여하신 행사(장소)를 선택해주세요.');
-        if (!selectedOrgId) return alert('주최사를 선택해주세요.');
-        if ([rPurchase, rTraffic, rSupport, rManners, rPromotion].some(r => !r)) return alert('모든 항목의 별점을 입력해주세요.');
+        if (!selectedInstance) return alert('참여하신 행사를 선택해주세요.');
+        if ([rProfit, rTraffic, rSupport, rManners].some(r => !r)) return alert('필수 별점 항목을 모두 입력해주세요.');
         if (!pros.trim()) return alert('장점을 입력해주세요.');
         if (!cons.trim()) return alert('단점을 입력해주세요.');
 
@@ -303,27 +281,29 @@ export default function ReviewWritePage() {
             if (!session?.user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
             const payload = {
-                event_id: selectedEventId,
-                organizer_id: selectedOrgId,
+                event_instance_id: selectedInstance.id,
                 user_id: session.user.id,
                 seller_type: sellerType,
-                rating_profit: rPurchase,
+                rating_profit: rProfit,
                 rating_traffic: rTraffic,
                 rating_support: rSupport,
                 rating_manners: rManners,
-                rating_promotion: rPromotion,
-                content: content || null,
-                pros,
-                cons,
+                rating_promotion: rPromotion || null,
+                content: content.trim() || null,
+                pros: pros.trim(),
+                cons: cons.trim(),
                 is_verified: false,
             };
             if (revenueRange) payload.revenue_range = revenueRange;
             if (ageGroups.size > 0) payload.age_groups = [...ageGroups];
             if (visitorTypes.size > 0) payload.visitor_types = [...visitorTypes];
 
-            const { error } = await sb.from('company_reviews').insert(payload);
+            const { error } = await sb.from('reviews').insert(payload);
             if (error) throw error;
-            alert('소중한 리뷰가 등록되었습니다! 혜택 카운트가 1 증가합니다.');
+
+            // 리뷰 카운트 갱신
+            await sb.from('profiles').update({ review_count: reviewCount + 1 }).eq('id', session.user.id);
+
             router.push('/mypage');
         } catch (err) {
             console.error('리뷰 등록 에러:', err);
@@ -333,21 +313,20 @@ export default function ReviewWritePage() {
         }
     };
 
-    const filteredEvents = evtKeyword
-        ? events.filter(e =>
-            e.name.toLowerCase().includes(evtKeyword.toLowerCase()) ||
-            (e.location || '').toLowerCase().includes(evtKeyword.toLowerCase())
+    const filteredInsts = instKeyword
+        ? instances.filter(i =>
+            (i.base_event?.name || '').toLowerCase().includes(instKeyword.toLowerCase()) ||
+            (i.organizer?.name || '').toLowerCase().includes(instKeyword.toLowerCase()) ||
+            (i.location || '').toLowerCase().includes(instKeyword.toLowerCase())
           )
-        : events.slice(0, 20);
-    const filteredOrgs = orgKeyword
-        ? organizers.filter(o => o.name.toLowerCase().includes(orgKeyword.toLowerCase()))
-        : organizers.slice(0, 20);
+        : instances.slice(0, 30);
 
     const isSeller = sellerType === 'seller';
-    const ratingValues = [rPurchase, rTraffic, rSupport, rManners, rPromotion];
-    const overall = ratingValues.every(r => r > 0)
-        ? (ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length).toFixed(1) : null;
     const currentChips = CHIPS[sellerType];
+
+    const ratingScores = [rProfit, rTraffic, rSupport, rManners, rPromotion].filter(r => r > 0);
+    const overall = ratingScores.length >= 4
+        ? (ratingScores.reduce((a, b) => a + b, 0) / ratingScores.length).toFixed(1) : null;
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 60 }}>
@@ -356,53 +335,65 @@ export default function ReviewWritePage() {
             <div className="page-padding">
                 <ProgressBar count={reviewCount} />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                    {/* ── 행사/주최사 선택 ── */}
+                    {/* ── 행사 선택 ── */}
                     <Card>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 18 }}>
-                            어디서, 누구와 진행하셨나요?
-                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>어떤 행사에 참여하셨나요?</div>
+                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 16 }}>행사명 또는 주최사로 검색하세요</div>
 
-                        {/* 행사 검색 */}
-                        <div style={{ marginBottom: 20 }} ref={evtRef}>
-                            <label style={{ fontSize: 13, fontWeight: 700, color: T.gray, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                진행된 행사 (장소)
-                                <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '1px 6px', borderRadius: T.radiusFull }}>필수</span>
-                            </label>
-
-                            {selectedEventId ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: T.blueLt, border: `1.5px solid ${T.blue}`, borderRadius: T.radiusMd, padding: '13px 16px' }}>
+                        <div ref={instRef}>
+                            {selectedInstance ? (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    background: T.blueLt, border: `1.5px solid ${T.blue}`, borderRadius: T.radiusMd, padding: '14px 16px',
+                                }}>
                                     <div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{evtKeyword}</div>
-                                        <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{events.find(e => e.id === selectedEventId)?.location || ''}</div>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>
+                                            {selectedInstance.base_event?.name || '행사명 없음'}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: T.textSub, marginTop: 3 }}>
+                                            {selectedInstance.organizer?.name && `${selectedInstance.organizer.name} · `}
+                                            {selectedInstance.event_date && new Date(selectedInstance.event_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </div>
                                     </div>
-                                    <X size={16} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => { setSelectedEventId(''); setEvtKeyword(''); setShowAddEvent(false); }} />
+                                    <X size={16} color={T.blue} style={{ cursor: 'pointer', flexShrink: 0 }}
+                                        onClick={() => { setSelectedInstance(null); setInstKeyword(''); }} />
                                 </div>
                             ) : (
                                 <div style={{ position: 'relative' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.bg, borderRadius: T.radiusMd, border: `1.5px solid ${isEvtOpen ? T.blue : T.border}`, padding: '0 14px' }}>
-                                        <Search size={15} color={isEvtOpen ? T.blue : T.gray} style={{ flexShrink: 0 }} />
-                                        <input type="text" placeholder="행사명 또는 장소 검색..." value={evtKeyword}
-                                            onChange={e => { setEvtKeyword(e.target.value); setIsEvtOpen(true); setShowAddEvent(false); }}
-                                            onFocus={() => setIsEvtOpen(true)}
-                                            style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }} />
-                                        {evtKeyword && <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => { setEvtKeyword(''); setShowAddEvent(false); }} />}
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 8, background: T.bg,
+                                        borderRadius: T.radiusMd, border: `1.5px solid ${isInstOpen ? T.blue : T.border}`, padding: '0 14px',
+                                    }}>
+                                        <Search size={15} color={isInstOpen ? T.blue : T.gray} style={{ flexShrink: 0 }} />
+                                        <input
+                                            type="text" placeholder="행사명, 주최사, 장소 검색..."
+                                            value={instKeyword}
+                                            onChange={e => { setInstKeyword(e.target.value); setIsInstOpen(true); setShowAddEvent(false); }}
+                                            onFocus={() => setIsInstOpen(true)}
+                                            style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                                        />
+                                        {instKeyword && <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => { setInstKeyword(''); setShowAddEvent(false); }} />}
                                     </div>
-                                    {isEvtOpen && (
-                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd, boxShadow: T.shadowMd, maxHeight: 220, overflowY: 'auto', zIndex: 200 }}>
-                                            {filteredEvents.length > 0 ? filteredEvents.map((item, i) => (
-                                                <div key={item.id} onClick={() => { setSelectedEventId(item.id); setEvtKeyword(item.name); setIsEvtOpen(false); }}
-                                                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i < filteredEvents.length - 1 ? `1px solid ${T.border}` : 'none' }}>
-                                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
-                                                    {item.location && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>📍 {item.location}</div>}
+                                    {isInstOpen && (
+                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd, boxShadow: T.shadowMd, maxHeight: 240, overflowY: 'auto', zIndex: 200 }}>
+                                            {filteredInsts.length > 0 ? filteredInsts.map((inst, i) => (
+                                                <div key={inst.id}
+                                                    onClick={() => { setSelectedInstance(inst); setInstKeyword(inst.base_event?.name || ''); setIsInstOpen(false); }}
+                                                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i < filteredInsts.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{inst.base_event?.name || '행사명 없음'}</div>
+                                                    <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>
+                                                        {[inst.organizer?.name, inst.event_date && new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })].filter(Boolean).join(' · ')}
+                                                    </div>
                                                 </div>
                                             )) : (
                                                 <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없어요.</div>
                                             )}
-                                            <div onClick={() => { setIsEvtOpen(false); setShowAddEvent(true); setNewEvtName(evtKeyword); }}
+                                            <div
+                                                onClick={() => { setIsInstOpen(false); setShowAddEvent(true); setNewEvtName(instKeyword); }}
                                                 style={{ padding: '13px 16px', cursor: 'pointer', borderTop: `1px solid ${T.border}`, fontSize: 14, fontWeight: 700, color: T.blue, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Plus size={15} /> 새 행사 직접 추가하기
+                                                <Plus size={15} /> 행사가 없으면 직접 추가하기
                                             </div>
                                         </div>
                                     )}
@@ -413,65 +404,16 @@ export default function ReviewWritePage() {
                                 <div style={{ marginTop: 12, background: T.blueLt, borderRadius: T.radiusMd, padding: 16, border: `1.5px solid ${T.blue}` }}>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 12 }}>새 행사 추가</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                        <input value={newEvtName} onChange={e => setNewEvtName(e.target.value)} placeholder="행사명을 입력해주세요" style={{ ...inputStyle(newEvtName), marginBottom: 0 }} />
+                                        <input value={newEvtName} onChange={e => setNewEvtName(e.target.value)}
+                                            placeholder="행사명을 입력해주세요"
+                                            style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
+                                        <input type="date" value={newEvtDate} onChange={e => setNewEvtDate(e.target.value)}
+                                            style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); }} style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
-                                            <div onClick={addingEvent ? null : handleAddEvent} style={{ flex: 2, padding: '11px 0', textAlign: 'center', background: addingEvent ? T.gray : T.blue, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer' }}>{addingEvent ? '추가 중...' : '추가하기'}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 주최사 검색 */}
-                        <div ref={orgRef}>
-                            <label style={{ fontSize: 13, fontWeight: 700, color: T.gray, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                주최사
-                                <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '1px 6px', borderRadius: T.radiusFull }}>필수</span>
-                            </label>
-
-                            {selectedOrgId ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: T.blueLt, border: `1.5px solid ${T.blue}`, borderRadius: T.radiusMd, padding: '13px 16px' }}>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{orgKeyword}</div>
-                                    <X size={16} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => { setSelectedOrgId(''); setOrgKeyword(''); setShowAddOrg(false); }} />
-                                </div>
-                            ) : (
-                                <div style={{ position: 'relative' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.bg, borderRadius: T.radiusMd, border: `1.5px solid ${isOrgOpen ? T.blue : T.border}`, padding: '0 14px' }}>
-                                        <Search size={15} color={isOrgOpen ? T.blue : T.gray} style={{ flexShrink: 0 }} />
-                                        <input type="text" placeholder="주최사 검색..." value={orgKeyword}
-                                            onChange={e => { setOrgKeyword(e.target.value); setIsOrgOpen(true); setShowAddOrg(false); }}
-                                            onFocus={() => setIsOrgOpen(true)}
-                                            style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }} />
-                                        {orgKeyword && <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => { setOrgKeyword(''); setShowAddOrg(false); }} />}
-                                    </div>
-                                    {isOrgOpen && (
-                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd, boxShadow: T.shadowMd, maxHeight: 220, overflowY: 'auto', zIndex: 200 }}>
-                                            {filteredOrgs.length > 0 ? filteredOrgs.map((item, i) => (
-                                                <div key={item.id} onClick={() => { setSelectedOrgId(item.id); setOrgKeyword(item.name); setIsOrgOpen(false); }}
-                                                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i < filteredOrgs.length - 1 ? `1px solid ${T.border}` : 'none' }}>
-                                                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.name}</div>
-                                                </div>
-                                            )) : (
-                                                <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없어요.</div>
-                                            )}
-                                            <div onClick={() => { setIsOrgOpen(false); setShowAddOrg(true); setNewOrgName(orgKeyword); }}
-                                                style={{ padding: '13px 16px', cursor: 'pointer', borderTop: `1px solid ${T.border}`, fontSize: 14, fontWeight: 700, color: T.blue, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <Plus size={15} /> 주최사 직접 추가하기
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {showAddOrg && (
-                                <div style={{ marginTop: 12, background: T.blueLt, borderRadius: T.radiusMd, padding: 16, border: `1.5px solid ${T.blue}` }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 12 }}>주최사 추가</div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                        <input value={newOrgName} onChange={e => setNewOrgName(e.target.value)} placeholder="주최사명을 입력해주세요" style={{ ...inputStyle(newOrgName), marginBottom: 0 }} />
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <div onClick={() => { setShowAddOrg(false); setNewOrgName(''); }} style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
-                                            <div onClick={addingOrg ? null : handleAddOrg} style={{ flex: 2, padding: '11px 0', textAlign: 'center', background: addingOrg ? T.gray : T.blue, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: '#fff', cursor: addingOrg ? 'default' : 'pointer' }}>{addingOrg ? '추가 중...' : '추가하기'}</div>
+                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); setNewEvtDate(''); }}
+                                                style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
+                                            <div onClick={addingEvent ? null : handleAddEvent}
+                                                style={{ flex: 2, padding: '11px 0', textAlign: 'center', background: addingEvent ? T.gray : T.blue, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer' }}>{addingEvent ? '추가 중...' : '추가하기'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -481,13 +423,17 @@ export default function ReviewWritePage() {
 
                     {/* ── 셀러 유형 ── */}
                     <Card>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 14 }}>셀러 유형 선택</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 14 }}>셀러 유형</div>
                         <div style={{ display: 'flex', gap: 10 }}>
                             {[
                                 { key: 'seller', label: '💎 일반 셀러', desc: '소품, 핸드메이드, 의류 등' },
                                 { key: 'foodtruck', label: '🚚 푸드트럭', desc: '음식, 음료, 식품 판매' },
                             ].map(({ key, label, desc }) => (
-                                <div key={key} onClick={() => setSellerType(key)} style={{ flex: 1, padding: '14px 12px', borderRadius: T.radiusLg, cursor: 'pointer', border: `2px solid ${sellerType === key ? T.blue : T.border}`, background: sellerType === key ? T.blueLt : T.white, transition: 'all 0.15s' }}>
+                                <div key={key} onClick={() => setSellerType(key)} style={{
+                                    flex: 1, padding: '14px 12px', borderRadius: T.radiusLg, cursor: 'pointer',
+                                    border: `2px solid ${sellerType === key ? T.blue : T.border}`,
+                                    background: sellerType === key ? T.blueLt : T.white, transition: 'all 0.15s',
+                                }}>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: sellerType === key ? T.blue : T.text, marginBottom: 3 }}>{label}</div>
                                     <div style={{ fontSize: 11, color: T.gray }}>{desc}</div>
                                 </div>
@@ -500,18 +446,24 @@ export default function ReviewWritePage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>상세 평가</div>
                             {overall && (
-                                <div style={{ background: T.blueLt, borderRadius: 10, padding: '6px 14px', fontSize: 13, fontWeight: 700, color: T.blue }}>종합 ★ {overall}</div>
+                                <div style={{ background: T.blueLt, borderRadius: 10, padding: '6px 14px', fontSize: 13, fontWeight: 700, color: T.blue }}>
+                                    종합 ★ {overall}
+                                </div>
                             )}
                         </div>
 
-                        <div style={{ fontSize: 12, color: T.gray, fontWeight: 600, marginBottom: 12 }}>📍 행사/장소 관련</div>
-                        <StarRow label="💳 구매력" value={rPurchase} onChange={setRPurchase} />
-                        <StarRow label="👥 유동인구" value={rTraffic} onChange={setRTraffic} />
+                        <div style={{ fontSize: 12, color: T.gray, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${T.border}` }}>
+                            📍 행사/장소 관련
+                        </div>
+                        <StarRow label={isSeller ? '💳 구매력' : '💰 수익성'} value={rProfit} onChange={setRProfit} color="#10B981" />
+                        <StarRow label="👥 유동인구 / 집객력" value={rTraffic} onChange={setRTraffic} color="#3B82F6" />
 
-                        <div style={{ fontSize: 12, color: T.gray, fontWeight: 600, marginBottom: 12, marginTop: 8 }}>🏢 주최사 관련</div>
-                        <StarRow label="🤝 운영지원" value={rSupport} onChange={setRSupport} />
-                        <StarRow label="😊 주최사 매너" value={rManners} onChange={setRManners} />
-                        <StarRow label="📣 홍보" value={rPromotion} onChange={setRPromotion} />
+                        <div style={{ fontSize: 12, color: T.gray, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${T.border}`, marginTop: 6 }}>
+                            🏢 주최사 관련
+                        </div>
+                        <StarRow label="🤝 운영지원" value={rSupport} onChange={setRSupport} color="#F59E0B" />
+                        <StarRow label="😊 주최사 매너" value={rManners} onChange={setRManners} color="#E91E63" />
+                        <StarRow label="📣 홍보 (선택)" value={rPromotion} onChange={setRPromotion} color="#8B5CF6" />
                     </Card>
 
                     {/* ── 매출액 ── */}
@@ -530,7 +482,7 @@ export default function ReviewWritePage() {
 
                     {/* ── 방문 유형 ── */}
                     <Card>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>🚶 방문 유형 / 구성</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>🚶 방문 유형</div>
                         <div style={{ fontSize: 13, color: T.gray, marginBottom: 14 }}>주요 방문객 유형을 선택해주세요 (복수 선택)</div>
                         <MultiChips options={VISITOR_TYPES} values={visitorTypes} onChange={setVisitorTypes} />
                     </Card>
@@ -541,11 +493,14 @@ export default function ReviewWritePage() {
                             <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>👍 장점</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '2px 7px', borderRadius: T.radiusFull }}>필수</span>
                         </div>
-                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>직접 쓰거나 아래 키워드를 눌러 빠르게 추가하세요</div>
-                        <textarea value={pros} onChange={e => setPros(e.target.value)} placeholder="좋았던 점을 적어주세요." rows={3} style={{ ...inputStyle(pros), resize: 'none', fontFamily: 'inherit' }} />
-                        <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>아래 키워드를 탭하거나 직접 입력하세요</div>
+                        <div style={{ marginBottom: 12 }}>
                             <ChipGroup chips={currentChips.pros} selected={prosChips} onToggle={text => toggleChip(text, setPros, prosChips, setProsChips)} />
                         </div>
+                        <textarea value={pros} onChange={e => setPros(e.target.value)}
+                            placeholder="좋았던 점을 적어주세요." rows={3}
+                            style={{ width: '100%', padding: '12px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${pros ? T.green : T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, resize: 'none', lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        />
                     </Card>
 
                     {/* ── 단점 ── */}
@@ -554,34 +509,38 @@ export default function ReviewWritePage() {
                             <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>👎 단점</span>
                             <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '2px 7px', borderRadius: T.radiusFull }}>필수</span>
                         </div>
-                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>직접 쓰거나 아래 키워드를 눌러 빠르게 추가하세요</div>
-                        <textarea value={cons} onChange={e => setCons(e.target.value)} placeholder="아쉬웠던 점을 적어주세요." rows={3} style={{ ...inputStyle(cons), resize: 'none', fontFamily: 'inherit' }} />
-                        <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>아래 키워드를 탭하거나 직접 입력하세요</div>
+                        <div style={{ marginBottom: 12 }}>
                             <ChipGroup chips={currentChips.cons} selected={consChips} onToggle={text => toggleChip(text, setCons, consChips, setConsChips)} />
                         </div>
+                        <textarea value={cons} onChange={e => setCons(e.target.value)}
+                            placeholder="아쉬웠던 점을 적어주세요." rows={3}
+                            style={{ width: '100%', padding: '12px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${cons ? T.red : T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, resize: 'none', lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        />
                     </Card>
 
                     {/* ── 종합 평가 (선택) ── */}
-                    <Card padding={0}>
-                        <div onClick={() => setShowOverall(v => !v)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px', cursor: 'pointer' }}>
-                            <div>
-                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>📝 종합 평가</div>
-                                <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>선택 사항 — 자세한 경험을 자유롭게 공유해보세요</div>
-                            </div>
-                            <ChevronDown size={20} color={T.gray} style={{ transform: showOverall ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                        </div>
-                        {showOverall && (
-                            <div style={{ padding: '0 20px 20px' }}>
-                                <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="자세한 경험을 자유롭게 공유해주세요." rows={4} style={{ ...inputStyle(content), resize: 'none', fontFamily: 'inherit' }} />
-                            </div>
-                        )}
+                    <Card>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>📝 종합 평가</div>
+                        <div style={{ fontSize: 13, color: T.gray, marginBottom: 12 }}>선택 사항 — 자유롭게 경험을 공유해보세요</div>
+                        <textarea value={content} onChange={e => setContent(e.target.value)}
+                            placeholder="자세한 경험을 자유롭게 공유해주세요." rows={4}
+                            style={{ width: '100%', padding: '12px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${content ? T.blue : T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, resize: 'none', lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        />
                     </Card>
 
                     {/* ── 제출 ── */}
-                    <div onClick={isSubmitting ? null : handleSubmit} style={{ background: isSubmitting ? T.gray : T.blue, borderRadius: T.radiusMd, padding: 18, textAlign: 'center', color: '#fff', fontSize: 16, fontWeight: 800, cursor: isSubmitting ? 'default' : 'pointer', transition: 'background 0.15s' }}>
+                    <div
+                        onClick={isSubmitting ? null : handleSubmit}
+                        style={{
+                            background: isSubmitting ? T.gray : `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
+                            borderRadius: T.radiusMd, padding: '18px', textAlign: 'center',
+                            color: '#fff', fontSize: 16, fontWeight: 800,
+                            cursor: isSubmitting ? 'default' : 'pointer', transition: 'opacity 0.15s',
+                        }}
+                    >
                         {isSubmitting ? '처리 중...' : '리뷰 등록하고 무료 혜택 받기 🎁'}
                     </div>
-
                 </div>
             </div>
         </div>

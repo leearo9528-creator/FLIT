@@ -61,7 +61,7 @@ export default function PostDetailPage() {
             setLoading(true);
             const sb = createClient();
             const [{ data: postData }, { data: commentData }] = await Promise.all([
-                sb.from('posts').select('*, event:base_events(id, name)').eq('id', id).single(),
+                sb.from('posts').select('*').eq('id', id).single(),
                 sb.from('post_comments').select('*').eq('post_id', id).order('created_at', { ascending: true }),
             ]);
             if (postData) {
@@ -121,7 +121,6 @@ export default function PostDetailPage() {
             author,
             content: commentText.trim(),
             is_anonymous: isAnon,
-            likes: 0,
         }).select().single();
         if (!error && data) {
             setComments(prev => [...prev, data]);

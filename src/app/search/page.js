@@ -43,14 +43,27 @@ const SORT_OPTIONS = [
     { key: 'rating', label: '평점 높은순' },
 ];
 
-function SortBar({ value, onChange }) {
+const REVIEW_SORT_OPTIONS = [
+    { key: 'latest', label: '최신순' },
+    { key: 'rating_high', label: '평점 높은순' },
+    { key: 'rating_low', label: '평점 낮은순' },
+];
+
+const ORG_SORT_OPTIONS = [
+    { key: 'name', label: '이름순' },
+    { key: 'rating', label: '평점 높은순' },
+    { key: 'reviews', label: '리뷰 많은순' },
+    { key: 'instances', label: '개최 많은순' },
+];
+
+function SortBar({ value, onChange, options = SORT_OPTIONS }) {
     return (
         <div style={{ padding: '10px 16px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>
                 <ArrowUpDown size={12} />정렬
             </div>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
-                {SORT_OPTIONS.map(opt => (
+                {options.map(opt => (
                     <div key={opt.key} onClick={() => onChange(opt.key)} style={{
                         padding: '7px 14px', borderRadius: T.radiusFull, fontSize: 13, fontWeight: 600,
                         cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
@@ -151,20 +164,6 @@ function RecruitCard({ rec }) {
 /* ════════════════════════════════════════════════════════════════
    후기 탭 — 무한스크롤 피드
 ════════════════════════════════════════════════════════════════ */
-const REVENUE_STYLE = {
-    '100만원 이상': { background: '#DCFCE7', color: '#16A34A' },
-    '50-100만원':   { background: '#DCFCE7', color: '#16A34A' },
-    '30-50만원':    { background: '#DBEAFE', color: '#2563EB' },
-    '10-30만원':    { background: '#FEF3C7', color: '#D97706' },
-    '10만원 미만':  { background: '#FEE2E2', color: '#DC2626' },
-};
-
-const SELLER_FILTERS = [
-    { key: 'all', label: '전체' },
-    { key: 'seller', label: '🛍️ 플리마켓' },
-    { key: 'foodtruck', label: '🚚 푸드트럭' },
-];
-
 function scoreColor(v) {
     return v >= 4.0 ? T.green : v >= 3.0 ? T.blue : T.gray;
 }
@@ -180,11 +179,6 @@ function ReviewFeedCard({ review, router, userPlan }) {
     const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
     const overall   = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
     const color     = scoreColor(overall);
-
-    const prosChips    = review.pros ? review.pros.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    const consChips    = review.cons ? review.cons.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    const ageGroups    = Array.isArray(review.age_groups)    ? review.age_groups    : [];
-    const visitorTypes = Array.isArray(review.visitor_types) ? review.visitor_types : [];
 
     return (
         <div
@@ -265,10 +259,9 @@ function ReviewFeedCard({ review, router, userPlan }) {
 }
 
 
-function ReviewFeed({ query }) {
+function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
     const router = useRouter();
     const { plan } = useAuth();
-    const [sellerFilter, setSellerFilter] = useState('all');
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -277,12 +270,11 @@ function ReviewFeed({ query }) {
     const sentinelRef = useRef(null);
     const observerRef = useRef(null);
 
-    const fetchReviews = useCallback(async (pageIndex, reset = false, sq = query, sf = sellerFilter) => {
+    const fetchReviews = useCallback(async (pageIndex, reset = false, sq = query, sf = sellerFilter, sort = reviewSortBy) => {
         if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
 
         const sb = createClient();
 
-        // 검색어가 있으면 base_event → instance ID로 변환
         let instanceIdFilter = null;
         if (sq.trim()) {
             const { data: matched } = await sb.from('base_events').select('id').ilike('name', `%${sq.trim()}%`);
@@ -310,36 +302,51 @@ function ReviewFeed({ query }) {
                 revenue_range, age_groups, visitor_types,
                 title, content, pros, cons, is_verified, created_at,
                 event_instance:event_instances(id, location, base_event:base_events(id, name), organizer:organizers(name))`)
-            .order('created_at', { ascending: false })
             .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
 
-        if (sf !== 'all') q = q.eq('seller_type', sf);
+        // 정렬
+        if (sort === 'rating_high' || sort === 'rating_low') {
+            q = q.order('created_at', { ascending: false }); // DB에서는 최신순, 클라이언트에서 재정렬
+        } else {
+            q = q.order('created_at', { ascending: false });
+        }
+
+        if (sf !== 'all') q = q.eq('seller_type', sf === 'seller' ? 'seller' : 'foodtruck');
         if (instanceIdFilter) q = q.in('event_instance_id', instanceIdFilter);
 
         const { data } = await q;
-        const fetched = data || [];
+        let fetched = data || [];
+
+        // 클라이언트 정렬
+        if (sort === 'rating_high' || sort === 'rating_low') {
+            fetched = [...fetched].sort((a, b) => {
+                const scoreA = [a.rating_profit, a.rating_traffic, a.rating_promotion, a.rating_support, a.rating_manners]
+                    .filter(v => v != null).reduce((s, v, _, arr) => s + v / arr.length, 0);
+                const scoreB = [b.rating_profit, b.rating_traffic, b.rating_promotion, b.rating_support, b.rating_manners]
+                    .filter(v => v != null).reduce((s, v, _, arr) => s + v / arr.length, 0);
+                return sort === 'rating_high' ? scoreB - scoreA : scoreA - scoreB;
+            });
+        }
+
         setReviews(prev => reset ? fetched : [...prev, ...fetched]);
         setHasMore(fetched.length === PAGE_SIZE);
         setLoading(false); setLoadingMore(false);
-    }, [query, sellerFilter]);
+    }, [query, sellerFilter, reviewSortBy]);
 
-    // 셀러필터 변경 시 리셋
-    useEffect(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter); }, [sellerFilter]);
+    useEffect(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter, reviewSortBy); }, [sellerFilter, reviewSortBy]);
 
-    // 검색어 변경 시 리셋 (디바운스)
     useEffect(() => {
-        const t = setTimeout(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter); }, 350);
+        const t = setTimeout(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter, reviewSortBy); }, 350);
         return () => clearTimeout(t);
     }, [query]);
 
-    // 무한스크롤
     useEffect(() => {
         if (observerRef.current) observerRef.current.disconnect();
         observerRef.current = new IntersectionObserver(entries => {
             if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
                 const next = page + 1;
                 setPage(next);
-                fetchReviews(next, false, query, sellerFilter);
+                fetchReviews(next, false, query, sellerFilter, reviewSortBy);
             }
         }, { threshold: 0.1 });
         if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
@@ -347,37 +354,18 @@ function ReviewFeed({ query }) {
     }, [hasMore, loadingMore, loading, page, fetchReviews]);
 
     return (
-        <>
-            {/* 셀러 유형 필터 */}
-            <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-                {SELLER_FILTERS.map(f => (
-                    <div key={f.key} onClick={() => setSellerFilter(f.key)} style={{
-                        padding: '7px 14px', borderRadius: T.radiusFull, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        background: sellerFilter === f.key ? T.text : T.white,
-                        color: sellerFilter === f.key ? T.white : T.gray,
-                        border: `1px solid ${sellerFilter === f.key ? T.text : T.border}`, transition: 'all 0.15s',
-                    }}>{f.label}</div>
-                ))}
-            </div>
-
-            <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {loading
-                    ? <Skeleton count={4} height={180} />
-                    : reviews.length === 0
-                        ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
-                            {query ? `"${query}" 관련 후기가 없어요.` : '아직 등록된 후기가 없어요.'}
-                        </div>
-                        : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} userPlan={plan} />)
-                }
-                <div ref={sentinelRef} style={{ height: 1 }} />
-                {loadingMore && <Skeleton count={2} height={160} />}
-                {!loading && !loadingMore && !hasMore && reviews.length > 0 && (
-                    <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 13 }}>
-                        모든 후기를 불러왔습니다.
+        <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {loading
+                ? <Skeleton count={4} height={180} />
+                : reviews.length === 0
+                    ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
+                        {query ? `"${query}" 관련 후기가 없어요.` : '아직 등록된 후기가 없어요.'}
                     </div>
-                )}
-            </div>
-        </>
+                    : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} userPlan={plan} />)
+            }
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {loadingMore && <Skeleton count={2} height={160} />}
+        </div>
     );
 }
 
@@ -394,7 +382,6 @@ function OrganizerCard({ org }) {
         <Link href={`/organizers/${org.id}`} style={{ textDecoration: 'none' }}>
         <Card padding={16} style={{ border: `1px solid ${T.border}` }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                {/* 로고 */}
                 <div style={{
                     width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                     background: T.grayLt, overflow: 'hidden',
@@ -418,7 +405,6 @@ function OrganizerCard({ org }) {
                         </div>
                     )}
 
-                    {/* 평점 */}
                     {(avgSupport || avgManners) && (
                         <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
                             {avgSupport && (
@@ -438,7 +424,6 @@ function OrganizerCard({ org }) {
                         </div>
                     )}
 
-                    {/* 통계 */}
                     <div style={{ display: 'flex', gap: 10 }}>
                         <span style={{ fontSize: 11, color: T.gray }}>🎪 개최 {totalInst}회</span>
                         <span style={{ fontSize: 11, color: T.gray }}>💬 리뷰 {totalRev}개</span>
@@ -450,7 +435,7 @@ function OrganizerCard({ org }) {
     );
 }
 
-function OrganizerList({ query }) {
+function OrganizerList({ query, orgSortBy }) {
     const [organizers, setOrganizers] = useState([]);
     const [loading, setLoading]       = useState(true);
 
@@ -458,13 +443,24 @@ function OrganizerList({ query }) {
         (async () => {
             setLoading(true);
             const sb = createClient();
-            let q = sb.from('organizers').select('*').order('name');
+            let q = sb.from('organizers').select('*');
             if (query.trim()) q = q.ilike('name', `%${query.trim()}%`);
+            if (orgSortBy === 'reviews') q = q.order('total_reviews', { ascending: false });
+            else if (orgSortBy === 'instances') q = q.order('total_instances', { ascending: false });
+            else q = q.order('name');
             const { data } = await q;
-            setOrganizers(data || []);
+            let result = data || [];
+            if (orgSortBy === 'rating') {
+                result = [...result].sort((a, b) => {
+                    const ra = ((a.avg_support || 0) + (a.avg_manners || 0)) / 2;
+                    const rb = ((b.avg_support || 0) + (b.avg_manners || 0)) / 2;
+                    return rb - ra;
+                });
+            }
+            setOrganizers(result);
             setLoading(false);
         })();
-    }, [query]);
+    }, [query, orgSortBy]);
 
     return (
         <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -493,12 +489,19 @@ function SearchContent() {
     const initTab = ['reviews', 'organizers'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'recruit';
     const [activeTab, setActiveTab] = useState(initTab);
     const [query, setQuery] = useState(searchParams.get('q') || '');
+    const [showFilters, setShowFilters] = useState(false);
 
-    // 공고 탭 전용 필터
+    // 모집공고 필터
     const [regionFilter, setRegionFilter] = useState('전체');
     const [categoryFilter, setCategoryFilter] = useState('전체');
     const [sortBy, setSortBy] = useState('latest');
-    const [showFilters, setShowFilters] = useState(false);
+
+    // 실시간 후기 필터
+    const [sellerFilter, setSellerFilter] = useState('all');
+    const [reviewSortBy, setReviewSortBy] = useState('latest');
+
+    // 주최사 필터
+    const [orgSortBy, setOrgSortBy] = useState('name');
 
     // 공고 데이터
     const [recruitments, setRecruitments] = useState([]);
@@ -540,9 +543,20 @@ function SearchContent() {
         return list;
     }, [recruitments, query, regionFilter, categoryFilter, sortBy]);
 
-    const activeFilterCount = [regionFilter !== '전체', categoryFilter !== '전체', sortBy !== 'latest'].filter(Boolean).length;
+    // 탭별 활성 필터 카운트
+    const activeFilterCount = useMemo(() => {
+        if (activeTab === 'recruit') return [regionFilter !== '전체', categoryFilter !== '전체', sortBy !== 'latest'].filter(Boolean).length;
+        if (activeTab === 'reviews') return [sellerFilter !== 'all', reviewSortBy !== 'latest'].filter(Boolean).length;
+        if (activeTab === 'organizers') return [orgSortBy !== 'name'].filter(Boolean).length;
+        return 0;
+    }, [activeTab, regionFilter, categoryFilter, sortBy, sellerFilter, reviewSortBy, orgSortBy]);
 
     const placeholder = activeTab === 'recruit' ? '행사명, 공고명, 지역 검색' : activeTab === 'organizers' ? '주최사명 검색' : '행사명으로 검색';
+
+    const handleTabChange = (key) => {
+        setActiveTab(key);
+        setShowFilters(false);
+    };
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
@@ -572,7 +586,7 @@ function SearchContent() {
                         />
                         {query
                             ? <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setQuery('')} />
-                            : activeTab === 'recruit' && (
+                            : (
                                 <div onClick={() => setShowFilters(f => !f)} style={{
                                     display: 'flex', alignItems: 'center', gap: 4,
                                     padding: '5px 10px', borderRadius: T.radiusMd,
@@ -588,12 +602,34 @@ function SearchContent() {
                     </div>
                 </div>
 
-                {/* 공고 탭 전용 필터 패널 */}
-                {activeTab === 'recruit' && showFilters && (
+                {/* 필터 패널 — 탭별로 다른 내용 */}
+                {showFilters && (
                     <div style={{ borderTop: `1px solid ${T.border}`, background: T.bg, paddingBottom: 4 }}>
-                        <SortBar value={sortBy} onChange={setSortBy} />
-                        <ChipRow label="지역" icon={<MapPin size={12} />} options={['전체', ...FILTERS.region]} value={regionFilter} onChange={setRegionFilter} />
-                        <ChipRow label="카테고리" icon={<Tag size={12} />} options={['전체', ...FILTERS.boothCategory]} value={categoryFilter} onChange={setCategoryFilter} />
+                        {activeTab === 'recruit' && (
+                            <>
+                                <SortBar value={sortBy} onChange={setSortBy} />
+                                <ChipRow label="지역" icon={<MapPin size={12} />} options={['전체', ...FILTERS.region]} value={regionFilter} onChange={setRegionFilter} />
+                                <ChipRow label="카테고리" icon={<Tag size={12} />} options={['전체', ...FILTERS.boothCategory]} value={categoryFilter} onChange={setCategoryFilter} />
+                            </>
+                        )}
+                        {activeTab === 'reviews' && (
+                            <>
+                                <SortBar value={reviewSortBy} onChange={setReviewSortBy} options={REVIEW_SORT_OPTIONS} />
+                                <ChipRow
+                                    label="셀러 유형" icon={<Tag size={12} />}
+                                    options={['전체', '🛍️ 플리마켓', '🚚 푸드트럭']}
+                                    value={sellerFilter === 'all' ? '전체' : sellerFilter === 'seller' ? '🛍️ 플리마켓' : '🚚 푸드트럭'}
+                                    onChange={v => {
+                                        if (v === '전체') setSellerFilter('all');
+                                        else if (v === '🛍️ 플리마켓') setSellerFilter('seller');
+                                        else setSellerFilter('foodtruck');
+                                    }}
+                                />
+                            </>
+                        )}
+                        {activeTab === 'organizers' && (
+                            <SortBar value={orgSortBy} onChange={setOrgSortBy} options={ORG_SORT_OPTIONS} />
+                        )}
                     </div>
                 )}
 
@@ -604,7 +640,7 @@ function SearchContent() {
                         { key: 'reviews', label: '🔴 실시간 후기' },
                         { key: 'organizers', label: '🏢 주최사' },
                     ].map(tab => (
-                        <div key={tab.key} onClick={() => { setActiveTab(tab.key); setShowFilters(false); }} style={{
+                        <div key={tab.key} onClick={() => handleTabChange(tab.key)} style={{
                             flex: 1, textAlign: 'center', padding: '13px 0',
                             fontSize: 12, fontWeight: activeTab === tab.key ? 800 : 500,
                             color: activeTab === tab.key ? T.text : T.gray,
@@ -636,10 +672,12 @@ function SearchContent() {
             )}
 
             {/* ── 후기 탭 ── */}
-            {activeTab === 'reviews' && <ReviewFeed query={query} />}
+            {activeTab === 'reviews' && (
+                <ReviewFeed query={query} sellerFilter={sellerFilter} reviewSortBy={reviewSortBy} />
+            )}
 
             {/* ── 주최사 탭 ── */}
-            {activeTab === 'organizers' && <OrganizerList query={query} />}
+            {activeTab === 'organizers' && <OrganizerList query={query} orgSortBy={orgSortBy} />}
 
         </div>
     );

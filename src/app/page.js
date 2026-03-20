@@ -6,10 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
-import { calcRating, timeAgo, formatDate } from '@/lib/helpers';
+import { timeAgo, formatDate } from '@/lib/helpers';
 import { createClient } from '@/utils/supabase/client';
 import NotificationDrawer from '@/components/ui/NotificationDrawer';
-import SubscriptionModal from '@/components/ui/SubscriptionModal';
 
 /* ─── Hero Banner (carousel) ────────────────────────────────── */
 const BANNERS = [
@@ -30,6 +29,15 @@ const BANNERS = [
         sub: '셀러들의 실제 수익 데이터를 확인하세요',
         cta: '행사 찾아보기',
         href: '/search',
+    },
+    {
+        id: 3,
+        gradient: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
+        tag: '🏢 행사 개최 문의',
+        title: '행사 개최\n전문가에게 맡기세요',
+        sub: '관공서 · 기업 · 단체 등 모든 행사 개최 의뢰를 받습니다',
+        cta: '개최 문의하기',
+        href: '/contact',
     },
 ];
 
@@ -70,9 +78,10 @@ function HeroBanner() {
                 onClick={() => router.push(b.href)}
                 style={{
                     background: b.gradient, borderRadius: T.radiusXl,
-                    padding: '24px 24px 20px', cursor: 'pointer',
+                    padding: '20px 20px 16px', cursor: 'pointer',
                     position: 'relative', overflow: 'hidden',
-                    userSelect: 'none',
+                    userSelect: 'none', minHeight: 168,
+                    display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                 }}
             >
                 {/* decorative circles */}
@@ -89,33 +98,32 @@ function HeroBanner() {
 
                 <div style={{
                     display: 'inline-block', background: 'rgba(255,255,255,0.25)',
-                    padding: '4px 10px', borderRadius: T.radiusFull,
-                    fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 10,
+                    padding: '3px 9px', borderRadius: T.radiusFull,
+                    fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 8,
                 }}>
                     {b.tag}
                 </div>
 
                 <div style={{
-                    fontSize: 22, fontWeight: 900, color: '#fff',
-                    lineHeight: 1.35, whiteSpace: 'pre-line', marginBottom: 8,
+                    fontSize: 20, fontWeight: 900, color: '#fff',
+                    lineHeight: 1.35, whiteSpace: 'pre-line', marginBottom: 6,
                 }}>
                     {b.title}
                 </div>
 
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 12, lineHeight: 1.55 }}>
                     {b.sub}
                 </div>
 
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     background: 'rgba(255,255,255,0.20)', borderRadius: T.radiusFull,
-                    padding: '8px 16px', fontSize: 13, fontWeight: 700, color: '#fff',
+                    padding: '7px 14px', fontSize: 12, fontWeight: 700, color: '#fff',
                 }}>
                     {b.cta} →
                 </div>
-
                 {/* dot indicators */}
-                <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
+                <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
                     {BANNERS.map((_, i) => (
                         <div
                             key={i}
@@ -134,97 +142,61 @@ function HeroBanner() {
     );
 }
 
-/* ─── Search Bar ─────────────────────────────────────────────── */
-function SearchBar() {
-    const [query, setQuery] = useState('');
-    const router = useRouter();
-
-    const handleSubmit = e => {
-        e.preventDefault();
-        if (query.trim()) router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-    };
-
-    return (
-        <div style={{ padding: '0 16px 24px' }}>
-            <form onSubmit={handleSubmit}>
-                <div style={{
-                    display: 'flex', alignItems: 'center', background: T.white,
-                    borderRadius: T.radiusLg, padding: '12px 16px',
-                    boxShadow: T.shadowMd, gap: 10,
-                    border: `1.5px solid ${T.border}`,
-                }}>
-                    <span style={{ fontSize: 18, flexShrink: 0 }}>🔍</span>
-                    <input
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        placeholder="행사명, 지역, 카테고리로 검색"
-                        style={{
-                            flex: 1, border: 'none', outline: 'none',
-                            fontSize: 14, color: T.text, background: 'transparent',
-                        }}
-                    />
-                    {query && (
-                        <button
-                            type="submit"
-                            style={{
-                                background: T.blue, color: '#fff', border: 'none',
-                                padding: '6px 12px', borderRadius: T.radiusMd,
-                                fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-                            }}
-                        >
-                            검색
-                        </button>
-                    )}
-                </div>
-            </form>
-        </div>
-    );
-}
-
 /* ─── Hot Recruitment ────────────────────────────────────────── */
 function RecruitmentCard({ rec }) {
-    const ev = rec.events || {};
-    const rating = calcRating(ev);
-    const reviewCount = ev.total_reviews ?? ev.review_count ?? 0;
+    const inst = rec.instance || {};
+    const ev   = inst.base_event || {};
+    const org  = inst.organizer || {};
+    const daysLeft = rec.end_date
+        ? Math.ceil((new Date(rec.end_date) - Date.now()) / 86400000)
+        : null;
+    const isUrgent = daysLeft !== null && daysLeft <= 3 && daysLeft >= 0;
+    const feeText = rec.fee == null ? '참가비 미정' : rec.fee === 0 ? '무료' : `${Number(rec.fee).toLocaleString()}원`;
 
     return (
         <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
             <div style={{
-                background: T.white, borderRadius: T.radiusXl, padding: 16,
-                boxShadow: T.shadowMd, border: `1px solid ${T.border}`,
-                display: 'flex', flexDirection: 'column', gap: 6,
+                background: T.white, borderRadius: T.radiusLg, padding: '14px 16px',
+                border: `1px solid ${isUrgent ? T.red + '40' : T.border}`,
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{
-                        display: 'inline-block', padding: '3px 8px', borderRadius: 4,
-                        background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
-                        color: rec.status === 'OPEN' ? T.green : T.gray,
-                        fontSize: 11, fontWeight: 700,
-                    }}>
-                        {rec.status === 'OPEN' ? '모집중' : '마감'}
+                {/* 메타 행 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, background: T.greenLt, color: T.green, padding: '2px 7px', borderRadius: 4 }}>모집중</span>
+                        {org.name && (
+                            <span style={{ fontSize: 11, color: T.textSub }}>
+                                <span style={{ color: T.gray }}>주최사 </span>{org.name}
+                            </span>
+                        )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 13 }}>⭐</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{rating}</span>
-                        <span style={{ fontSize: 12, color: T.gray, marginLeft: 2 }}>({reviewCount})</span>
-                    </div>
+                    {daysLeft !== null && daysLeft >= 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 800, color: isUrgent ? T.red : T.gray }}>
+                            {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
+                        </span>
+                    )}
                 </div>
 
+                {/* 제목 */}
                 <div style={{
-                    fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.4,
-                    display: '-webkit-box', WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.4, marginBottom: 8,
+                    display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                 }}>
                     {rec.title || ev.name || '-'}
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: T.gray }}>📍 {ev.location || ev.location_sido || '-'}</span>
-                    <span style={{ fontSize: 12, color: T.textSub }}>🗓 {formatDate(rec.event_date || rec.start_date)}</span>
-                </div>
-
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>
-                    {rec.fee == null ? '참가비 미정' : rec.fee === 0 ? '참가비 무료' : `참가비 ${Number(rec.fee).toLocaleString()}원`}
+                {/* 상세 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: T.blue }}>{feeText}</span>
+                    {inst.location && (
+                        <span style={{ fontSize: 12, color: T.gray, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            📍 {inst.location}
+                        </span>
+                    )}
+                    {inst.event_date && (
+                        <span style={{ fontSize: 12, color: T.gray }}>
+                            🗓 {formatDate(inst.event_date)}{inst.event_date_end && inst.event_date_end !== inst.event_date ? ` ~ ${formatDate(inst.event_date_end)}` : ''}
+                        </span>
+                    )}
                 </div>
             </div>
         </Link>
@@ -233,34 +205,22 @@ function RecruitmentCard({ rec }) {
 
 function HotRecruitmentSection({ recruitments, loading }) {
     return (
-        <div style={{ marginBottom: 36 }}>
+        <div style={{ marginBottom: 24 }}>
             <div style={{
-                padding: '0 16px 14px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+                padding: '0 16px 10px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
-                <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>🔥 지금 모집 중인 공고</div>
-                    <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>셀러들이 주목하는 행사</div>
-                </div>
-                <Link href="/search" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
-                    전체보기 →
-                </Link>
+                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>🔥 모집 중인 공고</div>
+                <Link href="/search" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>전체보기 →</Link>
             </div>
 
-            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {loading
                     ? Array(3).fill(0).map((_, i) => (
-                        <div key={i} style={{
-                            height: 120, background: T.grayLt,
-                            borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite',
-                        }} />
+                        <div key={i} style={{ height: 110, background: T.grayLt, borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite' }} />
                     ))
                     : recruitments.length === 0
-                        ? (
-                            <div style={{ textAlign: 'center', padding: '28px 0', color: T.gray, fontSize: 14 }}>
-                                현재 모집 중인 공고가 없어요.
-                            </div>
-                        )
+                        ? <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 14 }}>현재 모집 중인 공고가 없어요.</div>
                         : recruitments.map(r => <RecruitmentCard key={r.id} rec={r} />)
                 }
             </div>
@@ -269,147 +229,83 @@ function HotRecruitmentSection({ recruitments, loading }) {
 }
 
 /* ─── Recent Reviews ─────────────────────────────────────────── */
-function StarRow({ value }) {
-    const rounded = Math.round(value || 0);
+function ReviewCard({ review }) {
+    const inst = review.event_instance || {};
+    const ev   = inst.base_event || {};
+    const isFoodtruck = review.seller_type === 'foodtruck';
+
+    const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
+    const overall   = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
+    const sColor    = overall >= 4.0 ? T.green : overall >= 3.0 ? T.blue : T.gray;
+    const scoreLabel = overall >= 4.0 ? '좋음' : overall >= 3.0 ? '보통' : '아쉬움';
+    const isRecent  = (Date.now() - new Date(review.created_at)) < 86400000;
+
     return (
-        <div style={{ display: 'flex', gap: 2 }}>
-            {[1, 2, 3, 4, 5].map(s => (
-                <span key={s} style={{ fontSize: 13, color: s <= rounded ? '#FFB800' : T.border }}>★</span>
-            ))}
-        </div>
+        <Link href={ev.id ? `/events/${ev.id}` : '#'} style={{ textDecoration: 'none' }}>
+            <div style={{
+                background: T.white, borderRadius: T.radiusLg, padding: '14px 16px',
+                border: `1px solid ${T.border}`,
+            }}>
+                {/* 메타 행 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {isRecent && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: '#EF4444' }}>
+                                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />
+                                실시간
+                            </span>
+                        )}
+                        <span style={{ fontSize: 11, color: T.gray }}>{isFoodtruck ? '🚚 푸드트럭' : '🛍️ 셀러'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                        <span style={{ fontSize: 16, fontWeight: 900, color: sColor }}>{overall.toFixed(1)}</span>
+                        <span style={{ fontSize: 11, color: T.gray }}>{scoreLabel}</span>
+                    </div>
+                </div>
+
+                {/* 행사명 */}
+                <div style={{
+                    fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.4, marginBottom: 6,
+                    display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
+                    {ev.name || '행사명 없음'}
+                </div>
+
+                {/* 후기 내용 */}
+                {review.content && (
+                    <div style={{
+                        fontSize: 12, color: T.textSub, lineHeight: 1.6,
+                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                        "{review.content}"
+                    </div>
+                )}
+            </div>
+        </Link>
     );
 }
 
-function ReviewCard({ review, isSubscribed, onSubscribe }) {
-    const ev = review.events || {};
-    const avgRating = ((review.rating_profit || 0) + (review.rating_traffic || 0)) / 2;
-
+function RecentReviewsSection({ reviews, loading }) {
     return (
-        <div style={{
-            background: T.white, borderRadius: T.radiusXl, padding: 16,
-            boxShadow: T.shadowMd, border: `1px solid ${T.border}`,
-            position: 'relative', overflow: 'hidden',
-        }}>
-            {/* header */}
+        <div style={{ marginBottom: 24 }}>
             <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center', marginBottom: 10,
+                padding: '0 16px 10px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>
-                    {ev.name || '행사'}
-                </div>
-                <StarRow value={avgRating} />
+                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>💬 실시간 리뷰</div>
+                <Link href="/search?tab=reviews" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>전체보기 →</Link>
             </div>
 
-            {/* review title */}
-            {review.title && (
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 8 }}>
-                    {review.title}
-                </div>
-            )}
-
-            {/* pros */}
-            <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.green, marginBottom: 4 }}>👍 장점</div>
-                <div style={{
-                    fontSize: 13, color: T.textSub, lineHeight: 1.5,
-                    display: '-webkit-box', WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                }}>
-                    {review.pros || '-'}
-                </div>
-            </div>
-
-            {/* cons */}
-            <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.red, marginBottom: 4 }}>👎 단점</div>
-                <div style={{
-                    fontSize: 13, color: T.textSub, lineHeight: 1.5,
-                    display: '-webkit-box', WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                }}>
-                    {review.cons || '-'}
-                </div>
-            </div>
-
-            {/* blur overlay for non-subscribers */}
-            {!isSubscribed && (
-                <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0, top: '45%',
-                    backdropFilter: 'blur(7px)', WebkitBackdropFilter: 'blur(7px)',
-                    background: 'rgba(255,255,255,0.45)',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    borderRadius: `0 0 ${T.radiusXl}px ${T.radiusXl}px`,
-                }}>
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>🔒</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 12, textAlign: 'center' }}>
-                        구독하고 전체 리뷰 보기
-                    </div>
-                    <div
-                        onClick={onSubscribe}
-                        style={{
-                            background: T.blue, color: '#fff',
-                            padding: '8px 20px', borderRadius: T.radiusFull,
-                            fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                        }}
-                    >
-                        구독하기
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function RecentReviewsSection({ reviews, loading, isSubscribed, reviewCount }) {
-    const [showSubModal, setShowSubModal] = useState(false);
-
-    return (
-        <div style={{ marginBottom: 36 }}>
-            <div style={{
-                padding: '0 16px 14px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            }}>
-                <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>💬 실시간 리뷰</div>
-                    <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>셀러들의 생생한 후기</div>
-                </div>
-                <Link href="/search?tab=events" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
-                    전체보기 →
-                </Link>
-            </div>
-
-            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {loading
                     ? Array(3).fill(0).map((_, i) => (
-                        <div key={i} style={{
-                            height: 160, background: T.grayLt,
-                            borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite',
-                        }} />
+                        <div key={i} style={{ height: 110, background: T.grayLt, borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite' }} />
                     ))
                     : reviews.length === 0
-                        ? (
-                            <div style={{ textAlign: 'center', padding: '32px 0', color: T.gray, fontSize: 14 }}>
-                                아직 리뷰가 없어요. 첫 번째 리뷰를 작성해보세요!
-                            </div>
-                        )
-                        : reviews.map(r => (
-                            <ReviewCard
-                                key={r.id}
-                                review={r}
-                                isSubscribed={isSubscribed}
-                                onSubscribe={() => setShowSubModal(true)}
-                            />
-                        ))
+                        ? <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 14 }}>아직 리뷰가 없어요.</div>
+                        : reviews.map(r => <ReviewCard key={r.id} review={r} />)
                 }
             </div>
-
-            <SubscriptionModal
-                open={showSubModal}
-                onClose={() => setShowSubModal(false)}
-                reviewCount={reviewCount}
-            />
         </div>
     );
 }
@@ -419,34 +315,32 @@ function PostItem({ post }) {
     return (
         <Link href={`/community/${post.id}`} style={{ textDecoration: 'none' }}>
             <div style={{
-                background: T.white, borderRadius: T.radiusXl, padding: 16,
-                boxShadow: T.shadowMd, border: `1px solid ${T.border}`,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+                background: T.white, borderRadius: T.radiusLg, padding: '14px 16px',
+                border: `1px solid ${T.border}`,
             }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                        fontSize: 14, fontWeight: 700, color: T.text,
-                        marginBottom: 6, lineHeight: 1.4,
-                        display: '-webkit-box', WebkitLineClamp: 1,
-                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                    }}>
-                        {post.title}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {/* 메타 행 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                         {post.category && (
-                            <span style={{
-                                fontSize: 11, fontWeight: 600, color: T.blue,
-                                background: T.blueLt, padding: '2px 7px', borderRadius: 4,
-                            }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: T.blue, background: T.blueLt, padding: '2px 7px', borderRadius: 4 }}>
                                 {post.category}
                             </span>
                         )}
-                        <span style={{ fontSize: 12, color: T.gray }}>
-                            {timeAgo(post.created_at)}
-                        </span>
                     </div>
+                    <span style={{ fontSize: 11, color: T.gray }}>{timeAgo(post.created_at)}</span>
                 </div>
-                <span style={{ fontSize: 16, color: T.gray, flexShrink: 0 }}>›</span>
+
+                {/* 제목 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                        fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.4,
+                        display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        flex: 1,
+                    }}>
+                        {post.title}
+                    </div>
+                    <span style={{ fontSize: 16, color: T.gray, flexShrink: 0 }}>›</span>
+                </div>
             </div>
         </Link>
     );
@@ -454,37 +348,23 @@ function PostItem({ post }) {
 
 function CommunitySection({ posts, loading }) {
     return (
-        <div style={{ marginBottom: 36 }}>
+        <div style={{ marginBottom: 24 }}>
             <div style={{
-                padding: '0 16px 14px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+                padding: '0 16px 10px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
-                <div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>📌 커뮤니티</div>
-                    <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>셀러들의 이야기</div>
-                </div>
-                <Link href="/community" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
-                    전체보기 →
-                </Link>
+                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>📌 커뮤니티</div>
+                <Link href="/community" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>전체보기 →</Link>
             </div>
 
-            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {loading
                     ? Array(3).fill(0).map((_, i) => (
-                        <div key={i} style={{
-                            height: 72, background: T.grayLt,
-                            borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite',
-                        }} />
+                        <div key={i} style={{ height: 60, background: T.grayLt, borderRadius: T.radiusLg, animation: 'pulse 1.5s infinite' }} />
                     ))
                     : posts.length === 0
-                        ? (
-                            <div style={{ textAlign: 'center', padding: '28px 0', color: T.gray, fontSize: 14 }}>
-                                아직 게시글이 없어요.
-                            </div>
-                        )
-                        : posts.map(post => (
-                            <PostItem key={post.id} post={post} />
-                        ))
+                        ? <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 14 }}>아직 게시글이 없어요.</div>
+                        : posts.map(post => <PostItem key={post.id} post={post} />)
                 }
             </div>
         </div>
@@ -498,7 +378,6 @@ export default function HomePage() {
     const [recruitments, setRecruitments] = useState([]);
     const [reviews, setReviews] = useState([]);
     const [posts, setPosts] = useState([]);
-    const [profile, setProfile] = useState(null);
     const [notifOpen, setNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -509,9 +388,16 @@ export default function HomePage() {
         (async () => {
             const sb = createClient();
 
-            // 공고: 최신순 5개
+            // 공고: 최신순 5개 (V2 스키마)
             sb.from('recruitments')
-                .select('*, events(name, location, location_sido, average_profit, average_traffic, total_reviews)')
+                .select(`
+                    *,
+                    instance:event_instances(
+                        id, location, event_date, event_date_end,
+                        base_event:base_events(id, name),
+                        organizer:organizers(id, name)
+                    )
+                `)
                 .eq('status', 'OPEN')
                 .order('created_at', { ascending: false })
                 .limit(5)
@@ -520,9 +406,15 @@ export default function HomePage() {
                     setLoading(p => ({ ...p, rec: false }));
                 });
 
-            // 리뷰: 최신순 5개
-            sb.from('company_reviews')
-                .select('*, events(name)')
+            // 리뷰: 최신순 5개 (V2 스키마)
+            sb.from('reviews')
+                .select(`
+                    *,
+                    event_instance:event_instances(
+                        id, event_date,
+                        base_event:base_events(id, name)
+                    )
+                `)
                 .order('created_at', { ascending: false })
                 .limit(5)
                 .then(({ data }) => {
@@ -542,23 +434,10 @@ export default function HomePage() {
         })();
     }, []);
 
-    /* fetch user profile for subscription status */
     useEffect(() => {
-        if (!user) { setProfile(null); setUnreadCount(0); return; }
-        (async () => {
-            const sb = createClient();
-            const { data } = await sb
-                .from('profiles')
-                .select('is_subscribed, review_count')
-                .eq('id', user.id)
-                .single();
-            if (data) setProfile(data);
-
-            setUnreadCount(0);
-        })();
+        if (!user) { setUnreadCount(0); return; }
+        setUnreadCount(0);
     }, [user]);
-
-    const isSubscribed = profile?.is_subscribed ?? false;
 
     return (
         <div style={{ minHeight: '100vh', paddingBottom: 100, background: T.bg }}>
@@ -632,9 +511,8 @@ export default function HomePage() {
             {/* page content */}
             <div style={{ paddingTop: 16 }}>
                 <HeroBanner />
-                <SearchBar />
                 <HotRecruitmentSection recruitments={recruitments} loading={loading.rec} />
-                <RecentReviewsSection reviews={reviews} loading={loading.rev} isSubscribed={isSubscribed} reviewCount={profile?.review_count ?? 0} />
+                <RecentReviewsSection reviews={reviews} loading={loading.rev} />
                 <CommunitySection posts={posts} loading={loading.post} />
             </div>
 

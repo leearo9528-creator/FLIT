@@ -130,7 +130,7 @@ function ReviewCard({ review, userPlan }) {
     );
 }
 
-const TABS = ['상세요강', '셀러 리뷰'];
+const TABS = ['상세요강', '주최사 리뷰'];
 
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
@@ -149,24 +149,38 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const dDay = calcDDay(recruitment.end_date);
     const totalEventReviews = baseEvent.total_reviews ?? 0;
 
+    const avgSupport = reviews.length > 0
+        ? reviews.reduce((s, r) => s + (r.rating_support || 0), 0) / reviews.length : 0;
+    const avgManners = reviews.length > 0
+        ? reviews.reduce((s, r) => s + (r.rating_manners || 0), 0) / reviews.length : 0;
     const avgProfit = reviews.length > 0
         ? reviews.reduce((s, r) => s + (r.rating_profit || 0), 0) / reviews.length : 0;
     const avgTraffic = reviews.length > 0
         ? reviews.reduce((s, r) => s + (r.rating_traffic || 0), 0) / reviews.length : 0;
+    const overallAvg = reviews.length > 0
+        ? reviews.reduce((s, r) => {
+            const scores = [r.rating_profit, r.rating_traffic, r.rating_support, r.rating_manners, r.rating_promotion].filter(v => v != null);
+            return s + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
+        }, 0) / reviews.length : 0;
 
     useEffect(() => {
-        if (activeTab !== 1 || !instance.id || reviews.length > 0) return;
+        if (activeTab !== 1 || !organizer.id || reviews.length > 0) return;
         setReviewsLoading(true);
         (async () => {
             const sb = createClient();
+            // 해당 주최사의 모든 인스턴스 조회
+            const { data: instances } = await sb
+                .from('event_instances').select('id').eq('organizer_id', organizer.id);
+            const instanceIds = (instances || []).map(i => i.id);
+            if (instanceIds.length === 0) { setReviewsLoading(false); return; }
             const { data } = await sb
-                .from('reviews').select('*')
-                .eq('event_instance_id', instance.id)
-                .order('created_at', { ascending: false }).limit(20);
+                .from('reviews').select('*, event_instance:event_instances(id, base_event:base_events(id, name))')
+                .in('event_instance_id', instanceIds)
+                .order('created_at', { ascending: false }).limit(30);
             if (data) setReviews(data);
             setReviewsLoading(false);
         })();
-    }, [activeTab, instance.id]);
+    }, [activeTab, organizer.id]);
 
     /* ── Tab 0: 상세요강 ────────────────────────────────────── */
     const renderDetail = () => (
@@ -184,7 +198,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, marginBottom: 3 }}>행사 정보 확인하기</div>
                             <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{baseEvent.name}</div>
                             {baseEvent.total_reviews > 0 && (
-                                <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>셀러 리뷰 {baseEvent.total_reviews}개 보기</div>
+                                <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>리뷰 {baseEvent.total_reviews}개 보기</div>
                             )}
                         </div>
                         <ExternalLink size={18} color={T.blue} />
@@ -281,31 +295,36 @@ export default function RecruitmentDetailClient({ recruitment }) {
         </div>
     );
 
-    /* ── Tab 1: 셀러 리뷰 ───────────────────────────────────── */
+    /* ── Tab 1: 주최사 리뷰 ──────────────────────────────────── */
     const renderReviews = () => (
         <div>
+            {/* 주최사 평가 요약 */}
             <div style={{
                 background: T.white, borderRadius: T.radiusXl,
                 padding: 20, border: `1px solid ${T.border}`, marginBottom: 16,
             }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 12 }}>
+                    {organizer.name || '주최사'} 평가 요약
+                </div>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                     <div style={{ textAlign: 'center', minWidth: 72 }}>
                         <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
-                            {((avgProfit + avgTraffic) / 2).toFixed(1)}
+                            {overallAvg.toFixed(1)}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 6 }}>
                             {[1, 2, 3, 4, 5].map(s => (
                                 <Star key={s} size={13}
-                                    fill={s <= Math.round((avgProfit + avgTraffic) / 2) ? '#FFB800' : T.border}
-                                    color={s <= Math.round((avgProfit + avgTraffic) / 2) ? '#FFB800' : T.border} />
+                                    fill={s <= Math.round(overallAvg) ? '#FFB800' : T.border}
+                                    color={s <= Math.round(overallAvg) ? '#FFB800' : T.border} />
                             ))}
                         </div>
-                        <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {totalEventReviews}개</div>
+                        <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {reviews.length}개</div>
                     </div>
                     <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 10 }}>행사 평가</div>
                         <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
                         <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
+                        <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
+                        <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
                     </div>
                 </div>
             </div>
@@ -323,7 +342,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 }}>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>📝</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>아직 리뷰가 없어요</div>
-                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 16 }}>첫 번째 셀러 리뷰를 작성해보세요!</div>
+                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 16 }}>첫 번째 리뷰를 작성해보세요!</div>
                     <Link href="/reviews/write" style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         background: T.blue, color: '#fff',

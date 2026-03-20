@@ -145,6 +145,7 @@ function RecruitCard({ rec }) {
         : null;
 
     return (
+        <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
         <div style={{
             background: T.white, borderRadius: 14,
             border: `1px solid ${T.border}`, padding: '16px',
@@ -202,6 +203,7 @@ function RecruitCard({ rec }) {
                 </div>
             )}
         </div>
+        </Link>
     );
 }
 

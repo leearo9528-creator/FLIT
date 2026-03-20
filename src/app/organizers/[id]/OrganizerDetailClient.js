@@ -9,42 +9,12 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { canViewReviewDetail } from '@/lib/plans';
 
-/* ─── 상수 ───────────────────────────────────────────────────── */
-const REVENUE_COLOR = {
-    '100만원 이상': { bg: '#DCFCE7', color: '#16A34A' },
-    '50-100만원':   { bg: '#DCFCE7', color: '#16A34A' },
-    '30-50만원':    { bg: '#DBEAFE', color: '#2563EB' },
-    '10-30만원':    { bg: '#FEF3C7', color: '#D97706' },
-    '10만원 미만':  { bg: '#FEE2E2', color: '#DC2626' },
-};
-
-/* ─── 공통 UI ────────────────────────────────────────────────── */
-function Divider() {
-    return <div style={{ height: 1, background: T.border, margin: '10px 0' }} />;
-}
-
-function StarRow({ label, value }) {
-    if (value == null) return null;
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, color: T.gray, width: 52, flexShrink: 0 }}>{label}</span>
-            <div style={{ display: 'flex', gap: 2 }}>
-                {[1,2,3,4,5].map(i => (
-                    <span key={i} style={{ fontSize: 14, color: i <= value ? '#F59E0B' : '#E5E7EB', lineHeight: 1 }}>★</span>
-                ))}
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: T.text, marginLeft: 2 }}>{value}.0</span>
-        </div>
-    );
-}
-
 /* ─── 잠금 오버레이 ─────────────────────────────────────────── */
 function ReviewLock({ sellerType }) {
     const isFoodtruck = sellerType === 'foodtruck';
     return (
         <div style={{
-            background: 'rgba(248,249,250,0.92)', backdropFilter: 'blur(6px)',
-            borderRadius: 10, padding: '16px',
+            background: T.bg, borderRadius: 10, padding: '16px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             border: `1px solid ${T.border}`, marginTop: 8,
         }}>
@@ -78,23 +48,20 @@ function ReviewCard({ review, userPlan }) {
     const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
     const overall   = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
     const scoreLabel = overall >= 4.5 ? '최고예요' : overall >= 3.5 ? '좋아요' : overall >= 2.5 ? '보통이에요' : '아쉬워요';
+    const sColor = overall >= 4.0 ? T.green : overall >= 3.0 ? T.blue : T.gray;
 
     const prosChips    = review.pros ? review.pros.split('\n').map(s => s.trim()).filter(Boolean) : [];
     const consChips    = review.cons ? review.cons.split('\n').map(s => s.trim()).filter(Boolean) : [];
     const ageGroups    = Array.isArray(review.age_groups)    ? review.age_groups    : [];
     const visitorTypes = Array.isArray(review.visitor_types) ? review.visitor_types : [];
-    const revStyle     = REVENUE_COLOR[review.revenue_range] || { bg: '#F3F4F6', color: '#6B7280' };
 
     return (
-        <div style={{
-            background: T.white, borderRadius: 14,
-            border: `1px solid ${T.border}`, padding: '16px 16px 14px',
-            boxShadow: T.shadowSm,
-        }}>
-            {/* 행사명 */}
+        <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '16px' }}>
+
+            {/* 행사명 링크 */}
             {ev.name && (
                 <Link href={`/events/${ev.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 10 }}>
                         🎪 {ev.name}
                         {inst.event_date && (
                             <span style={{ fontWeight: 400, color: T.gray, marginLeft: 6 }}>
@@ -105,99 +72,91 @@ function ReviewCard({ review, userPlan }) {
                 </Link>
             )}
 
-            {/* 헤더: 셀러 유형 + 종합 점수 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                    <span style={{
-                        fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-                        background: isFoodtruck ? T.greenLt : T.blueLt,
-                        color: isFoodtruck ? T.green : T.blue,
-                    }}>
-                        {isFoodtruck ? '🚚 푸드트럭' : '🛍️ 일반 셀러'}
+            {/* 상단: 셀러 유형 + 점수 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                    <span style={{ fontSize: 11, color: T.gray, fontWeight: 600 }}>
+                        {isFoodtruck ? '🚚 푸드트럭' : '🛍️ 일반셀러'}
+                        {review.is_verified && ' · ✅ 인증'}
                     </span>
-                    {review.is_verified && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: T.greenLt, color: T.green }}>✅ 인증</span>
-                    )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <div style={{ display: 'flex', gap: 1 }}>
-                        {[1,2,3,4,5].map(i => (
-                            <span key={i} style={{ fontSize: 13, color: i <= Math.round(overall) ? '#F59E0B' : '#E5E7EB' }}>★</span>
-                        ))}
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: T.text, marginLeft: 2 }}>{overall.toFixed(1)}</span>
-                    <span style={{ fontSize: 11, color: T.gray }}>({scoreLabel})</span>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: sColor, lineHeight: 1 }}>{overall.toFixed(1)}</div>
+                    <div style={{ fontSize: 10, color: T.gray, marginTop: 2 }}>{scoreLabel}</div>
                 </div>
             </div>
 
-            <Divider />
+            <div style={{ height: 1, background: T.border, marginBottom: 12 }} />
 
             {canView ? (
                 <>
                     {/* 매출 */}
                     {review.revenue_range && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                            <span style={{ fontSize: 12, color: T.gray, width: 36, flexShrink: 0 }}>💰 매출</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, padding: '4px 12px', borderRadius: 20, background: revStyle.bg, color: revStyle.color }}>
-                                {review.revenue_range}
-                            </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, color: T.gray, width: 40, flexShrink: 0 }}>매출</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{review.revenue_range}</span>
                         </div>
                     )}
 
-                    {/* 평가 그리드 (2열) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginBottom: 10 }}>
-                        {review.rating_profit    != null && <StarRow label={isFoodtruck ? '수익성' : '구매력'} value={review.rating_profit} />}
-                        {review.rating_support   != null && <StarRow label="운영지원" value={review.rating_support} />}
-                        {review.rating_traffic   != null && <StarRow label="유동인구" value={review.rating_traffic} />}
-                        {review.rating_manners   != null && <StarRow label="주최매너" value={review.rating_manners} />}
-                        {review.rating_promotion != null && <StarRow label="홍보"     value={review.rating_promotion} />}
+                    {/* 항목별 평가 (바 차트) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
+                        {[
+                            { field: 'rating_profit',    label: isFoodtruck ? '수익성' : '구매력' },
+                            { field: 'rating_traffic',   label: '유동인구' },
+                            { field: 'rating_support',   label: '운영지원' },
+                            { field: 'rating_manners',   label: '주최매너' },
+                            { field: 'rating_promotion', label: '홍보' },
+                        ].filter(({ field }) => review[field] != null).map(({ field, label }) => {
+                            const val = review[field];
+                            const c = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
+                            return (
+                                <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
+                                    <div style={{ flex: 1, height: 5, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                        <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: c, borderRadius: 3 }} />
+                                    </div>
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: c, width: 28, textAlign: 'right', flexShrink: 0 }}>{val}.0</span>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* 방문객 */}
                     {(ageGroups.length > 0 || visitorTypes.length > 0) && (
-                        <>
-                            <Divider />
-                            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span style={{ fontSize: 12, color: T.gray, flexShrink: 0 }}>👥 방문객</span>
-                                {ageGroups.map(a => (
-                                    <span key={a} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#EDE9FE', color: '#7C3AED' }}>{a}</span>
-                                ))}
-                                {visitorTypes.map(v => (
-                                    <span key={v} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#FEF3C7', color: '#D97706' }}>{v}</span>
-                                ))}
-                            </div>
-                        </>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>방문객</span>
+                            {[...ageGroups, ...visitorTypes].map(tag => (
+                                <span key={tag} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{tag}</span>
+                            ))}
+                        </div>
                     )}
 
                     {/* 장단점 */}
                     {(prosChips.length > 0 || consChips.length > 0) && (
-                        <>
-                            <Divider />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {prosChips.length > 0 && (
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                        <span style={{ fontSize: 11, color: T.gray, flexShrink: 0 }}>👍</span>
-                                        {prosChips.map(c => <span key={c} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 20, background: T.greenLt, color: T.green, fontWeight: 600 }}>{c}</span>)}
-                                    </div>
-                                )}
-                                {consChips.length > 0 && (
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                        <span style={{ fontSize: 11, color: T.gray, flexShrink: 0 }}>👎</span>
-                                        {consChips.map(c => <span key={c} style={{ fontSize: 12, padding: '3px 9px', borderRadius: 20, background: '#FEE2E2', color: '#EF4444', fontWeight: 600 }}>{c}</span>)}
-                                    </div>
-                                )}
-                            </div>
-                        </>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
+                            {prosChips.length > 0 && (
+                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, color: T.gray }}>👍</span>
+                                    {prosChips.map(c => <span key={c} style={{ fontSize: 12, padding: '2px 9px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{c}</span>)}
+                                </div>
+                            )}
+                            {consChips.length > 0 && (
+                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 11, color: T.gray }}>👎</span>
+                                    {consChips.map(c => <span key={c} style={{ fontSize: 12, padding: '2px 9px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{c}</span>)}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {/* 종합 평가 */}
                     {review.content && (
                         <>
-                            <Divider />
+                            <div style={{ height: 1, background: T.border, marginBottom: 10 }} />
                             <div style={{
-                                fontSize: 13, color: T.textSub, lineHeight: 1.65,
+                                fontSize: 13, color: T.textSub, lineHeight: 1.7,
                                 display: expanded ? 'block' : '-webkit-box',
-                                WebkitLineClamp: expanded ? undefined : 2,
+                                WebkitLineClamp: expanded ? undefined : 3,
                                 WebkitBoxOrient: 'vertical',
                                 overflow: expanded ? 'visible' : 'hidden',
                             }}>
@@ -232,38 +191,48 @@ function RecruitCard({ rec }) {
         : null;
 
     return (
-        <Link href={`/events/${ev.id}`} style={{ textDecoration: 'none' }}>
-            <div style={{
-                background: T.white, borderRadius: 14,
-                border: `1px solid ${T.border}`, padding: 16, boxShadow: T.shadowSm,
-            }}>
+        <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
+            <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '16px' }}>
+
+                {/* 상태 + D-day */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <div style={{
-                        padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                    <span style={{
+                        padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
                         background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
                         color: rec.status === 'OPEN' ? T.green : T.gray,
                     }}>
                         {rec.status === 'OPEN' ? '🟢 모집중' : '⚫ 마감됨'}
-                    </div>
+                    </span>
                     {daysLeft !== null && daysLeft >= 0 && (
                         <span style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
                             {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
                         </span>
                     )}
                 </div>
+
+                {/* 공고 제목 */}
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 6, lineHeight: 1.4 }}>
                     {rec.title}
                 </div>
+
+                {/* 행사명 */}
                 {ev.name && (
-                    <div style={{ fontSize: 12, color: T.gray, marginBottom: 6 }}>🎪 {ev.name}</div>
+                    <div style={{ fontSize: 12, color: T.gray, marginBottom: 8 }}>🎪 {ev.name}</div>
                 )}
+
+                <div style={{ height: 1, background: T.border, marginBottom: 10 }} />
+
+                {/* 참가비 + 날짜 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>
-                        {!rec.fee ? '참가비 무료' : `참가비 ${Number(rec.fee).toLocaleString()}원`}
+                    <span style={{ fontSize: 14, fontWeight: 800, color: T.blue }}>
+                        {!rec.fee ? '참가비 무료' : `${Number(rec.fee).toLocaleString()}원`}
                     </span>
                     {inst.event_date && (
                         <span style={{ fontSize: 12, color: T.gray }}>
                             🗓 {new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+                            {inst.event_date_end && inst.event_date_end !== inst.event_date && (
+                                <> ~ {new Date(inst.event_date_end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}</>
+                            )}
                         </span>
                     )}
                 </div>
@@ -282,7 +251,7 @@ function InstanceCard({ inst }) {
     const ev     = inst.base_event || {};
     const isPast = inst.event_date && new Date(inst.event_date) < new Date();
     const rating = ev.avg_event_rating;
-    const scoreColor = rating >= 4.0 ? T.green : rating >= 3.0 ? T.blue : T.gray;
+    const sColor = rating >= 4.0 ? T.green : rating >= 3.0 ? T.blue : T.gray;
 
     return (
         <Link href={`/events/${ev.id}`} style={{ textDecoration: 'none' }}>
@@ -318,7 +287,7 @@ function InstanceCard({ inst }) {
                     {ev.category && (
                         <span style={{
                             fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                            background: T.blueLt, color: T.blue, marginBottom: 3, display: 'inline-block',
+                            background: T.bg, color: T.gray, marginBottom: 3, display: 'inline-block',
                         }}>{ev.category}</span>
                     )}
                     {inst.location && (
@@ -329,12 +298,14 @@ function InstanceCard({ inst }) {
                 </div>
 
                 {/* 평점 */}
-                {rating != null && (
+                {rating != null ? (
                     <div style={{ flexShrink: 0, textAlign: 'center' }}>
-                        <div style={{ fontSize: 15, fontWeight: 900, color: scoreColor }}>{Number(rating).toFixed(1)}</div>
-                        <div style={{ fontSize: 10, color: T.gray }}>⭐</div>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: sColor }}>{Number(rating).toFixed(1)}</div>
+                        <div style={{ fontSize: 10, color: T.gray, marginTop: 1 }}>점</div>
                     </div>
-                )}
+                ) : isPast ? (
+                    <div style={{ flexShrink: 0, fontSize: 10, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 6 }}>종료</div>
+                ) : null}
             </div>
         </Link>
     );
@@ -349,10 +320,6 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
     const openRecruits   = initialRecruitments.filter(r => r.status === 'OPEN');
     const closedRecruits = initialRecruitments.filter(r => r.status !== 'OPEN');
 
-    const avgSupport = organizer.avg_support  != null ? Number(organizer.avg_support).toFixed(1)  : null;
-    const avgManners = organizer.avg_manners  != null ? Number(organizer.avg_manners).toFixed(1)  : null;
-
-    // 항목별 평균 (리뷰 기반)
     const ratingFields = ['rating_profit', 'rating_traffic', 'rating_promotion', 'rating_support', 'rating_manners'];
     const avgRatings = ratingFields.reduce((acc, field) => {
         const vals = initialReviews.map(r => r[field]).filter(v => v != null);
@@ -361,10 +328,14 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
     }, {});
     const hasFoodtruck = initialReviews.some(r => r.seller_type === 'foodtruck');
 
+    const allScores = initialReviews.flatMap(r => ratingFields.map(f => r[f]).filter(v => v != null));
+    const overallAvg = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : null;
+    const overallColor = overallAvg >= 4.0 ? T.green : overallAvg >= 3.0 ? T.blue : T.gray;
+
     const TABS = [
-        { key: 'recruit', label: '📢 모집공고', count: initialRecruitments.length },
-        { key: 'history', label: '🎪 행사 이력', count: instances.length },
-        { key: 'reviews', label: '💬 셀러 리뷰', count: initialReviews.length },
+        { key: 'recruit', label: '모집공고', count: initialRecruitments.length },
+        { key: 'history', label: '행사 이력', count: instances.length },
+        { key: 'reviews', label: '셀러 리뷰', count: initialReviews.length },
     ];
 
     return (
@@ -380,10 +351,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                 <div onClick={() => router.back()} style={{ cursor: 'pointer', padding: 4, flexShrink: 0 }}>
                     <ChevronLeft size={22} color={T.text} />
                 </div>
-                <div style={{
-                    flex: 1, fontSize: 16, fontWeight: 800, color: T.text,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
+                <div style={{ flex: 1, fontSize: 16, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {organizer.name}
                 </div>
             </div>
@@ -421,45 +389,42 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
 
                     {/* 통계 카드 */}
                     <div style={{
-                        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+                        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
                         background: T.bg, borderRadius: 14, padding: '14px 8px', gap: 4,
                     }}>
                         {[
-                            { label: '개최 수',   value: `${organizer.total_instances ?? 0}회` },
-                            { label: '리뷰 수',   value: `${organizer.total_reviews   ?? 0}개` },
-                            { label: '운영지원',  value: avgSupport ? `★ ${avgSupport}` : '-' },
-                            { label: '주최매너',  value: avgManners ? `★ ${avgManners}` : '-' },
-                        ].map(({ label, value }, i, arr) => (
+                            { label: '개최 수',  value: `${organizer.total_instances ?? 0}회`, color: T.text },
+                            { label: '리뷰 수',  value: `${organizer.total_reviews   ?? 0}개`, color: T.text },
+                            { label: '종합 평점', value: overallAvg ? overallAvg.toFixed(1) : '-', color: overallAvg ? overallColor : T.gray },
+                        ].map(({ label, value, color }, i, arr) => (
                             <div key={label} style={{
                                 textAlign: 'center',
                                 borderRight: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
                             }}>
                                 <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>{label}</div>
-                                <div style={{ fontSize: 15, fontWeight: 800, color: label.includes('★') || value.startsWith('★') ? '#F59E0B' : T.text }}>
-                                    {value}
-                                </div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color }}>{value}</div>
                             </div>
                         ))}
                     </div>
 
-                    {/* 항목별 평균 별점 */}
+                    {/* 항목별 평균 */}
                     {Object.keys(avgRatings).length > 0 && (
                         <div style={{ marginTop: 16 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>⭐ 항목별 평균</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 10 }}>항목별 평균</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {[
                                     { field: 'rating_profit',    label: hasFoodtruck ? '수익성' : '구매력' },
                                     { field: 'rating_traffic',   label: '유동인구' },
                                     { field: 'rating_support',   label: '운영지원' },
                                     { field: 'rating_manners',   label: '주최매너' },
-                                    { field: 'rating_promotion', label: '홍보'     },
+                                    { field: 'rating_promotion', label: '홍보' },
                                 ].filter(({ field }) => avgRatings[field] != null).map(({ field, label }) => {
                                     const val   = avgRatings[field];
                                     const color = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
                                     return (
                                         <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
-                                            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                            <div style={{ flex: 1, height: 5, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
                                                 <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
                                             </div>
                                             <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
@@ -505,7 +470,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                         onClick={() => setActiveTab(tab.key)}
                         style={{
                             flex: 1, textAlign: 'center', padding: '13px 0',
-                            fontSize: 12, fontWeight: activeTab === tab.key ? 800 : 500,
+                            fontSize: 13, fontWeight: activeTab === tab.key ? 800 : 500,
                             color: activeTab === tab.key ? T.text : T.gray,
                             cursor: 'pointer',
                             borderBottom: activeTab === tab.key ? `2.5px solid ${T.text}` : '2.5px solid transparent',

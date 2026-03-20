@@ -12,11 +12,10 @@ const PAGE_SIZE = 10;
 
 const TABS = [
     { key: 'all', label: '전체 게시글' },
-    { key: 'anonymous', label: '익명' },
-    { key: 'trade', label: '사고팔고' },
+    { key: 'anonymous', label: '익명 게시판' },
 ];
 
-const FILTER_CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보', '사고팔고'];
+const FILTER_CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보'];
 
 const SORT_OPTIONS = [
     { key: 'latest', label: '최신순' },

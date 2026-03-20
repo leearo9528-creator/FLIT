@@ -15,7 +15,6 @@ const CATEGORIES = [
     { key: 'free', label: '💬 자유게시판' },
     { key: 'qna', label: '❓ 질문/답변' },
     { key: 'tips', label: '💡 팁/정보' },
-    { key: 'trade', label: '🛒 사고팔고' },
 ];
 
 const QUICK_CHIPS = {
@@ -204,7 +203,6 @@ export default function CommunityWritePage() {
                 title: title.trim(),
                 content: content.trim(),
                 location: locationSelected || null,
-                event_id: selectedEventId || null,
                 is_anonymous: isAnon,
                 anonymous_name: isAnon ? anonName : null,
             });
