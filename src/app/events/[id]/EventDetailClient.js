@@ -670,14 +670,12 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                                         return (
                                                             <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
                                                                 <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
-                                                                {plan !== 'free' && <>
-                                                                    <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-                                                                        <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
-                                                                    </div>
-                                                                    <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
-                                                                        {val.toFixed(1)}
-                                                                    </span>
-                                                                </>}
+                                                                <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                                                    <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
+                                                                </div>
+                                                                <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
+                                                                    {val.toFixed(1)}
+                                                                </span>
                                                             </div>
                                                         );
                                                     })}
@@ -686,8 +684,10 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                                     <div style={{
                                                         position: 'absolute', top: 0, right: 0,
                                                         width: 'calc(100% - 56px)', height: '100%',
-                                                        background: 'rgba(249,250,251,0.97)',
-                                                        borderRadius: 10, border: `1px solid ${T.border}`,
+                                                        background: 'rgba(255,255,255,0.55)',
+                                                        backdropFilter: 'blur(6px)',
+                                                        WebkitBackdropFilter: 'blur(6px)',
+                                                        borderRadius: 10, border: `1px solid rgba(0,0,0,0.06)`,
                                                         display: 'flex', flexDirection: 'column',
                                                         alignItems: 'center', justifyContent: 'center', gap: 6,
                                                     }}>
