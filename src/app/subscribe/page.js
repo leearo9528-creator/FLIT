@@ -10,7 +10,7 @@ import { createClient } from '@/utils/supabase/client';
 
 export default function SubscribePage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, refreshPlan } = useAuth();
     const [currentPlan, setCurrentPlan] = useState('free');
     const [loading, setLoading] = useState(false);
 
@@ -59,6 +59,7 @@ export default function SubscribePage() {
         setLoading(false);
         if (!error) {
             setCurrentPlan(plan.key);
+            await refreshPlan();
             alert(`${plan.label}으로 변경됐습니다.`);
         }
     };
