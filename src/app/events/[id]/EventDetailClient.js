@@ -656,39 +656,51 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     {Object.keys(avgRatings).length > 0 && (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>⭐ 항목별 평균</div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 16 }}>
-                                                {[
-                                                    { field: 'rating_profit',    label: isFoodtruckTab ? '수익성' : '구매력' },
-                                                    { field: 'rating_traffic',   label: '유동인구' },
-                                                    { field: 'rating_support',   label: '운영지원' },
-                                                    { field: 'rating_manners',   label: '주최매너' },
-                                                    { field: 'rating_promotion', label: '홍보'     },
-                                                ].filter(({ field }) => avgRatings[field] != null).map(({ field, label }) => {
-                                                    const val = avgRatings[field];
-                                                    const color = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
-                                                    const locked = plan === 'free';
-                                                    return (
-                                                        <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                            <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
-                                                            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-                                                                {locked
-                                                                    ? <div style={{ width: '100%', height: '100%', background: T.border, borderRadius: 3, filter: 'blur(3px)' }} />
-                                                                    : <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
-                                                                }
+                                            <div style={{ position: 'relative', marginBottom: 16 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                                                    {[
+                                                        { field: 'rating_profit',    label: isFoodtruckTab ? '수익성' : '구매력' },
+                                                        { field: 'rating_traffic',   label: '유동인구' },
+                                                        { field: 'rating_support',   label: '운영지원' },
+                                                        { field: 'rating_manners',   label: '주최매너' },
+                                                        { field: 'rating_promotion', label: '홍보'     },
+                                                    ].filter(({ field }) => avgRatings[field] != null).map(({ field, label }) => {
+                                                        const val = avgRatings[field];
+                                                        const color = val >= 4.0 ? T.green : val >= 3.0 ? T.blue : T.gray;
+                                                        return (
+                                                            <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 8, height: 20 }}>
+                                                                <span style={{ fontSize: 12, color: T.gray, width: 48, flexShrink: 0 }}>{label}</span>
+                                                                {plan !== 'free' && <>
+                                                                    <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                                                        <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
+                                                                    </div>
+                                                                    <span style={{ fontSize: 12, fontWeight: 800, color, width: 28, textAlign: 'right', flexShrink: 0 }}>
+                                                                        {val.toFixed(1)}
+                                                                    </span>
+                                                                </>}
                                                             </div>
-                                                            <span style={{ fontSize: 12, fontWeight: 800, color: locked ? T.border : color, width: 28, textAlign: 'right', flexShrink: 0 }}>
-                                                                {locked ? '—' : val.toFixed(1)}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            {plan === 'free' && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: -8, marginBottom: 8 }}>
-                                                    <span style={{ fontSize: 11, color: T.gray }}>🔒 구독 플랜에서 항목별 수치를 확인하세요</span>
-                                                    <a href="/subscribe" style={{ fontSize: 11, color: T.blue, fontWeight: 700, textDecoration: 'none' }}>업그레이드</a>
+                                                        );
+                                                    })}
                                                 </div>
-                                            )}
+                                                {plan === 'free' && (
+                                                    <div style={{
+                                                        position: 'absolute', top: 0, right: 0,
+                                                        width: 'calc(100% - 56px)', height: '100%',
+                                                        background: 'rgba(249,250,251,0.97)',
+                                                        borderRadius: 10, border: `1px solid ${T.border}`,
+                                                        display: 'flex', flexDirection: 'column',
+                                                        alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                    }}>
+                                                        <span style={{ fontSize: 20 }}>🔒</span>
+                                                        <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
+                                                        <a href="/subscribe" style={{
+                                                            fontSize: 12, fontWeight: 700, color: '#fff',
+                                                            background: T.blue, padding: '6px 16px',
+                                                            borderRadius: 999, textDecoration: 'none',
+                                                        }}>업그레이드</a>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </>
                                     )}
 
