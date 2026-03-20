@@ -31,7 +31,7 @@ function formatDate(dateStr) {
 }
 
 /* ─── Rating Progress Bar ──────────────────────────────────── */
-function RatingBar({ icon, label, value, color }) {
+function RatingBar({ icon, label, value, color, locked }) {
     const pct = Math.round(((value || 0) / 5) * 100);
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -40,13 +40,16 @@ function RatingBar({ icon, label, value, color }) {
                 <span style={{ fontSize: 12, color: T.textSub }}>{label}</span>
             </div>
             <div style={{ flex: 1, height: 7, background: T.border, borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{
-                    width: `${pct}%`, height: '100%', background: color,
-                    borderRadius: 4, transition: 'width 0.8s cubic-bezier(.4,0,.2,1)',
-                }} />
+                {locked
+                    ? <div style={{ width: '100%', height: '100%', background: T.border, borderRadius: 4, filter: 'blur(3px)' }} />
+                    : <div style={{
+                        width: `${pct}%`, height: '100%', background: color,
+                        borderRadius: 4, transition: 'width 0.8s cubic-bezier(.4,0,.2,1)',
+                      }} />
+                }
             </div>
-            <span style={{ fontSize: 13, fontWeight: 800, color, width: 28, textAlign: 'right' }}>
-                {(value || 0).toFixed(1)}
+            <span style={{ fontSize: 13, fontWeight: 800, color: locked ? T.border : color, width: 28, textAlign: 'right' }}>
+                {locked ? '—' : (value || 0).toFixed(1)}
             </span>
         </div>
     );
@@ -321,10 +324,21 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {reviews.length}개</div>
                     </div>
                     <div style={{ flex: 1 }}>
-                        <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
-                        <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
-                        <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
-                        <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
+                        {(() => {
+                            const locked = plan === 'free';
+                            return (<>
+                                <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} locked={locked} />
+                                <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} locked={locked} />
+                                <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" locked={locked} />
+                                <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" locked={locked} />
+                                {locked && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                        <span style={{ fontSize: 11, color: T.gray }}>🔒 구독 플랜에서 확인하세요</span>
+                                        <a href="/subscribe" style={{ fontSize: 11, color: T.blue, fontWeight: 700, textDecoration: 'none' }}>업그레이드</a>
+                                    </div>
+                                )}
+                            </>);
+                        })()}
                     </div>
                 </div>
             </div>
