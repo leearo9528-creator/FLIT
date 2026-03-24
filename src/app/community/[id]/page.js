@@ -36,6 +36,8 @@ export default function PostDetailPage() {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
+    const [fetchError, setFetchError] = useState(null);
+
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
 
@@ -56,19 +58,24 @@ export default function PostDetailPage() {
 
     /* fetch */
     useEffect(() => {
+        if (!id) return;
         (async () => {
             setLoading(true);
             const sb = createClient();
-            const [{ data: postData }, { data: commentData }] = await Promise.all([
+            const [{ data: postData, error: postError }, { data: commentData }] = await Promise.all([
                 sb.from('posts')
                     .select('id, title, content, category, location, seller_type, author, anonymous_name, likes, created_at, is_anonymous, user_id')
                     .eq('id', id)
-                    .single(),
+                    .maybeSingle(),
                 sb.from('post_comments')
                     .select('id, post_id, user_id, content, author, anonymous_name, is_anonymous, created_at')
                     .eq('post_id', id)
                     .order('created_at', { ascending: true }),
             ]);
+            if (postError) {
+                console.error('[community detail] post fetch error:', postError);
+                setFetchError(postError.message || JSON.stringify(postError));
+            }
             if (postData) {
                 setPost(postData);
                 setLikeCount(postData.likes ?? 0);
@@ -187,6 +194,11 @@ export default function PostDetailPage() {
                 <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }}>💬</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 6 }}>게시글을 찾을 수 없어요</div>
                 <div style={{ fontSize: 13, color: T.gray }}>삭제됐거나 잘못된 주소예요</div>
+                {fetchError && (
+                    <div style={{ marginTop: 12, fontSize: 11, color: T.red, background: '#fff0f0', padding: '8px 12px', borderRadius: 8, maxWidth: 320, wordBreak: 'break-all' }}>
+                        [DB 오류] {fetchError}
+                    </div>
+                )}
             </div>
         </div>
     );
