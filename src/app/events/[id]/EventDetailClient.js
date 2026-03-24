@@ -7,7 +7,6 @@ import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { canViewReviewDetail } from '@/lib/plans';
 
 const TABS = [
     { key: 'recruit', label: '모집공고' },
@@ -213,8 +212,7 @@ function Divider() {
 }
 
 /* ─── 잠금 오버레이 ─────────────────────────────────────────── */
-function ReviewLock({ sellerType }) {
-    const isFoodtruck = sellerType === 'foodtruck';
+function ReviewLock({ isLoggedIn }) {
     return (
         <div style={{
             background: 'rgba(248,249,250,0.92)',
@@ -226,30 +224,30 @@ function ReviewLock({ sellerType }) {
         }}>
             <Lock size={20} color={T.gray} />
             <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
-                {isFoodtruck ? '푸드트럭 플랜' : '구독 플랜'}이 필요해요
+                {isLoggedIn ? '리뷰를 작성하면 볼 수 있어요' : '로그인이 필요해요'}
             </div>
             <div style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
-                매출·별점·방문객 등 상세 내용은<br />
-                {isFoodtruck ? '푸드트럭 구독자' : '구독 회원'}만 열람 가능해요
+                {isLoggedIn
+                    ? '리뷰 1개 이상 작성하면\n매출·별점·방문객 상세 내용을 볼 수 있어요'
+                    : '로그인 후 리뷰를 작성하면\n모든 리뷰 상세 내용을 열람할 수 있어요'}
             </div>
-            <Link href="/subscribe" style={{
+            <Link href={isLoggedIn ? '/reviews/write' : '/login'} style={{
                 fontSize: 12, fontWeight: 700, color: T.white,
                 background: T.blue, padding: '8px 20px', borderRadius: T.radiusFull,
                 textDecoration: 'none', marginTop: 4,
             }}>
-                구독하고 보기
+                {isLoggedIn ? '리뷰 작성하기' : '로그인하기'}
             </Link>
         </div>
     );
 }
 
 /* ─── 리뷰 카드 ─────────────────────────────────────────────── */
-function ReviewCard({ review, userPlan }) {
+function ReviewCard({ review, canView, isLoggedIn }) {
     const [expanded, setExpanded] = useState(false);
     const inst = review.event_instance || {};
     const org  = inst.organizer || {};
     const isFoodtruck = review.seller_type === 'foodtruck';
-    const canView = canViewReviewDetail(userPlan, review.seller_type);
 
     const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
     const overall   = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
@@ -288,7 +286,7 @@ function ReviewCard({ review, userPlan }) {
 
             {canView ? (
                 <>
-                    {/* ── 매출 ── */}
+                    {/* ── 매출 ── */ }
                     {review.revenue_range && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <span style={{ fontSize: 12, color: T.gray, width: 40, flexShrink: 0 }}>매출</span>
@@ -372,7 +370,7 @@ function ReviewCard({ review, userPlan }) {
                     )}
                 </>
             ) : (
-                <ReviewLock sellerType={review.seller_type} />
+                <ReviewLock isLoggedIn={isLoggedIn} />
             )}
 
             {/* ── 작성 시간 ── */}
@@ -384,7 +382,7 @@ function ReviewCard({ review, userPlan }) {
 /* ─── Main ───────────────────────────────────────────────────── */
 export default function EventDetailClient({ event, instances, initialReviews, initialRecruitments }) {
     const router = useRouter();
-    const { plan } = useAuth();
+    const { user, plan, reviewCount } = useAuth();
     const [activeTab, setActiveTab] = useState('reviews');
 
     const fleaReviews      = initialReviews.filter(r => r.seller_type !== 'foodtruck');
@@ -788,7 +786,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                 <div style={{ textAlign: 'center', padding: '20px 0', color: T.gray, fontSize: 13 }}>아직 등록된 리뷰가 없어요.</div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {activeReviews.map(r => <ReviewCard key={r.id} review={r} userPlan={plan} />)}
+                                    {activeReviews.map(r => <ReviewCard key={r.id} review={r} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />)}
                                 </div>
                             )}
                         </div>

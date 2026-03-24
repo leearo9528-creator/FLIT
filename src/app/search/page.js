@@ -10,7 +10,6 @@ import { createClient } from '@/utils/supabase/client';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { canViewReviewDetail } from '@/lib/plans';
 
 const PAGE_SIZE = 10;
 
@@ -168,12 +167,11 @@ function scoreColor(v) {
     return v >= 4.0 ? T.green : v >= 3.0 ? T.blue : T.gray;
 }
 
-function ReviewFeedCard({ review, router, userPlan }) {
+function ReviewFeedCard({ review, router, canView, isLoggedIn }) {
     const inst = review.event_instance ?? {};
     const evt  = inst.base_event ?? {};
     const org  = inst.organizer ?? {};
     const isFoodtruck = review.seller_type === 'foodtruck';
-    const canView = canViewReviewDetail(userPlan, review.seller_type);
     const isRecent    = (Date.now() - new Date(review.created_at)) < 86400000;
 
     const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
@@ -240,10 +238,10 @@ function ReviewFeedCard({ review, router, userPlan }) {
                     <Lock size={15} color={T.gray} />
                     <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: T.text }}>
-                            {isFoodtruck ? '푸드트럭 플랜' : '구독 플랜'} 필요
+                            {isLoggedIn ? '리뷰 작성 후 열람 가능' : '로그인 후 열람 가능'}
                         </div>
-                        <Link href="/subscribe" style={{ fontSize: 11, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
-                            구독하고 상세 보기 →
+                        <Link href={isLoggedIn ? '/reviews/write' : '/login'} style={{ fontSize: 11, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>
+                            {isLoggedIn ? '리뷰 작성하기 →' : '로그인하기 →'}
                         </Link>
                     </div>
                 </div>
@@ -261,7 +259,7 @@ function ReviewFeedCard({ review, router, userPlan }) {
 
 function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
     const router = useRouter();
-    const { plan } = useAuth();
+    const { user, plan, reviewCount } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -361,7 +359,7 @@ function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
                     ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
                         {query ? `"${query}" 관련 후기가 없어요.` : '아직 등록된 후기가 없어요.'}
                     </div>
-                    : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} userPlan={plan} />)
+                    : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />)
             }
             <div ref={sentinelRef} style={{ height: 1 }} />
             {loadingMore && <Skeleton count={2} height={160} />}

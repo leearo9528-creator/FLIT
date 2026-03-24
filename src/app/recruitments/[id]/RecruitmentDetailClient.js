@@ -11,7 +11,6 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
-import { canViewReviewDetail } from '@/lib/plans';
 import { timeAgo } from '@/lib/helpers';
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -53,37 +52,38 @@ function RatingBar({ icon, label, value, color }) {
 }
 
 /* ─── Review Lock ───────────────────────────────────────────── */
-function ReviewLock({ sellerType }) {
-    const label = sellerType === 'foodtruck' ? '푸드트럭' : '일반셀러';
-    const requiredPlan = sellerType === 'foodtruck' ? 'foodtruck / organizer' : 'flea_market 이상';
+function ReviewLock({ isLoggedIn }) {
     return (
         <div style={{
             background: T.white, borderRadius: T.radiusXl,
             padding: 20, border: `1px solid ${T.border}`, textAlign: 'center',
         }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 4 }}>{label} 리뷰 잠김</div>
-            <div style={{ fontSize: 12, color: T.gray, marginBottom: 14 }}>{requiredPlan} 플랜에서 열람 가능합니다</div>
-            <Link href="/subscribe" style={{
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                {isLoggedIn ? '리뷰를 작성하면 볼 수 있어요' : '로그인이 필요해요'}
+            </div>
+            <div style={{ fontSize: 12, color: T.gray, marginBottom: 14 }}>
+                {isLoggedIn ? '리뷰 1개 이상 작성하면 열람 가능합니다' : '로그인 후 리뷰를 작성하면 열람 가능합니다'}
+            </div>
+            <Link href={isLoggedIn ? '/reviews/write' : '/login'} style={{
                 display: 'inline-block', padding: '9px 20px',
                 background: T.blue, color: '#fff',
                 borderRadius: T.radiusFull, fontSize: 13, fontWeight: 700, textDecoration: 'none',
             }}>
-                플랜 업그레이드
+                {isLoggedIn ? '리뷰 작성하기' : '로그인하기'}
             </Link>
         </div>
     );
 }
 
 /* ─── Review Card ──────────────────────────────────────────── */
-function ReviewCard({ review, userPlan }) {
-    const canView = canViewReviewDetail(userPlan, review.seller_type);
+function ReviewCard({ review, canView, isLoggedIn }) {
     const avgRating = (
         (review.rating_profit || 0) + (review.rating_traffic || 0) +
         (review.rating_support || 0) + (review.rating_manners || 0)
     ) / 4;
 
-    if (!canView) return <ReviewLock sellerType={review.seller_type} />;
+    if (!canView) return <ReviewLock isLoggedIn={isLoggedIn} />;
 
     return (
         <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 16, border: `1px solid ${T.border}` }}>
@@ -135,7 +135,7 @@ const TABS = ['상세요강', '주최사 리뷰'];
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
     const router = useRouter();
-    const { plan, user } = useAuth();
+    const { user, plan, reviewCount } = useAuth();
 
     const [activeTab, setActiveTab] = useState(0);
     const [reviews, setReviews] = useState([]);
@@ -382,7 +382,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {reviews.map(r => (
-                        <ReviewCard key={r.id} review={r} userPlan={plan} />
+                        <ReviewCard key={r.id} review={r} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />
                     ))}
                 </div>
             )}

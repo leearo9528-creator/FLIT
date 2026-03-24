@@ -3,16 +3,19 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
-const AuthContext = createContext({ user: null, loading: true, plan: 'free', signOut: async () => {}, refreshPlan: async () => {} });
+const AuthContext = createContext({ user: null, loading: true, plan: 'free', reviewCount: 0, signOut: async () => {}, refreshPlan: async () => {} });
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [plan, setPlan] = useState('free');
+    const [reviewCount, setReviewCount] = useState(0);
 
-    // TODO: 유저 생기면 플랜별 제한 복원
     const fetchPlan = async (uid) => {
-        setPlan('foodtruck'); // 로그인 사용자 전체 허용
+        const sb = createClient();
+        const { data } = await sb.from('profiles').select('plan, review_count').eq('id', uid).single();
+        setPlan(data?.plan ?? 'free');
+        setReviewCount(data?.review_count ?? 0);
     };
 
     useEffect(() => {
@@ -45,6 +48,7 @@ export function AuthProvider({ children }) {
         await sb.auth.signOut();
         setUser(null);
         setPlan('free');
+        setReviewCount(0);
     };
 
     const refreshPlan = async () => {
@@ -52,7 +56,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, plan, signOut, refreshPlan }}>
+        <AuthContext.Provider value={{ user, loading, plan, reviewCount, signOut, refreshPlan }}>
             {children}
         </AuthContext.Provider>
     );
