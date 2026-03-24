@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Settings, Bell, LogOut, HelpCircle, FileText, Star, Bookmark, MessageSquare, CreditCard } from 'lucide-react';
+import { ChevronRight, Settings, Bell, LogOut, HelpCircle, FileText, Star, Bookmark, MessageSquare } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
-import { getPlan } from '@/lib/plans';
 
 const ACTIVITY_MENUS = [
     { icon: Star,        label: '내가 쓴 리뷰',   href: '/mypage/reviews',  countKey: 'reviews' },
@@ -16,7 +15,6 @@ const ACTIVITY_MENUS = [
 ];
 
 const SETTING_MENUS = [
-    { icon: CreditCard, label: '멤버십 관리',  href: '/subscribe' },
     { icon: Bell,       label: '알림 설정',  href: '/mypage/settings' },
     { icon: FileText,   label: '내 프로필', href: '/mypage/profile' },
     { icon: HelpCircle, label: '공지사항 / 도움말', href: null },
@@ -26,7 +24,6 @@ export default function MyPage() {
     const { user, loading, signOut } = useAuth();
     const router = useRouter();
     const [counts, setCounts] = useState({ reviews: 0, events: 0, posts: 0 });
-    const [currentPlan, setCurrentPlan] = useState('free');
 
     useEffect(() => {
         if (!loading && !user) router.replace('/login');
@@ -36,14 +33,12 @@ export default function MyPage() {
         if (!user) return;
         (async () => {
             const sb = createClient();
-            const [rv, ev, pt, profile] = await Promise.all([
+            const [rv, ev, pt] = await Promise.all([
                 sb.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
                 sb.from('scraps').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
                 sb.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-                sb.from('profiles').select('plan').eq('id', user.id).single(),
             ]);
             setCounts({ reviews: rv.count || 0, events: ev.count || 0, posts: pt.count || 0 });
-            if (profile.data?.plan) setCurrentPlan(profile.data.plan);
         })();
     }, [user]);
 
@@ -58,7 +53,6 @@ export default function MyPage() {
     const displayName = user.user_metadata?.full_name || user.user_metadata?.name || '셀러';
     const initial = (displayName[0] || '?').toUpperCase();
     const provider = user.app_metadata?.provider;
-    const plan = getPlan(currentPlan);
 
     const handleLogout = async () => {
         await signOut();
@@ -99,34 +93,17 @@ export default function MyPage() {
                         }}>
                             {user.email}
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                            {/* 플랜 배지 */}
-                            <div
-                                onClick={() => router.push('/subscribe')}
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '3px 8px', borderRadius: 6,
-                                    background: plan.bgColor,
-                                    color: plan.color,
-                                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                    border: `1px solid ${plan.color}40`,
-                                }}
-                            >
-                                {plan.emoji} {plan.label}
+                        {provider && (
+                            <div style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                marginTop: 6, padding: '3px 8px', borderRadius: 6,
+                                background: provider === 'kakao' ? '#FFF3CD' : T.blueLt,
+                                color: provider === 'kakao' ? '#92400E' : T.blue,
+                                fontSize: 11, fontWeight: 700,
+                            }}>
+                                {provider === 'kakao' ? '카카오' : '구글'} 연결됨
                             </div>
-                            {/* 소셜 연동 배지 */}
-                            {provider && (
-                                <div style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '3px 8px', borderRadius: 6,
-                                    background: provider === 'kakao' ? '#FFF3CD' : T.blueLt,
-                                    color: provider === 'kakao' ? '#92400E' : T.blue,
-                                    fontSize: 11, fontWeight: 700,
-                                }}>
-                                    {provider === 'kakao' ? '카카오' : '구글'} 연결됨
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
                     {/* 프로필 수정 */}
                     <div
