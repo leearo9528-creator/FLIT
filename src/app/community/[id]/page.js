@@ -42,7 +42,6 @@ export default function PostDetailPage() {
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-    const [commentLikes, setCommentLikes] = useState({});
 
     const [isEditingPost, setIsEditingPost] = useState(false);
     const [editPostTitle, setEditPostTitle] = useState('');
@@ -55,14 +54,20 @@ export default function PostDetailPage() {
     const menuRef = useRef(null);
     const inputRef = useRef(null);
 
-    /* fetch post + comments */
+    /* fetch */
     useEffect(() => {
         (async () => {
             setLoading(true);
             const sb = createClient();
             const [{ data: postData }, { data: commentData }] = await Promise.all([
-                sb.from('posts').select('id, title, content, category, location, seller_type, likes, created_at, is_anonymous, user_id, images').eq('id', id).single(),
-                sb.from('post_comments').select('id, post_id, user_id, content, likes, created_at, is_anonymous').eq('post_id', id).order('created_at', { ascending: true }),
+                sb.from('posts')
+                    .select('id, title, content, category, location, seller_type, author, anonymous_name, likes, created_at, is_anonymous, user_id')
+                    .eq('id', id)
+                    .single(),
+                sb.from('post_comments')
+                    .select('id, post_id, user_id, content, author, anonymous_name, is_anonymous, created_at')
+                    .eq('post_id', id)
+                    .order('created_at', { ascending: true }),
             ]);
             if (postData) {
                 setPost(postData);
@@ -70,17 +75,12 @@ export default function PostDetailPage() {
             } else {
                 setNotFound(true);
             }
-            if (commentData) {
-                setComments(commentData);
-                const likes = {};
-                commentData.forEach(c => { likes[c.id] = { liked: false, count: c.likes ?? 0 }; });
-                setCommentLikes(likes);
-            }
+            setComments(commentData || []);
             setLoading(false);
         })();
     }, [id]);
 
-    /* close menu on outside click */
+    /* 메뉴 외부 클릭 닫기 */
     useEffect(() => {
         const handler = e => {
             if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
@@ -89,47 +89,40 @@ export default function PostDetailPage() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
+    /* 좋아요 */
     const handleLike = useCallback(async () => {
+        if (!user) { router.push('/login'); return; }
         const next = !isLiked;
         setIsLiked(next);
-        setLikeCount(v => v + (next ? 1 : -1));
-        if (post?.id) {
-            const sb = createClient();
-            await sb.from('posts').update({ likes: likeCount + (next ? 1 : -1) }).eq('id', post.id);
-        }
-    }, [isLiked, likeCount, post?.id]);
+        const nextCount = likeCount + (next ? 1 : -1);
+        setLikeCount(nextCount);
+        const sb = createClient();
+        await sb.from('posts').update({ likes: nextCount }).eq('id', id);
+    }, [isLiked, likeCount, id, user, router]);
 
-    const handleCommentLike = useCallback(id => {
-        setCommentLikes(prev => ({
-            ...prev,
-            [id]: {
-                liked: !prev[id]?.liked,
-                count: (prev[id]?.count ?? 0) + (prev[id]?.liked ? -1 : 1),
-            },
-        }));
-    }, []);
-
+    /* 댓글 작성 */
     const handleCommentSubmit = async () => {
         if (!commentText.trim() || !user) return;
         setIsSubmittingComment(true);
         const sb = createClient();
         const isAnon = post?.is_anonymous ?? false;
-        const author = isAnon ? '익명' : (user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러');
+        const displayName = isAnon
+            ? (post?.anonymous_name || '익명')
+            : (user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러');
         const { data, error } = await sb.from('post_comments').insert({
             post_id: id,
             user_id: user.id,
-            author,
+            author: isAnon ? null : displayName,
+            anonymous_name: isAnon ? displayName : null,
             content: commentText.trim(),
             is_anonymous: isAnon,
         }).select().single();
-        if (!error && data) {
-            setComments(prev => [...prev, data]);
-            setCommentLikes(prev => ({ ...prev, [data.id]: { liked: false, count: 0 } }));
-        }
+        if (!error && data) setComments(prev => [...prev, data]);
         setCommentText('');
         setIsSubmittingComment(false);
     };
 
+    /* 댓글 삭제 */
     const handleCommentDelete = useCallback(async (commentId) => {
         if (!window.confirm('댓글을 삭제할까요?')) return;
         const sb = createClient();
@@ -137,20 +130,33 @@ export default function PostDetailPage() {
         setComments(prev => prev.filter(c => c.id !== commentId));
     }, []);
 
-    const handleCommentEditStart = useCallback((comment) => {
-        setEditingCommentId(comment.id);
-        setEditingText(comment.content);
-    }, []);
-
+    /* 댓글 수정 */
     const handleCommentEditSave = useCallback(async (commentId) => {
         if (!editingText.trim()) return;
         const sb = createClient();
         await sb.from('post_comments').update({ content: editingText.trim() }).eq('id', commentId);
         setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editingText.trim() } : c));
         setEditingCommentId(null);
-        setEditingText('');
     }, [editingText]);
 
+    /* 글 수정 */
+    const handleEditPostSave = async () => {
+        if (!editPostTitle.trim()) return;
+        const sb = createClient();
+        await sb.from('posts').update({ title: editPostTitle.trim(), content: editPostContent.trim() }).eq('id', id);
+        setPost(prev => ({ ...prev, title: editPostTitle.trim(), content: editPostContent.trim() }));
+        setIsEditingPost(false);
+    };
+
+    /* 글 삭제 */
+    const handleDelete = async () => {
+        if (!window.confirm('게시글을 삭제할까요?')) return;
+        const sb = createClient();
+        await sb.from('posts').delete().eq('id', id);
+        router.replace('/community');
+    };
+
+    /* 공유 */
     const handleShare = () => {
         if (navigator.share) {
             navigator.share({ title: post?.title, url: window.location.href });
@@ -160,39 +166,20 @@ export default function PostDetailPage() {
         }
     };
 
-    const handleEditPost = () => {
-        setEditPostTitle(post.title);
-        setEditPostContent(post.content);
-        setIsEditingPost(true);
-        setMenuOpen(false);
-    };
-
-    const handleEditPostSave = async () => {
-        if (!editPostTitle.trim()) return;
-        const sb = createClient();
-        await sb.from('posts').update({ title: editPostTitle.trim(), content: editPostContent.trim() }).eq('id', post.id);
-        setPost(prev => ({ ...prev, title: editPostTitle.trim(), content: editPostContent.trim() }));
-        setIsEditingPost(false);
-    };
-
-    const handleDelete = async () => {
-        if (!window.confirm('게시글을 삭제할까요?')) return;
-        const sb = createClient();
-        await sb.from('posts').delete().eq('id', post.id);
-        router.replace('/community');
-    };
-
+    /* ── 로딩 ── */
     if (loading) return (
         <div style={{ minHeight: '100vh', background: T.bg }}>
             <TopBar title="" back />
             <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {[200, 160, 120, 80].map((w, i) => (
-                    <div key={i} style={{ height: 18, width: w, background: T.grayLt, borderRadius: 6, animation: 'pulse 1.5s infinite' }} />
+                {[240, 180, 140, 100].map((w, i) => (
+                    <div key={i} style={{ height: 16, width: w, background: T.grayLt, borderRadius: 6, animation: 'pulse 1.5s infinite' }} />
                 ))}
             </div>
+            <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
         </div>
     );
 
+    /* ── 없음 ── */
     if (notFound || !post) return (
         <div style={{ minHeight: '100vh', background: T.bg }}>
             <TopBar title="커뮤니티" back />
@@ -205,9 +192,10 @@ export default function PostDetailPage() {
     );
 
     const isOwner = user?.id === post.user_id;
+    const postAuthor = post.is_anonymous ? (post.anonymous_name || '익명 셀러') : (post.author || '셀러');
 
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 140 }}>
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 120 }}>
 
             {/* ── TopBar ── */}
             <TopBar
@@ -224,13 +212,14 @@ export default function PostDetailPage() {
                         {menuOpen && (
                             <div style={{
                                 position: 'absolute', top: '100%', right: 0, marginTop: 6,
-                                background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
-                                boxShadow: T.shadowMd, minWidth: 140, zIndex: 300, overflow: 'hidden',
+                                background: T.white, border: `1px solid ${T.border}`,
+                                borderRadius: T.radiusMd, boxShadow: T.shadowMd,
+                                minWidth: 140, zIndex: 300, overflow: 'hidden',
                             }}>
                                 {isOwner ? (
                                     <>
                                         <div
-                                            onClick={handleEditPost}
+                                            onClick={() => { setEditPostTitle(post.title); setEditPostContent(post.content); setIsEditingPost(true); setMenuOpen(false); }}
                                             style={{ padding: '12px 16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: T.text, display: 'flex', alignItems: 'center', gap: 8 }}
                                         >
                                             <Pencil size={14} /> 수정하기
@@ -259,23 +248,20 @@ export default function PostDetailPage() {
 
             <div style={{ maxWidth: 640, margin: '0 auto' }}>
 
-                {/* ── Post Body ── */}
+                {/* ── 본문 ── */}
                 <div style={{ background: T.white, borderBottom: `1px solid ${T.border}` }}>
                     <div style={{ padding: '20px 18px 0' }}>
 
-                        {/* Badges */}
+                        {/* 배지 */}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
                             {post.category && (
-                                <span style={{
-                                    fontSize: 11, fontWeight: 700, color: T.blue,
-                                    background: T.blueLt, padding: '2px 8px', borderRadius: 4,
-                                }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 4 }}>
                                     {post.category}
                                 </span>
                             )}
                             {post.seller_type && <SellerBadge type={post.seller_type} />}
                             {post.is_anonymous && (
-                                <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '2px 8px', borderRadius: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 4 }}>
                                     익명
                                 </span>
                             )}
@@ -290,7 +276,7 @@ export default function PostDetailPage() {
                             )}
                         </div>
 
-                        {/* Title */}
+                        {/* 제목 */}
                         {isEditingPost ? (
                             <input
                                 value={editPostTitle}
@@ -308,20 +294,16 @@ export default function PostDetailPage() {
                             </h1>
                         )}
 
-                        {/* Author row */}
+                        {/* 작성자 */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, paddingBottom: 18, borderBottom: `1px solid ${T.border}` }}>
-                            <Avatar name={post.is_anonymous ? (post.anonymous_name || '익명') : (post.author || '셀러')} size={38} />
+                            <Avatar name={postAuthor} size={38} />
                             <div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-                                    {post.is_anonymous ? (post.anonymous_name || '익명 셀러') : (post.author || '셀러')}
-                                </div>
-                                <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>
-                                    {timeAgo(post.created_at)}
-                                </div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{postAuthor}</div>
+                                <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{timeAgo(post.created_at)}</div>
                             </div>
                         </div>
 
-                        {/* Content */}
+                        {/* 내용 */}
                         {isEditingPost ? (
                             <div style={{ marginBottom: 20 }}>
                                 <textarea
@@ -348,26 +330,16 @@ export default function PostDetailPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div style={{ fontSize: 15, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap', marginBottom: 20 }}>
+                            <div style={{ fontSize: 15, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap', marginBottom: 24 }}>
                                 {post.content}
-                            </div>
-                        )}
-
-                        {/* Event link */}
-                        {post.event?.name && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: 8,
-                                background: T.blueLt, borderRadius: T.radiusMd, padding: '10px 14px', marginBottom: 20,
-                            }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: T.blue }}>📅 {post.event.name}</span>
                             </div>
                         )}
                     </div>
 
-                    {/* ── Action bar ── */}
+                    {/* ── 액션 바 ── */}
                     <div style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '12px 12px 14px',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '12px 14px 14px',
                         borderTop: `1px solid ${T.border}`,
                     }}>
                         <button
@@ -414,115 +386,111 @@ export default function PostDetailPage() {
                     </div>
                 </div>
 
-                {/* ── Comments ── */}
-                <div style={{ background: T.white, marginTop: 8, borderTop: `1px solid ${T.border}` }}>
-                    <div style={{ padding: '16px 18px 0', fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                {/* ── 댓글 ── */}
+                <div style={{ background: T.white, marginTop: 8 }}>
+                    <div style={{ padding: '16px 18px 4px', fontSize: 15, fontWeight: 800, color: T.text }}>
                         댓글 {comments.length}
                     </div>
 
                     {comments.length === 0 ? (
-                        <div style={{ padding: '32px 18px', textAlign: 'center', color: T.gray, fontSize: 14 }}>
+                        <div style={{ padding: '28px 18px 32px', textAlign: 'center', color: T.gray, fontSize: 14 }}>
                             첫 번째 댓글을 남겨보세요!
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            {comments.map((comment, i) => (
-                                <div key={comment.id} style={{
-                                    padding: '16px 18px',
-                                    borderTop: i > 0 ? `1px solid ${T.border}` : 'none',
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                                        <Avatar name={comment.author} size={32} />
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{comment.author}</span>
-                                                <span style={{ fontSize: 11, color: T.gray, marginLeft: 'auto' }}>
-                                                    {timeAgo(comment.created_at)}
-                                                </span>
-                                            </div>
+                        <div>
+                            {comments.map((comment, i) => {
+                                const commentAuthor = comment.is_anonymous
+                                    ? (comment.anonymous_name || '익명')
+                                    : (comment.author || '셀러');
+                                return (
+                                    <div key={comment.id} style={{
+                                        padding: '14px 18px',
+                                        borderTop: `1px solid ${T.border}`,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                            <Avatar name={commentAuthor} size={32} />
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{commentAuthor}</span>
+                                                    {comment.is_anonymous && (
+                                                        <span style={{ fontSize: 10, color: T.gray, background: T.grayLt, padding: '1px 5px', borderRadius: 3 }}>익명</span>
+                                                    )}
+                                                    <span style={{ fontSize: 11, color: T.gray, marginLeft: 'auto' }}>{timeAgo(comment.created_at)}</span>
+                                                </div>
 
-                                            {editingCommentId === comment.id ? (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                    <textarea
-                                                        value={editingText}
-                                                        onChange={e => setEditingText(e.target.value)}
-                                                        autoFocus
-                                                        style={{
-                                                            width: '100%', fontSize: 14, color: T.text, lineHeight: 1.65,
-                                                            border: `1.5px solid ${T.blue}`, borderRadius: T.radiusMd,
-                                                            padding: '8px 10px', resize: 'none', outline: 'none',
-                                                            background: T.bg, boxSizing: 'border-box',
-                                                        }}
-                                                        rows={2}
-                                                    />
-                                                    <div style={{ display: 'flex', gap: 6 }}>
-                                                        <button onClick={() => handleCommentEditSave(comment.id)} style={{
-                                                            padding: '5px 12px', borderRadius: T.radiusFull, border: 'none',
-                                                            background: T.blue, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                                        }}>저장</button>
-                                                        <button onClick={() => setEditingCommentId(null)} style={{
-                                                            padding: '5px 12px', borderRadius: T.radiusFull,
-                                                            border: `1px solid ${T.border}`, background: T.white,
-                                                            color: T.gray, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                                        }}>취소</button>
+                                                {editingCommentId === comment.id ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                        <textarea
+                                                            value={editingText}
+                                                            onChange={e => setEditingText(e.target.value)}
+                                                            autoFocus
+                                                            rows={2}
+                                                            style={{
+                                                                width: '100%', fontSize: 14, color: T.text, lineHeight: 1.65,
+                                                                border: `1.5px solid ${T.blue}`, borderRadius: T.radiusMd,
+                                                                padding: '8px 10px', resize: 'none', outline: 'none',
+                                                                background: T.bg, boxSizing: 'border-box',
+                                                            }}
+                                                        />
+                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                            <button onClick={() => handleCommentEditSave(comment.id)} style={{
+                                                                padding: '5px 12px', borderRadius: T.radiusFull, border: 'none',
+                                                                background: T.blue, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                            }}>저장</button>
+                                                            <button onClick={() => setEditingCommentId(null)} style={{
+                                                                padding: '5px 12px', borderRadius: T.radiusFull,
+                                                                border: `1px solid ${T.border}`, background: T.white,
+                                                                color: T.gray, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                                            }}>취소</button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <div style={{ fontSize: 14, color: T.text, lineHeight: 1.65 }}>
-                                                    {comment.content}
-                                                </div>
-                                            )}
+                                                ) : (
+                                                    <div style={{ fontSize: 14, color: T.text, lineHeight: 1.65 }}>
+                                                        {comment.content}
+                                                    </div>
+                                                )}
 
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                                                <button
-                                                    onClick={() => handleCommentLike(comment.id)}
-                                                    style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                                                        padding: '4px 10px', borderRadius: T.radiusFull,
-                                                        border: `1px solid ${commentLikes[comment.id]?.liked ? T.red : T.border}`,
-                                                        background: commentLikes[comment.id]?.liked ? T.redLt : T.white,
-                                                        cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                                                        color: commentLikes[comment.id]?.liked ? T.red : T.gray,
-                                                        transition: 'all 0.15s',
-                                                    }}
-                                                >
-                                                    <Heart size={11} fill={commentLikes[comment.id]?.liked ? T.red : 'none'} color={commentLikes[comment.id]?.liked ? T.red : T.gray} />
-                                                    {commentLikes[comment.id]?.count ?? 0}
-                                                </button>
-                                                {user?.id === comment.user_id && (
-                                                    <>
-                                                        <button onClick={() => handleCommentEditStart(comment)} style={{
-                                                            padding: '4px 10px', borderRadius: T.radiusFull,
-                                                            border: `1px solid ${T.border}`, background: T.white,
-                                                            cursor: 'pointer', fontSize: 12, fontWeight: 600, color: T.gray,
-                                                        }}>수정</button>
-                                                        <button onClick={() => handleCommentDelete(comment.id)} style={{
-                                                            padding: '4px 10px', borderRadius: T.radiusFull,
-                                                            border: `1px solid ${T.border}`, background: T.white,
-                                                            cursor: 'pointer', fontSize: 12, fontWeight: 600, color: T.red,
-                                                        }}>삭제</button>
-                                                    </>
+                                                {user?.id === comment.user_id && editingCommentId !== comment.id && (
+                                                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                                        <button
+                                                            onClick={() => { setEditingCommentId(comment.id); setEditingText(comment.content); }}
+                                                            style={{
+                                                                padding: '4px 10px', borderRadius: T.radiusFull,
+                                                                border: `1px solid ${T.border}`, background: T.white,
+                                                                cursor: 'pointer', fontSize: 12, fontWeight: 600, color: T.gray,
+                                                            }}
+                                                        >수정</button>
+                                                        <button
+                                                            onClick={() => handleCommentDelete(comment.id)}
+                                                            style={{
+                                                                padding: '4px 10px', borderRadius: T.radiusFull,
+                                                                border: `1px solid ${T.border}`, background: T.white,
+                                                                cursor: 'pointer', fontSize: 12, fontWeight: 600, color: T.red,
+                                                            }}
+                                                        >삭제</button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* ── 댓글 입력 ── */}
+            {/* ── 댓글 입력창 ── */}
             <div style={{
                 position: 'fixed', bottom: 64, left: 0, right: 0, zIndex: 100,
                 background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(12px)',
                 borderTop: `1px solid ${T.border}`,
-                padding: '10px 16px 10px',
+                padding: '10px 16px',
             }}>
                 <div style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    background: T.bg, borderRadius: T.radiusFull, padding: '8px 8px 8px 16px',
+                    background: T.bg, borderRadius: T.radiusFull,
+                    padding: '8px 8px 8px 16px',
                     border: `1.5px solid ${commentText ? T.blue : T.border}`,
                     transition: 'border-color 0.15s',
                 }}>
@@ -555,6 +523,7 @@ export default function PostDetailPage() {
                 </div>
             </div>
 
+            <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
         </div>
     );
 }
