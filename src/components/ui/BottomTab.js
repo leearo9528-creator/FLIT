@@ -85,7 +85,7 @@ export default function BottomTab() {
                             boxShadow: '0 4px 14px rgba(255,107,107,0.45)',
                             position: 'relative',
                         }}>
-                            🎁 리뷰 3개 쓰면 첫달 무료!
+                            ✍️ 리뷰 1개 작성하고 리뷰 전체 보기!
                             {/* 말풍선 꼬리 */}
                             <div style={{
                                 position: 'absolute', bottom: -7, right: 20,
