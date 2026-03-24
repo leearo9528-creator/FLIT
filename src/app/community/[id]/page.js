@@ -194,11 +194,6 @@ export default function PostDetailPage() {
                 <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }}>💬</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 6 }}>게시글을 찾을 수 없어요</div>
                 <div style={{ fontSize: 13, color: T.gray }}>삭제됐거나 잘못된 주소예요</div>
-                {fetchError && (
-                    <div style={{ marginTop: 12, fontSize: 11, color: T.red, background: '#fff0f0', padding: '8px 12px', borderRadius: 8, maxWidth: 320, wordBreak: 'break-all' }}>
-                        [DB 오류] {fetchError}
-                    </div>
-                )}
             </div>
         </div>
     );
