@@ -334,27 +334,46 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 12 }}>
                     {organizer.name || '주최사'} 평가 요약
                 </div>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                    <div style={{ textAlign: 'center', minWidth: 72 }}>
-                        <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
-                            {overallAvg.toFixed(1)}
+                {!(user && reviewCount >= 1) ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 0' }}>
+                        <div style={{ fontSize: 28 }}>🔒</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                            {user ? '리뷰 1개 작성하면 볼 수 있어요' : '로그인이 필요해요'}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 6 }}>
-                            {[1, 2, 3, 4, 5].map(s => (
-                                <Star key={s} size={13}
-                                    fill={s <= Math.round(overallAvg) ? '#FFB800' : T.border}
-                                    color={s <= Math.round(overallAvg) ? '#FFB800' : T.border} />
-                            ))}
+                        <div style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
+                            {user ? '리뷰를 1개 이상 작성하면\n주최사 평점을 확인할 수 있어요' : '로그인 후 리뷰를 작성하면\n주최사 평가 요약을 볼 수 있어요'}
                         </div>
-                        <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {reviews.length}개</div>
+                        <Link href={user ? '/reviews/write' : '/login'} style={{
+                            fontSize: 12, fontWeight: 700, color: '#fff',
+                            background: T.blue, padding: '8px 20px', borderRadius: 99,
+                            textDecoration: 'none', marginTop: 4,
+                        }}>
+                            {user ? '리뷰 작성하기' : '로그인하기'}
+                        </Link>
                     </div>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                        <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
-                        <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
-                        <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
-                        <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
+                ) : (
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                        <div style={{ textAlign: 'center', minWidth: 72 }}>
+                            <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
+                                {overallAvg.toFixed(1)}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 6 }}>
+                                {[1, 2, 3, 4, 5].map(s => (
+                                    <Star key={s} size={13}
+                                        fill={s <= Math.round(overallAvg) ? '#FFB800' : T.border}
+                                        color={s <= Math.round(overallAvg) ? '#FFB800' : T.border} />
+                                ))}
+                            </div>
+                            <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {reviews.length}개</div>
+                        </div>
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
+                            <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
+                            <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
+                            <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {reviewsLoading ? (

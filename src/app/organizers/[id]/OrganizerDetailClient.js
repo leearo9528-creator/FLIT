@@ -314,6 +314,7 @@ function InstanceCard({ inst }) {
 export default function OrganizerDetailClient({ organizer, instances, initialRecruitments, initialReviews }) {
     const router = useRouter();
     const { user, plan, reviewCount } = useAuth();
+    const canView = !!(user && reviewCount >= 1);
     const [activeTab, setActiveTab] = useState('recruit');
 
     const openRecruits   = initialRecruitments.filter(r => r.status === 'OPEN');

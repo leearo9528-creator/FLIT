@@ -384,6 +384,7 @@ function ReviewCard({ review, canView, isLoggedIn }) {
 export default function EventDetailClient({ event, instances, initialReviews, initialRecruitments }) {
     const router = useRouter();
     const { user, plan, reviewCount } = useAuth();
+    const canView = !!(user && reviewCount >= 1);
     const [activeTab, setActiveTab] = useState('reviews');
 
     const fleaReviews      = initialReviews.filter(r => r.seller_type !== 'foodtruck');
@@ -625,7 +626,24 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                         <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '20px', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 14 }}>셀러 평가 요약</div>
 
-                            {activeReviews.length === 0 ? (
+                            {!canView ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '20px 0' }}>
+                                    <div style={{ fontSize: 28 }}>🔒</div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                                        {user ? '리뷰 1개 작성하면 볼 수 있어요' : '로그인이 필요해요'}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
+                                        {user ? '리뷰를 1개 이상 작성하면\n항목별 평점·매출 분포 등을 확인할 수 있어요' : '로그인 후 리뷰를 작성하면\n셀러 평가 요약을 볼 수 있어요'}
+                                    </div>
+                                    <a href={user ? '/reviews/write' : '/login'} style={{
+                                        fontSize: 12, fontWeight: 700, color: '#fff',
+                                        background: T.blue, padding: '8px 20px', borderRadius: 99,
+                                        textDecoration: 'none', marginTop: 4,
+                                    }}>
+                                        {user ? '리뷰 작성하기' : '로그인하기'}
+                                    </a>
+                                </div>
+                            ) : activeReviews.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '20px 0', color: T.gray, fontSize: 13 }}>아직 리뷰가 없어요.</div>
                             ) : (
                                 <>
