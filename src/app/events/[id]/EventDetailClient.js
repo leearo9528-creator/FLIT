@@ -779,24 +779,6 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     )}
                                 </>
                             )}
-                            {plan === 'free' && (
-                                <div style={{
-                                    position: 'absolute', inset: 0,
-                                    background: T.grayLt,
-                                    borderRadius: 14,
-                                    display: 'flex', flexDirection: 'column',
-                                    alignItems: 'center', justifyContent: 'center', gap: 8,
-                                }}>
-                                    <span style={{ fontSize: 28 }}>🔒</span>
-                                    <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>구독 플랜 전용</span>
-                                    <span style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.5 }}>셀러 평가 요약은 구독 플랜에서<br />확인하실 수 있습니다</span>
-                                    <a href="/subscribe" style={{
-                                        marginTop: 4, fontSize: 13, fontWeight: 700, color: '#fff',
-                                        background: T.blue, padding: '8px 20px',
-                                        borderRadius: 999, textDecoration: 'none',
-                                    }}>업그레이드</a>
-                                </div>
-                            )}
                         </div>
 
                         {/* 최신 리뷰 */}

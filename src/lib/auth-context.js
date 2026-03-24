@@ -10,10 +10,9 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [plan, setPlan] = useState('free');
 
+    // TODO: 유저 생기면 플랜별 제한 복원
     const fetchPlan = async (uid) => {
-        const sb = createClient();
-        const { data } = await sb.from('profiles').select('plan').eq('id', uid).single();
-        setPlan(data?.plan ?? 'free');
+        setPlan('foodtruck'); // 로그인 사용자 전체 허용
     };
 
     useEffect(() => {
@@ -24,16 +23,6 @@ export function AuthProvider({ children }) {
             setUser(session?.user ?? null);
             if (session?.user) {
                 fetchPlan(session.user.id);
-                // profiles 변경 실시간 구독
-                realtimeChannel = sb
-                    .channel('profile-plan')
-                    .on('postgres_changes', {
-                        event: 'UPDATE', schema: 'public', table: 'profiles',
-                        filter: `id=eq.${session.user.id}`,
-                    }, (payload) => {
-                        if (payload.new?.plan) setPlan(payload.new.plan);
-                    })
-                    .subscribe();
             }
             setLoading(false);
         });

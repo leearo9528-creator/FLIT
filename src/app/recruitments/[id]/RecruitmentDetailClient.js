@@ -352,24 +352,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
                         <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
                         <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
-                        {plan === 'free' && (
-                            <div style={{
-                                position: 'absolute', top: 0, right: 0,
-                                width: 'calc(100% - 82px)', height: '100%',
-                                background: T.grayLt,
-                                borderRadius: 10, border: `1px solid ${T.border}`,
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center', gap: 6,
-                            }}>
-                                <span style={{ fontSize: 20 }}>🔒</span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>구독 플랜 전용</span>
-                                <a href="/subscribe" style={{
-                                    fontSize: 12, fontWeight: 700, color: '#fff',
-                                    background: T.blue, padding: '6px 16px',
-                                    borderRadius: 999, textDecoration: 'none',
-                                }}>업그레이드</a>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

@@ -92,13 +92,8 @@ export function getPlan(key) {
 
 /**
  * 리뷰 상세 내용 열람 가능 여부
- * - free: 불가
- * - flea_market: 일반셀러(seller) 리뷰만 가능
- * - foodtruck: 모든 리뷰 가능
- * - organizer: 모든 리뷰 가능
+ * - 로그인 사용자 전체 허용 (추후 플랜별 제한 복원 예정)
  */
 export function canViewReviewDetail(plan, sellerType) {
-    if (plan === 'foodtruck' || plan === 'organizer') return true;
-    if (plan === 'flea_market') return sellerType !== 'foodtruck';
-    return false; // free
+    return true;
 }
