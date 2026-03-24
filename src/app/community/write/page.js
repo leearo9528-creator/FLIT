@@ -7,30 +7,6 @@ import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
-import ChipGroup from '@/components/ui/ChipGroup';
-
-/* ─── Constants ─────────────────────────────────────────────── */
-const CATEGORIES = [
-    { key: 'realtime', label: '📡 실시간 행사 현황' },
-    { key: 'free', label: '💬 자유게시판' },
-    { key: 'qna', label: '❓ 질문/답변' },
-    { key: 'tips', label: '💡 팁/정보' },
-];
-
-const QUICK_CHIPS = {
-    general: [
-        { text: '👥 사람 엄청 많아요!', label: '인파 엄청' },
-        { text: '🅿️ 주차 자리 없어요', label: '주차 만차' },
-        { text: '🌧️ 비 오고 있어요', label: '우천 중' },
-        { text: '💨 바람 강하게 불어요', label: '강풍 주의' },
-        { text: '✅ 오늘 일찍 완판됐어요!', label: '조기 완판' },
-    ],
-    foodtruck: [
-        { text: '⚡ 전력 공급 안정적이에요', label: '전력 안정' },
-        { text: '🚰 수도 연결 정상이에요', label: '수도 OK' },
-        { text: '🚛 진입로 좁으니 주의하세요', label: '진입로 좁음' },
-    ],
-};
 
 /* ─── Random anon name generator ────────────────────────────── */
 const ANON_ADJECTIVES = ['바쁜', '열정적인', '능숙한', '씩씩한', '수줍은', '활발한'];
@@ -106,14 +82,8 @@ export default function CommunityWritePage() {
     const [userNickname, setUserNickname] = useState('');
 
     // form fields
-    const [mainType, setMainType] = useState('');
-    const [category, setCategory] = useState('');
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-
-    // chips
-    const [selectedChips, setSelectedChips] = useState(new Set());
-    const [chipSubtype, setChipSubtype] = useState('general'); // 'general' | 'foodtruck'
 
     // location
     const [locationKeyword, setLocationKeyword] = useState('');
@@ -158,23 +128,6 @@ export default function CommunityWritePage() {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    /* reset chips when category changes */
-    useEffect(() => {
-        setSelectedChips(new Set());
-    }, [category]);
-
-    const toggleChip = text => {
-        const next = new Set(selectedChips);
-        if (next.has(text)) {
-            next.delete(text);
-            setContent(prev => prev.split('\n').filter(l => l.trim() !== text).join('\n').trim());
-        } else {
-            next.add(text);
-            setContent(prev => prev ? `${prev}\n${text}` : text);
-        }
-        setSelectedChips(next);
-    };
-
     const filteredEvents = events.filter(e =>
         e.name.toLowerCase().includes(eventKeyword.toLowerCase()) ||
         e.location?.toLowerCase().includes(eventKeyword.toLowerCase())
@@ -185,7 +138,6 @@ export default function CommunityWritePage() {
     const filteredLocs = LOCATIONS.filter(l => l.includes(locationKeyword));
 
     const handleSubmit = async () => {
-        if (!category) return alert('카테고리를 선택해주세요.');
         if (!title.trim()) return alert('제목을 입력해주세요.');
         if (!content.trim()) return alert('내용을 입력해주세요.');
 
@@ -198,8 +150,6 @@ export default function CommunityWritePage() {
             const { error } = await sb.from('posts').insert({
                 user_id: session.user.id,
                 author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
-                seller_type: mainType || null,
-                category: { realtime: '실시간 행사 현황', free: '자유게시판', qna: '질문/답변', tips: '팁/정보', trade: '사고팔고' }[category] || category,
                 title: title.trim(),
                 content: content.trim(),
                 location: locationSelected || null,
@@ -215,8 +165,6 @@ export default function CommunityWritePage() {
             setIsSubmitting(false);
         }
     };
-
-    const showQuickChips = category === 'realtime';
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
@@ -262,64 +210,6 @@ export default function CommunityWritePage() {
                         </div>
                     </Card>
 
-                    {/* ── 대카테고리 ── */}
-                    <Card>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>
-                            누구를 위한 글인가요?
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            {[
-                                { key: 'seller', label: '💎 일반셀러' },
-                                { key: 'foodtruck', label: '🚚 푸드트럭' },
-                                { key: 'organizer', label: '🏢 주최사' },
-                            ].map(t => (
-                                <div
-                                    key={t.key}
-                                    onClick={() => setMainType(prev => prev === t.key ? '' : t.key)}
-                                    style={{
-                                        flex: 1, padding: '12px 6px', borderRadius: T.radiusMd,
-                                        textAlign: 'center', cursor: 'pointer',
-                                        border: `1.5px solid ${mainType === t.key ? T.blue : T.border}`,
-                                        background: mainType === t.key ? T.blueLt : T.white,
-                                        fontSize: 13, fontWeight: 700,
-                                        color: mainType === t.key ? T.blue : T.gray,
-                                        transition: 'all 0.15s',
-                                    }}
-                                >
-                                    {t.label}
-                                </div>
-                            ))}
-                        </div>
-                        <div style={{ fontSize: 11, color: T.gray, marginTop: 8 }}>선택하지 않으면 전체 공개입니다.</div>
-                    </Card>
-
-                    {/* ── 카테고리 (필수) ── */}
-                    <Card>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>카테고리</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '2px 7px', borderRadius: T.radiusFull }}>필수</span>
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                            {CATEGORIES.map(c => (
-                                <button
-                                    key={c.key}
-                                    type="button"
-                                    onClick={() => setCategory(c.key)}
-                                    style={{
-                                        padding: '8px 14px', borderRadius: T.radiusFull,
-                                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                        border: `1.5px solid ${category === c.key ? T.blue : T.border}`,
-                                        background: category === c.key ? T.blue : T.white,
-                                        color: category === c.key ? '#fff' : T.gray,
-                                        transition: 'all 0.15s',
-                                    }}
-                                >
-                                    {c.label}
-                                </button>
-                            ))}
-                        </div>
-                    </Card>
-
                     {/* ── 제목 + 내용 ── */}
                     <Card>
                         <input
@@ -336,9 +226,7 @@ export default function CommunityWritePage() {
                         <textarea
                             value={content}
                             onChange={e => setContent(e.target.value)}
-                            placeholder={category === 'realtime'
-                                ? '지금 마켓 현장 분위기는 어때요?'
-                                : '내용을 자유롭게 입력해주세요.'}
+                            placeholder="내용을 자유롭게 입력해주세요."
                             rows={6}
                             style={{
                                 width: '100%', border: 'none', fontSize: 15, color: T.text,
@@ -346,41 +234,6 @@ export default function CommunityWritePage() {
                                 lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box',
                             }}
                         />
-
-                        {/* Quick chips — 실시간 현황 전용 */}
-                        {showQuickChips && (
-                            <div>
-                                <div style={{ height: 1, background: T.border, margin: '12px 0' }} />
-                                {/* subtype toggle */}
-                                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                                    {[
-                                        { key: 'general', label: '일반' },
-                                        { key: 'foodtruck', label: '🚚 푸드트럭' },
-                                    ].map(s => (
-                                        <button
-                                            key={s.key}
-                                            type="button"
-                                            onClick={() => setChipSubtype(s.key)}
-                                            style={{
-                                                padding: '5px 12px', borderRadius: T.radiusFull,
-                                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                                border: `1.5px solid ${chipSubtype === s.key ? T.blue : T.border}`,
-                                                background: chipSubtype === s.key ? T.blueLt : T.white,
-                                                color: chipSubtype === s.key ? T.blue : T.gray,
-                                                transition: 'all 0.15s',
-                                            }}
-                                        >
-                                            {s.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <ChipGroup
-                                    chips={QUICK_CHIPS[chipSubtype]}
-                                    selected={selectedChips}
-                                    onToggle={toggleChip}
-                                />
-                            </div>
-                        )}
                     </Card>
 
                     {/* ── 사진 업로드 ── */}
