@@ -10,7 +10,19 @@
       "Bash(taskkill:*)",
       "Bash(find:*)",
       "Bash(for file:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(grep -n \"평가\\\\|rating\\\\|RatingBar\\\\|canView\" src/app/recruitments/[id]/RecruitmentDetailClient.js)",
+      "Bash(grep -n \"평가 요약\\\\|RatingBar\\\\|canView\\\\|plan\\\\|avgProfit\\\\|avgTraffic\\\\|avgSupport\\\\|avgManners\" src/app/events/[id]/EventDetailClient.js)",
+      "Bash(grep -in \"public.users\\\\|create table.*users\\\\|from.*users\\\\|join.*users\" supabase_schema.sql supabase_migrations/*.sql)",
+      "Bash(grep -n \"scrap\\\\|bookmark\" src/app/events/[id]/EventDetailClient.js)",
+      "Bash(grep -n \"scrap\\\\|Bookmark\\\\|bookmark\" src/app/events/[id]/EventDetailClient.js src/app/recruitments/[id]/RecruitmentDetailClient.js)",
+      "Bash(grep -n \"import.*createClient\\\\|import.*useAuth\" src/app/recruitments/[id]/RecruitmentDetailClient.js)",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)"
     ]
   }
 }
