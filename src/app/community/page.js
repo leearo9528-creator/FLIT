@@ -133,7 +133,7 @@ export default function CommunityPage() {
         setHasMore(fetched.length === PAGE_SIZE);
         setLoading(false);
         setLoadingMore(false);
-    }, [activeTab, sellerType, sortBy]);
+    }, [activeTab, category, sellerType, sortBy]);
 
     /* 탭/필터 변경 시 초기화 */
     useEffect(() => {
