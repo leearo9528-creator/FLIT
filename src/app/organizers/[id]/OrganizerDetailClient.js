@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, Building2, Lock } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 
 /* ─── 잠금 오버레이 ─────────────────────────────────────────── */
@@ -366,7 +367,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             {organizer.logo_url
-                                ? <img src={organizer.logo_url} alt={organizer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ? <Image src={organizer.logo_url} alt={organizer.name} fill style={{ objectFit: 'cover' }} sizes="80px" />
                                 : <span style={{ fontSize: 28 }}>🏢</span>
                             }
                         </div>

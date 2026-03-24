@@ -61,8 +61,8 @@ export default function PostDetailPage() {
             setLoading(true);
             const sb = createClient();
             const [{ data: postData }, { data: commentData }] = await Promise.all([
-                sb.from('posts').select('*').eq('id', id).single(),
-                sb.from('post_comments').select('*').eq('post_id', id).order('created_at', { ascending: true }),
+                sb.from('posts').select('id, title, content, category, location, seller_type, likes, created_at, is_anonymous, user_id, images').eq('id', id).single(),
+                sb.from('post_comments').select('id, post_id, user_id, content, likes, created_at, is_anonymous').eq('post_id', id).order('created_at', { ascending: true }),
             ]);
             if (postData) {
                 setPost(postData);

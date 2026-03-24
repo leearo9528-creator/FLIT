@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, MapPin, Tag, Calendar, Building2, Star, Lock
 import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 
 const TABS = [
@@ -495,8 +496,9 @@ export default function EventDetailClient({ event, instances, initialReviews, in
 
                 {/* 상세 사진 */}
                 {event.image_url ? (
-                    <img src={event.image_url} alt={event.name}
-                        style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'relative', width: '100%', height: 200 }}>
+                        <Image src={event.image_url} alt={event.name} fill style={{ objectFit: 'cover' }} sizes="100vw" />
+                    </div>
                 ) : (
                     <div style={{
                         width: '100%', height: 160, background: `linear-gradient(135deg, ${T.blueLt}, #dbeafe)`,

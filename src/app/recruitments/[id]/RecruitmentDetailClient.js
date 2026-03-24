@@ -9,6 +9,7 @@ import {
     Clock, ExternalLink,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
@@ -308,7 +309,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
                         }}>
                             {organizer.logo_url
-                                ? <img src={organizer.logo_url} alt="" style={{ width: '100%', height: '100%', borderRadius: T.radiusMd, objectFit: 'cover' }} />
+                                ? <Image src={organizer.logo_url} alt="" fill style={{ borderRadius: T.radiusMd, objectFit: 'cover' }} sizes="48px" />
                                 : '🏢'}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>

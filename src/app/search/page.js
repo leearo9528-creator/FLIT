@@ -9,6 +9,7 @@ import { calcRating, timeAgo } from '@/lib/helpers';
 import { createClient } from '@/utils/supabase/client';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 
 const PAGE_SIZE = 10;
@@ -275,15 +276,11 @@ function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
 
         let instanceIdFilter = null;
         if (sq.trim()) {
-            const { data: matched } = await sb.from('base_events').select('id').ilike('name', `%${sq.trim()}%`);
-            const baseIds = (matched || []).map(e => e.id);
-            if (baseIds.length === 0) {
-                setReviews(reset ? [] : v => v);
-                setHasMore(false);
-                setLoading(false); setLoadingMore(false);
-                return;
-            }
-            const { data: instances } = await sb.from('event_instances').select('id').in('base_event_id', baseIds);
+            // base_events join으로 단일 쿼리 (3중 waterfall → 1회 왕복)
+            const { data: instances } = await sb
+                .from('event_instances')
+                .select('id, base_events!inner(id)')
+                .ilike('base_events.name', `%${sq.trim()}%`);
             instanceIdFilter = (instances || []).map(i => i.id);
             if (instanceIdFilter.length === 0) {
                 setReviews(reset ? [] : v => v);
@@ -386,7 +383,7 @@ function OrganizerCard({ org }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     {org.logo_url
-                        ? <img src={org.logo_url} alt={org.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <Image src={org.logo_url} alt={org.name} fill style={{ objectFit: 'cover' }} sizes="52px" />
                         : <span style={{ fontSize: 22 }}>🏢</span>
                     }
                 </div>

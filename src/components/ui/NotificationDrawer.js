@@ -112,7 +112,7 @@ export default function NotificationDrawer({ open, onClose, userId }) {
             const sb = createClient();
             const { data } = await sb
                 .from('notifications')
-                .select('*')
+                .select('id, user_id, type, title, body, link, is_read, created_at')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(50);
