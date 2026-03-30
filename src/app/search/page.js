@@ -225,7 +225,7 @@ function ReviewFeedCard({ review, router, canView, isLoggedIn }) {
                         fontSize: 13, color: T.textSub, lineHeight: 1.65,
                         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     }}>
-                        "{review.content}"
+                        &ldquo;{review.content}&rdquo;
                     </div>
                 ) : (
                     <div style={{ fontSize: 13, color: T.gray }}>작성된 후기가 없어요.</div>

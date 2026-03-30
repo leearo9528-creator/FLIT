@@ -48,7 +48,7 @@ function ReviewPreviewCard({ review }) {
                         fontSize: 12, color: T.textSub, lineHeight: 1.6,
                         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     }}>
-                        "{review.content}"
+                        &ldquo;{review.content}&rdquo;
                     </div>
                 )}
             </div>
