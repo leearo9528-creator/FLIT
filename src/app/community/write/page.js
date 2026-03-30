@@ -55,6 +55,7 @@ export default function CommunityWritePage() {
                 author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
                 title: title.trim(),
                 content: content.trim(),
+                category: '일반',
                 is_anonymous: isAnon,
                 anonymous_name: isAnon ? anonName : null,
             });

@@ -100,11 +100,16 @@ export default function PostDetailPage() {
     const handleLike = useCallback(async () => {
         if (!user) { router.push('/login'); return; }
         const next = !isLiked;
-        setIsLiked(next);
         const nextCount = likeCount + (next ? 1 : -1);
+        setIsLiked(next);
         setLikeCount(nextCount);
         const sb = createClient();
-        await sb.from('posts').update({ likes: nextCount }).eq('id', id);
+        const { error } = await sb.from('posts').update({ likes: nextCount }).eq('id', id);
+        if (error) {
+            console.error('좋아요 실패:', error);
+            setIsLiked(!next);
+            setLikeCount(likeCount);
+        }
     }, [isLiked, likeCount, id, user, router]);
 
     /* 댓글 작성 */
@@ -133,7 +138,8 @@ export default function PostDetailPage() {
     const handleCommentDelete = useCallback(async (commentId) => {
         if (!window.confirm('댓글을 삭제할까요?')) return;
         const sb = createClient();
-        await sb.from('post_comments').delete().eq('id', commentId);
+        const { error } = await sb.from('post_comments').delete().eq('id', commentId);
+        if (error) { console.error('댓글 삭제 실패:', error); return; }
         setComments(prev => prev.filter(c => c.id !== commentId));
     }, []);
 
@@ -141,7 +147,8 @@ export default function PostDetailPage() {
     const handleCommentEditSave = useCallback(async (commentId) => {
         if (!editingText.trim()) return;
         const sb = createClient();
-        await sb.from('post_comments').update({ content: editingText.trim() }).eq('id', commentId);
+        const { error } = await sb.from('post_comments').update({ content: editingText.trim() }).eq('id', commentId);
+        if (error) { console.error('댓글 수정 실패:', error); return; }
         setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editingText.trim() } : c));
         setEditingCommentId(null);
     }, [editingText]);

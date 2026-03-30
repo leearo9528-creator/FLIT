@@ -22,10 +22,10 @@ export function AuthProvider({ children }) {
         const sb = createClient();
         let realtimeChannel = null;
 
-        sb.auth.getSession().then(({ data: { session } }) => {
+        sb.auth.getSession().then(async ({ data: { session } }) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchPlan(session.user.id);
+                await fetchPlan(session.user.id);
             }
             setLoading(false);
         });
