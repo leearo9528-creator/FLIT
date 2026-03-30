@@ -10,7 +10,7 @@ import { SellerBadge, LocationTag } from '@/components/ui/SellerBadge';
 
 const PAGE_SIZE = 10;
 
-const CATEGORIES = ['익명', '전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보'];
+const CATEGORIES = ['전체', '익명', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보'];
 
 const SORT_OPTIONS = [
     { key: 'latest', label: '최신순' },
