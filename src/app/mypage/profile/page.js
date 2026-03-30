@@ -23,15 +23,17 @@ export default function ProfilePage() {
 
     const handleUpdate = async () => {
         if (!name.trim()) return alert('이름(닉네임)을 입력해주세요.');
-        
+
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            const { error } = await sb.auth.updateUser({
-                data: { full_name: name, name: name }
-            });
+            const [authRes, profileRes] = await Promise.all([
+                sb.auth.updateUser({ data: { full_name: name, name: name } }),
+                sb.from('profiles').update({ name }).eq('id', user.id),
+            ]);
 
-            if (error) throw error;
+            if (authRes.error) throw authRes.error;
+            if (profileRes.error) throw profileRes.error;
             alert('프로필이 성공적으로 수정되었습니다.');
             router.push('/mypage');
         } catch (err) {

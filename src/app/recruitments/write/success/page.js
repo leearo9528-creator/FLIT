@@ -1,11 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { T } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 
 export default function PaymentSuccessPage() {
+    return (
+        <Suspense fallback={
+            <div style={{
+                minHeight: '100vh', background: T.bg,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+            }}>
+                <div style={{ fontSize: 44, marginBottom: 16 }}>⏳</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: T.text }}>결제 처리 중...</div>
+            </div>
+        }>
+            <PaymentSuccessContent />
+        </Suspense>
+    );
+}
+
+function PaymentSuccessContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = useState('processing'); // processing | done | error
