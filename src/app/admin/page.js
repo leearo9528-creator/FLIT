@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Shield, CheckCircle, XCircle, Users, Clock, ChevronDown, ChevronUp,
-    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText,
+    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -24,12 +24,13 @@ const ADMIN_PASSWORD = 'flit2026!';
 
 /* ─── 탭 설정 ─── */
 const TABS = [
+    { key: 'notices', label: '공지', icon: Bell },
     { key: 'events', label: '행사', icon: Calendar },
-    { key: 'recruitments', label: '모집공고', icon: Megaphone },
+    { key: 'recruitments', label: '공고', icon: Megaphone },
     { key: 'organizers', label: '주최사', icon: Building2 },
     { key: 'users', label: '회원', icon: Users },
-    { key: 'upload', label: '엑셀 업로드', icon: Upload },
-    { key: 'paste', label: '텍스트 입력', icon: FileText },
+    { key: 'upload', label: '업로드', icon: Upload },
+    { key: 'paste', label: '텍스트', icon: FileText },
 ];
 
 /* ─── InfoItem ─── */
@@ -322,6 +323,97 @@ function parsePostText(raw) {
     return result;
 }
 
+/* ─── 공지사항 관리 ─── */
+function NoticeManager() {
+    const [notices, setNotices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(null); // null | 'new' | notice object
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    const fetchNotices = async () => {
+        const sb = createClient();
+        const { data } = await sb.from('notices').select('*').order('created_at', { ascending: false });
+        setNotices(data || []);
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchNotices(); }, []);
+
+    const handleSave = async () => {
+        if (!title.trim() || !content.trim()) return alert('제목과 내용을 입력하세요.');
+        setSaving(true);
+        const sb = createClient();
+        if (editing === 'new') {
+            await sb.from('notices').insert({ title: title.trim(), content: content.trim() });
+        } else {
+            await sb.from('notices').update({ title: title.trim(), content: content.trim() }).eq('id', editing.id);
+        }
+        setEditing(null); setTitle(''); setContent('');
+        setSaving(false); fetchNotices();
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('이 공지를 삭제하시겠습니까?')) return;
+        const sb = createClient();
+        await sb.from('notices').delete().eq('id', id);
+        fetchNotices();
+    };
+
+    const startEdit = (notice) => {
+        setEditing(notice);
+        setTitle(notice.title);
+        setContent(notice.content);
+    };
+
+    return (
+        <div style={{ padding: '0 16px' }}>
+            {/* 작성/수정 폼 */}
+            {editing ? (
+                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>
+                        {editing === 'new' ? '새 공지 작성' : '공지 수정'}
+                    </div>
+                    <input value={title} onChange={e => setTitle(e.target.value)} placeholder="제목"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+                    <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="내용" rows={8}
+                        style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', resize: 'vertical', lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <button onClick={() => { setEditing(null); setTitle(''); setContent(''); }} style={btnOutline}>취소</button>
+                        <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? '저장 중...' : '저장'}</button>
+                    </div>
+                </div>
+            ) : (
+                <button onClick={() => { setEditing('new'); setTitle(''); setContent(''); }}
+                    style={{ ...btnPrimary, width: '100%', marginBottom: 16, padding: '12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Plus size={14} /> 새 공지 작성
+                </button>
+            )}
+
+            {/* 목록 */}
+            {loading ? (
+                Array(3).fill(0).map((_, i) => <div key={i} style={{ height: 60, background: T.grayLt, borderRadius: T.radiusLg, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />)
+            ) : notices.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>등록된 공지가 없어요.</div>
+            ) : (
+                notices.map(n => (
+                    <div key={n.id} style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: '14px 16px', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{n.title}</div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <Edit3 size={14} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => startEdit(n)} />
+                                <Trash2 size={14} color={T.red} style={{ cursor: 'pointer' }} onClick={() => handleDelete(n.id)} />
+                            </div>
+                        </div>
+                        <div style={{ fontSize: 12, color: T.gray }}>{new Date(n.created_at).toLocaleDateString('ko-KR')} · {n.content.slice(0, 50)}...</div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+}
+
 function TextPasteParser({ onComplete }) {
     const [raw, setRaw] = useState('');
     const [parsed, setParsed] = useState(null);
@@ -540,7 +632,7 @@ export default function AdminPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingAdmin, setCheckingAdmin] = useState(true);
     const [pwPassed, setPwPassed] = useState(false);
-    const [tab, setTab] = useState('events');
+    const [tab, setTab] = useState('notices');
     const [events, setEvents] = useState([]);
     const [recruitments, setRecruitments] = useState([]);
     const [orgList, setOrgList] = useState([]);
@@ -665,6 +757,8 @@ export default function AdminPage() {
             <div style={{ padding: '12px 0 0' }}>
                 {loading ? (
                     <div style={{ padding: '0 16px' }}>{Array(3).fill(0).map((_, i) => <div key={i} style={{ height: 50, background: T.grayLt, borderRadius: T.radiusLg, marginBottom: 8, animation: 'pulse 1.5s infinite' }}/>)}</div>
+                ) : tab === 'notices' ? (
+                    <NoticeManager />
                 ) : tab === 'events' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={evtCols} rows={events} onDelete={handleDelete('base_events')} emptyMsg="등록된 행사가 없어요." /></div>
                 ) : tab === 'recruitments' ? (
