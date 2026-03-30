@@ -14,137 +14,81 @@
 | 미로그인 | 목록 조회만 |
 | 로그인 (리뷰 0개 or 만료) | 리뷰 내용 잠금 (작성 유도) |
 | 로그인 (리뷰 작성 후 1주일 이내) | 전체 열람 가능 |
-| organizer_pending 플랜 | 승인 대기 중 (공고 작성 불가) |
-| organizer 플랜 | 모집공고 작성, 주최사 대시보드 (미구현) |
+| organizer 플랜 | 모집공고 작성 (승인 없이 즉시 전환) |
 
 리뷰 열람 권한: 리뷰 1개 작성 → 1주일간 전체 열람 가능. 매주 월요일 00:00 리셋. `profiles.last_review_at` 기준.
-주최사 온보딩: `organizer_pending` 저장 → 관리자 승인 후 `organizer` 로 변경.
+주최사 전환: 프로필 수정에서 역할 변경 → 즉시 `organizer`로 전환 (승인 불필요).
 
 ---
 
-## 태스크
+## 데이터 구조
 
-> 상태: `[ ]` 미완료 / `[~]` 진행중 / `[x]` 완료 / `[-]` 보류
+```
+base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ recruitments (모집공고)
+                                    ↓                           ↓
+                              organizers (주최사)          scraps (북마크)
+                                    ↓
+                              reviews (리뷰)
+```
 
-### 🔴 버그 / 긴급
+- **base_events**: 행사 브랜드 (서울밤도깨비야시장 등). category: 플리마켓/푸드트럭/플리+푸드 전체
+- **event_instances**: 개최 회차 (날짜/장소/주최사). 같은 행사도 날짜별로 별도 회차
+- **recruitments**: 모집공고. event_instance에 1:1 연결
+- **organizers**: 주최사. profiles와 1:1 (id 동일). 프로필 저장 시 자동 동기화
+- **reviews**: 셀러 리뷰. event_instance에 연결
+- **profiles**: 유저 프로필. seller_type(seller/foodtruck), plan(free/organizer)
 
-- [x] 커뮤니티 글 상세 "게시글을 찾을 수 없어요" 오류 (posts 테이블 컬럼 누락 → migration 적용)
-- [x] 커뮤니티 목록 `fetchPosts` useCallback 의존성 배열에 `category` 누락
-- [x] 평점 null → 0 처리로 평균 왜곡 (`RecruitmentDetailClient`)
-- [x] 주최사 리뷰 `visitor_types` 배열/string 혼용 → `Array.isArray` 처리 중 (정상)
-- [x] Supabase 에러 처리 누락 (6개 파일) + onboarding loading 상태 버그
-- [x] 커뮤니티 글쓰기 `category` NOT NULL 누락 → INSERT 실패
-- [x] 좋아요 에러 시 UI 롤백 없음 + 댓글 삭제/수정 에러 처리 누락
-- [x] auth-context `fetchPlan` 완료 전 `loading=false` 처리 (race condition)
+---
 
-### 🟡 기능 개발
+## 주요 기능
 
-#### 인증 & 사용자
-- [x] 카카오 / 구글 소셜 로그인 OAuth 연동
-- [x] 회원가입 시 seller_type 선택 온보딩 플로우
-- [x] 전역 auth-context (user / plan / reviewCount / refreshPlan)
-- [-] 구독 결제 연동
+### 완료
+- [x] 카카오/구글 소셜 로그인
+- [x] 홈: 배너 캐러셀 + 공고/리뷰/커뮤니티 피드
+- [x] 행사 찾기: 모집공고/리뷰/주최사 탭 + 검색/필터
+- [x] 행사 상세: 리뷰/모집공고/개최이력 탭
+- [x] 공고 상세: InfoSection UI 통일
+- [x] 주최사 상세: 리뷰/모집공고/개최이력 탭
+- [x] 공고 작성 (무료, 결제 제거)
+- [x] 리뷰 작성 (별점/매출/방문객/장단점)
+- [x] 리뷰 열람: 1개 작성 → 1주일 열람 (매주 월요일 리셋)
+- [x] 커뮤니티: 자유/익명/실시간현황/양도양수 카테고리
+- [x] 마이페이지: 프로필 수정 (셀러/주최사 정보), 내 활동, 스크랩
+- [x] 스크랩: 공고 + 행사 북마크 (마이페이지 통합 관리)
+- [x] 알림: 댓글 트리거 → Realtime 구독
+- [x] 관리자: 비밀번호 보안 + 공지/행사/공고/주최사/회원/엑셀업로드/텍스트파서
+- [x] 공지사항: DB 기반 + 이용 가이드 상세 페이지
+- [x] 이용약관 + 개인정보처리방침 (탭 통합)
+- [x] 회원 탈퇴
+- [x] profiles ↔ organizers 동기화
 
-#### 홈
-- [x] 히어로 배너 캐러셀 (터치 스와이프 + 자동 슬라이드)
-- [x] 핫한 모집공고 / 최근 리뷰 피드 / 커뮤니티 인기글 섹션
-- [x] 홈 데이터 SSR 최적화 (`Promise.all` 병렬 fetch)
-- [x] NotificationDrawer 동적 임포트 (`ssr: false`)
-- [x] 알림 실제 데이터 연동 (notifications 테이블 + 댓글 트리거 + Realtime)
-
-#### 검색
-- [x] 모집공고 / 리뷰 / 주최사 탭 검색
-- [x] 필터 (지역, 셀러 유형, 참가비, 정렬) + 무한 스크롤
-- [x] 워터폴 쿼리 → 단일 JOIN 쿼리로 최적화
-- [ ] 검색어 자동완성 / 최근 검색어
-
-#### 행사
-- [x] 행사 상세 페이지 (탭: 리뷰 / 모집공고 / 행사정보)
-- [x] 셀러 평가 요약 — 리뷰 1개 작성 시에만 공개 (잠금 UI)
-- [x] 스크랩(북마크) DB 연동
-- [ ] 행사 이미지 업로드 (주최사용)
-
-#### 주최사
-- [x] 주최사 상세 페이지 (탭: 모집공고 / 행사 이력 / 셀러 리뷰)
-- [x] 주최사 평가 요약 — 리뷰 1개 작성 시에만 공개 (잠금 UI)
-- [ ] 주최사 대시보드 (organizer 플랜 전용)
-- [ ] 주최사 등록 / 편집 기능
-
-#### 모집공고
-- [x] 모집공고 상세 페이지 + 작성 페이지 (organizer 전용)
-- [x] 주최사 평가 요약 — 리뷰 1개 작성 시에만 공개 (잠금 UI)
-- [ ] 지원하기 기능 (지원자 목록 관리)
-- [ ] 지원 현황 알림
-
-#### 리뷰
-- [x] 리뷰 작성 페이지 (행사/셀러 유형/별점/매출/방문객 데이터)
-- [x] 리뷰 열람 권한: 1개 작성 → 1주일 열람 (매주 월요일 리셋, `last_review_at` 기반)
-- [x] 리뷰 잠금 UI (미로그인 → 로그인 유도, 로그인 → 리뷰 작성 유도)
-- [ ] 리뷰 수정 / 삭제
-- [ ] 리뷰 신고 기능
-
-#### 커뮤니티
-- [x] 게시글 목록 (탭: 전체/익명, 카테고리/셀러유형/정렬 필터, 무한스크롤)
-- [x] 게시글 상세 (본문 + 좋아요 + 공유 + 메뉴)
-- [x] 게시글 / 댓글 작성 · 수정 · 삭제
-- [x] 실명/익명 선택 글쓰기
-
-#### 마이페이지
-- [x] 프로필 카드, 활동 통계, 내 리뷰/스크랩/게시글 목록
-- [x] 닉네임 수정, 알림 설정 토글
-- [x] 내 공고 목록 (주최사용)
-- [x] 역할 변경 (셀러 ↔ 주최사)
-- [-] 멤버십 관리 메뉴
+### 미완료
 - [ ] 프로필 아바타 이미지 업로드
-- [ ] 이용약관 페이지
-- [ ] 개인정보처리방침 페이지
-
-#### 문의
-- [x] 행사 개최 문의 페이지 (`/contact`)
-- [ ] 문의 폼 이메일 발송 또는 DB 저장
-
-### 🟢 인프라 / DB
-
-- [x] V2 스키마 (base_events + event_instances 분리)
-- [x] 커뮤니티 테이블 마이그레이션 (posts, post_comments, contact_requests)
-- [x] 누락 컬럼 보완 마이그레이션 다수
-- [x] 엑셀 데이터 입력 양식 (`FLIT_데이터입력양식.xlsx`)
-- [ ] RLS(Row Level Security) 정책 전면 검토
+- [ ] RLS 정책 전면 검토
 - [ ] Supabase Storage 이미지 업로드 설정
-- [ ] 프로덕션 환경 변수 설정
-- [ ] `profiles.review_count` 자동 갱신 트리거 (현재 수동)
-
-### 🔵 UX / 디자인
-
 - [ ] 로딩 스켈레톤 UI 통일
 - [ ] 에러 상태 UI (404, 500)
-- [ ] 빈 상태 UI 일관화
-- [ ] 토스트 알림 컴포넌트
-- [ ] 이미지 fallback 처리
-
-### 📋 배포
-
-- [ ] Vercel 배포 설정
-- [ ] Supabase 프로덕션 프로젝트 분리
-- [ ] 도메인 연결
 - [ ] SEO 메타태그 설정
+- [ ] 도메인 연결
 
 ---
 
-## 보류 중 (나중에 재활성화)
+## 삭제된 기능 / Dead Code
 
-- 구독 결제 연동 (Stripe 등)
-- 멤버십 관리 메뉴 (마이페이지)
-- `SubscriptionLock.js`, `SubscriptionModal.js`, `/subscribe` 페이지
+- ~~구독 결제 (Stripe/토스)~~ → 제거됨
+- ~~organizer_pending 승인 대기~~ → 즉시 전환으로 변경
+- ~~끌올 기능 (결제)~~ → 제거됨
+- 삭제된 파일: subscribe/, SubscriptionLock.js, SubscriptionModal.js, plans.js, mypage/role/, payments/confirm/, recruitments/write/success/
 
 ---
 
-## Dead Code (정리 예정)
+## 기술 참고
 
-- `src/components/ui/SubscriptionLock.js`
-- `src/components/ui/SubscriptionModal.js`
-- `src/app/subscribe/page.js`
-- `src/lib/plans.js` → `canViewReviewDetail()` (미사용)
+- Supabase 클라이언트: 싱글톤 패턴 적용 (`client.js`)
+- 네이버 지도 API: NaverMap.js 컴포넌트 (Dynamic Map + Geocoding)
+- 공통 컴포넌트: ReviewCard, ImageUploader, NaverMap, TopBar, Card, BottomTab
+- 행사 개최 문의: https://flitunion.vercel.app/ (외부 링크)
+- 관리자 비밀번호: `flit2026!` (코드 내 하드코딩)
 
 ---
 

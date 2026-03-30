@@ -26,7 +26,23 @@
       "Bash(python -c \"import openpyxl; print\\(''ok''\\)\")",
       "Bash(pip install:*)",
       "Bash(python3 -c \"import openpyxl; print\\(''ok''\\)\")",
-      "Bash(python3 -m pip install openpyxl -q)"
+      "Bash(python3 -m pip install openpyxl -q)",
+      "Bash(npm install:*)",
+      "Bash(npm list:*)",
+      "Bash(wc -l supabase_migrations/*.sql)",
+      "WebFetch(domain:localhost)",
+      "Bash(for path:*)",
+      "Bash(do echo:*)",
+      "Bash(done)",
+      "Bash(head:*)",
+      "Bash(git checkout:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(node -e \":*)",
+      "Bash(npm ls:*)",
+      "Bash(wc:*)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }
