@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ChevronRight, LogOut,
-    Star, Bookmark, MessageSquare, Megaphone,
+    Star, Bookmark, MessageSquare, MessageCircle as CommentIcon, Megaphone,
     Bell, FileText, HelpCircle, MessageCircle, Settings,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
@@ -68,8 +68,8 @@ function RoleBadge({ plan }) {
 export default function MyPage() {
     const { user, loading, plan, signOut } = useAuth();
     const router = useRouter();
-    const [counts, setCounts] = useState({ reviews: 0, events: 0, posts: 0, recruitments: 0 });
     const [profileName, setProfileName] = useState('');
+    const [counts, setCounts] = useState({ recruitments: 0 });
 
     useEffect(() => {
         if (!loading && !user) router.replace('/login');
@@ -81,10 +81,7 @@ export default function MyPage() {
             try {
                 const sb = createClient();
                 const isOrganizer = plan === 'organizer';
-                const [rv, ev, pt, profile, rc] = await Promise.all([
-                    sb.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-                    sb.from('scraps').select('user_id', { count: 'exact', head: true }).eq('user_id', user.id),
-                    sb.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+                const [profile, rc] = await Promise.all([
                     sb.from('profiles').select('name').eq('id', user.id).maybeSingle(),
                     isOrganizer
                         ? sb.from('recruitments').select('id', { count: 'exact', head: true })
@@ -93,7 +90,7 @@ export default function MyPage() {
                             )
                         : Promise.resolve({ count: 0 }),
                 ]);
-                setCounts({ reviews: rv.count || 0, events: ev.count || 0, posts: pt.count || 0, recruitments: rc.count || 0 });
+                setCounts({ recruitments: rc.count || 0 });
                 if (profile.data?.name) setProfileName(profile.data.name);
             } catch (err) {
                 console.error('마이페이지 로드 실패:', err);
@@ -117,10 +114,7 @@ export default function MyPage() {
 
             {/* ── 프로필 ── */}
             <div style={{ background: T.white, padding: '24px 20px 20px' }}>
-                <div
-                    onClick={() => router.push('/mypage/profile')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', marginBottom: 16 }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{
                         width: 56, height: 56, borderRadius: '50%',
                         background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
@@ -136,40 +130,28 @@ export default function MyPage() {
                         </div>
                         <div style={{ fontSize: 13, color: T.gray }}>{user.email}</div>
                     </div>
-                    <ChevronRight size={20} color={T.gray} />
-                </div>
-
-                {/* 활동 통계 */}
-                <div style={{ display: 'flex', background: T.bg, borderRadius: T.radiusLg, overflow: 'hidden' }}>
-                    {[
-                        { label: '리뷰', count: counts.reviews, href: '/mypage/reviews' },
-                        { label: '스크랩', count: counts.events, href: '/mypage/events' },
-                        { label: '게시글', count: counts.posts, href: '/mypage/posts' },
-                    ].map((item, i, arr) => (
-                        <div
-                            key={item.label}
-                            onClick={() => router.push(item.href)}
-                            style={{
-                                flex: 1, padding: '13px 0', textAlign: 'center', cursor: 'pointer',
-                                borderRight: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
-                            }}
-                        >
-                            <div style={{ fontSize: 20, fontWeight: 900, color: T.text, lineHeight: 1.2 }}>{item.count}</div>
-                            <div style={{ fontSize: 12, color: T.gray, marginTop: 3, fontWeight: 500 }}>{item.label}</div>
-                        </div>
-                    ))}
+                    <div
+                        onClick={() => router.push('/mypage/profile')}
+                        style={{
+                            padding: '7px 14px', borderRadius: T.radiusFull,
+                            border: `1.5px solid ${T.border}`, background: T.white,
+                            fontSize: 13, fontWeight: 700, color: T.text, cursor: 'pointer', flexShrink: 0,
+                        }}
+                    >
+                        프로필 수정
+                    </div>
                 </div>
             </div>
 
             <SectionGap />
 
-            {/* ── 나의 활동 ── */}
+            {/* ── 내가 쓴 글 ── */}
             <div style={{ background: T.white }}>
-                <MenuItem icon={Star} label="내가 쓴 리뷰" href="/mypage/reviews" badge={counts.reviews} />
+                <MenuItem icon={Star} label="내가 쓴 리뷰" href="/mypage/reviews" />
                 <Divider />
-                <MenuItem icon={Bookmark} label="스크랩한 공고" href="/mypage/events" badge={counts.events} />
+                <MenuItem icon={MessageSquare} label="내가 쓴 글" href="/mypage/posts" />
                 <Divider />
-                <MenuItem icon={MessageSquare} label="내가 쓴 글" href="/mypage/posts" badge={counts.posts} />
+                <MenuItem icon={CommentIcon} label="내가 쓴 댓글" href="/mypage/comments" />
                 {isOrganizer && (
                     <>
                         <Divider />
@@ -180,10 +162,15 @@ export default function MyPage() {
 
             <SectionGap />
 
+            {/* ── 스크랩 ── */}
+            <div style={{ background: T.white }}>
+                <MenuItem icon={Bookmark} label="스크랩한 공고" href="/mypage/events" />
+            </div>
+
+            <SectionGap />
+
             {/* ── 설정 ── */}
             <div style={{ background: T.white }}>
-                <MenuItem icon={Settings} label="역할 변경" sub={isOrganizer ? '현재: 주최사' : '현재: 셀러'} href="/mypage/role" />
-                <Divider />
                 <MenuItem icon={Bell} label="알림 설정" href="/mypage/settings" />
             </div>
 
