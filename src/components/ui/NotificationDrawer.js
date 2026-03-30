@@ -106,7 +106,7 @@ export default function NotificationDrawer({ open, onClose, userId }) {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (!open || !userId) return;
+        if (!userId) return;
         setLoading(true);
         (async () => {
             const sb = createClient();
@@ -120,7 +120,7 @@ export default function NotificationDrawer({ open, onClose, userId }) {
             if (data) setNotifs(data);
             setLoading(false);
         })();
-    }, [open, userId]);
+    }, [userId]);
 
     const handleRead = async (id) => {
         setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));

@@ -26,7 +26,7 @@ export default async function EventPage({ params }) {
     // base_event 조회
     const { data: event } = await supabase
         .from('base_events')
-        .select('*')
+        .select('id, name, category, image_url, total_instances, total_reviews, avg_event_rating')
         .eq('id', id)
         .single();
     if (!event) return notFound();
@@ -45,7 +45,9 @@ export default async function EventPage({ params }) {
         instanceIds.length > 0
             ? supabase
                 .from('reviews')
-                .select(`*,
+                .select(`id, event_instance_id, seller_type, is_verified, created_at,
+                    rating_profit, rating_traffic, rating_promotion, rating_support, rating_manners,
+                    revenue_range, age_groups, visitor_types, pros, cons, content,
                     event_instance:event_instances(id, location, event_date, organizer:organizers(name))`)
                 .in('event_instance_id', instanceIds)
                 .order('created_at', { ascending: false })

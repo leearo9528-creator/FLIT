@@ -20,7 +20,7 @@ export default async function OrganizerPage({ params }) {
     // 주최사 기본 정보
     const { data: organizer } = await supabase
         .from('organizers')
-        .select('*')
+        .select('id, name, description, logo_url, total_instances, total_reviews')
         .eq('id', id)
         .single();
     if (!organizer) return notFound();
@@ -46,7 +46,10 @@ export default async function OrganizerPage({ params }) {
         instanceIds.length > 0
             ? supabase
                 .from('reviews')
-                .select('*, event_instance:event_instances(id, location, event_date, base_event:base_events(id, name))')
+                .select(`id, event_instance_id, seller_type, is_verified, created_at,
+                    rating_profit, rating_traffic, rating_promotion, rating_support, rating_manners,
+                    revenue_range, age_groups, visitor_types, pros, cons, content,
+                    event_instance:event_instances(id, location, event_date, base_event:base_events(id, name))`)
                 .in('event_instance_id', instanceIds)
                 .order('created_at', { ascending: false })
             : { data: [] },
