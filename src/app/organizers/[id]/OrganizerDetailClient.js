@@ -313,8 +313,8 @@ function InstanceCard({ inst }) {
 /* ─── Main ───────────────────────────────────────────────────── */
 export default function OrganizerDetailClient({ organizer, instances, initialRecruitments, initialReviews }) {
     const router = useRouter();
-    const { user, plan, reviewCount } = useAuth();
-    const canView = !!(user && reviewCount >= 1);
+    const { user, plan, canViewReviews } = useAuth();
+    const canView = !!(user && canViewReviews);
     const [activeTab, setActiveTab] = useState('recruit');
 
     const openRecruits   = initialRecruitments.filter(r => r.status === 'OPEN');
@@ -527,7 +527,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                             아직 등록된 리뷰가 없어요.
                         </div>
                     ) : (
-                        initialReviews.map(r => <ReviewCard key={r.id} review={r} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />)
+                        initialReviews.map(r => <ReviewCard key={r.id} review={r} canView={!!(user && canViewReviews)} isLoggedIn={!!user} />)
                     )
                 )}
             </div>

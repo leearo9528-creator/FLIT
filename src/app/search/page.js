@@ -260,7 +260,7 @@ function ReviewFeedCard({ review, router, canView, isLoggedIn }) {
 
 function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
     const router = useRouter();
-    const { user, plan, reviewCount } = useAuth();
+    const { user, plan, canViewReviews } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -356,7 +356,7 @@ function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
                     ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
                         {query ? `"${query}" 관련 후기가 없어요.` : '아직 등록된 후기가 없어요.'}
                     </div>
-                    : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />)
+                    : reviews.map(r => <ReviewFeedCard key={r.id} review={r} router={router} canView={!!(user && canViewReviews)} isLoggedIn={!!user} />)
             }
             <div ref={sentinelRef} style={{ height: 1 }} />
             {loadingMore && <Skeleton count={2} height={160} />}

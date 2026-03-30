@@ -30,7 +30,7 @@ CREATE TABLE public.profiles (
     seller_type           TEXT CHECK (seller_type IN ('seller', 'foodtruck')),
 
     -- 멤버십 플랜
-    plan                  TEXT DEFAULT 'free' CHECK (plan IN ('free', 'flea_market', 'foodtruck', 'organizer')),
+    plan                  TEXT DEFAULT 'free' CHECK (plan IN ('free', 'flea_market', 'foodtruck', 'organizer', 'organizer_pending')),
 
     -- 주최사 표시 이름 (plan = 'organizer'일 때 organizers.name 초기값)
     organizer_name        TEXT,
@@ -43,6 +43,9 @@ CREATE TABLE public.profiles (
 
     -- 리뷰 카운트 (트리거 관리)
     review_count          INT DEFAULT 0,
+
+    -- 마지막 리뷰 작성 시각 (1주일 열람 권한 기준)
+    last_review_at        TIMESTAMPTZ,
 
     created_at            TIMESTAMPTZ DEFAULT NOW()
 );

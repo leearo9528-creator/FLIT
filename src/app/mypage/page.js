@@ -211,7 +211,7 @@ export default function MyPage() {
             {/* ── 고객지원 ── */}
             <Section title="고객지원">
                 <MenuItem icon={HelpCircle} label="공지사항" onPress={() => alert('준비 중이에요.')} />
-                <MenuItem icon={MessageCircle} label="1:1 문의" href="/contact" />
+                <MenuItem icon={MessageCircle} label="행사 개최 문의" href="/contact" />
                 <MenuItem icon={FileText} label="이용약관" onPress={() => alert('준비 중이에요.')} />
                 <MenuItem icon={FileText} label="개인정보처리방침" onPress={() => alert('준비 중이에요.')} />
             </Section>

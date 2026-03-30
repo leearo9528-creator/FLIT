@@ -135,7 +135,7 @@ const TABS = ['상세요강', '주최사 리뷰'];
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
     const router = useRouter();
-    const { user, plan, reviewCount } = useAuth();
+    const { user, plan, canViewReviews } = useAuth();
 
     const [activeTab, setActiveTab] = useState(0);
     const [reviews, setReviews] = useState([]);
@@ -375,7 +375,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 12 }}>
                     {organizer.name || '주최사'} 평가 요약
                 </div>
-                {!(user && reviewCount >= 1) ? (
+                {!(user && canViewReviews) ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 0' }}>
                         <div style={{ fontSize: 28 }}>🔒</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
@@ -443,7 +443,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {reviews.map(r => (
-                        <ReviewCard key={r.id} review={r} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />
+                        <ReviewCard key={r.id} review={r} canView={!!(user && canViewReviews)} isLoggedIn={!!user} />
                     ))}
                 </div>
             )}

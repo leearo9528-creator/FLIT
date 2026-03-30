@@ -301,8 +301,11 @@ export default function ReviewWritePage() {
             const { error } = await sb.from('reviews').insert(payload);
             if (error) throw error;
 
-            // 리뷰 카운트 갱신
-            await sb.from('profiles').update({ review_count: reviewCount + 1 }).eq('id', session.user.id);
+            // 리뷰 카운트 갱신 + 열람 권한 타이머 시작
+            await sb.from('profiles').update({
+                review_count: reviewCount + 1,
+                last_review_at: new Date().toISOString(),
+            }).eq('id', session.user.id);
 
             router.push('/mypage');
         } catch (err) {

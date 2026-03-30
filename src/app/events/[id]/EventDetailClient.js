@@ -383,8 +383,8 @@ function ReviewCard({ review, canView, isLoggedIn }) {
 /* ─── Main ───────────────────────────────────────────────────── */
 export default function EventDetailClient({ event, instances, initialReviews, initialRecruitments }) {
     const router = useRouter();
-    const { user, plan, reviewCount } = useAuth();
-    const canView = !!(user && reviewCount >= 1);
+    const { user, plan, canViewReviews } = useAuth();
+    const canView = !!(user && canViewReviews);
     const [activeTab, setActiveTab] = useState('reviews');
 
     const fleaReviews      = initialReviews.filter(r => r.seller_type !== 'foodtruck');
@@ -806,7 +806,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                 <div style={{ textAlign: 'center', padding: '20px 0', color: T.gray, fontSize: 13 }}>아직 등록된 리뷰가 없어요.</div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {activeReviews.map(r => <ReviewCard key={r.id} review={r} canView={!!(user && reviewCount >= 1)} isLoggedIn={!!user} />)}
+                                    {activeReviews.map(r => <ReviewCard key={r.id} review={r} canView={!!(user && canViewReviews)} isLoggedIn={!!user} />)}
                                 </div>
                             )}
                         </div>
