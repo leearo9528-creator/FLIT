@@ -1,6 +1,19 @@
 import { createClient } from '@/utils/supabase/server';
 import HomeClient from './HomeClient';
 
+export const metadata = {
+    title: '플릿(FLIT) - 셀러들이 말하는 진짜 행사 정보',
+    description: '플리마켓·팝업스토어 셀러를 위한 행사 정보 플랫폼. 실제 셀러 리뷰, 모집공고, 주최사 정보를 한눈에 확인하세요.',
+    keywords: '플리마켓, 팝업스토어, 셀러, 행사정보, 모집공고, 플릿, FLIT',
+    openGraph: {
+        title: '플릿(FLIT) - 셀러들이 말하는 진짜 행사 정보',
+        description: '플리마켓·팝업스토어 셀러를 위한 행사 정보 플랫폼. 실제 셀러 리뷰와 모집공고를 확인하세요.',
+        type: 'website',
+        locale: 'ko_KR',
+        siteName: '플릿(FLIT)',
+    },
+};
+
 export default async function HomePage() {
     const sb = await createClient();
 

@@ -58,4 +58,13 @@ a {
 
 /* 스크롤바 숨김 */
 div::-webkit-scrollbar { display: none; }
+
+@keyframes skeleton-shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 

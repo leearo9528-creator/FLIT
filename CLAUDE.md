@@ -61,14 +61,14 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 이용약관 + 개인정보처리방침 (탭 통합)
 - [x] 회원 탈퇴
 - [x] profiles ↔ organizers 동기화
+- [x] 프로필 아바타 이미지 업로드 (images 버킷 avatars/ 폴더)
+- [x] Supabase Storage 이미지 업로드 설정 (setup_storage_buckets.sql)
+- [x] 로딩 스켈레톤 UI 통일 (Skeleton.js + 라우트별 loading.js)
+- [x] 에러 상태 UI (404 not-found.js, 500 error.js)
+- [x] SEO 메타태그 설정 (홈 metadata + 각 라우트 layout.js)
+- [x] RLS 정책 전면 검토 (rls_policy_review.sql: INSERT 강화, 누락 정책 추가)
 
 ### 미완료
-- [ ] 프로필 아바타 이미지 업로드
-- [ ] RLS 정책 전면 검토
-- [ ] Supabase Storage 이미지 업로드 설정
-- [ ] 로딩 스켈레톤 UI 통일
-- [ ] 에러 상태 UI (404, 500)
-- [ ] SEO 메타태그 설정
 - [ ] 도메인 연결
 
 ---
@@ -86,7 +86,7 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 
 - Supabase 클라이언트: 싱글톤 패턴 적용 (`client.js`)
 - 네이버 지도 API: NaverMap.js 컴포넌트 (Dynamic Map + Geocoding)
-- 공통 컴포넌트: ReviewCard, ImageUploader, NaverMap, TopBar, Card, BottomTab
+- 공통 컴포넌트: ReviewCard, ImageUploader, NaverMap, TopBar, Card, BottomTab, Skeleton
 - 행사 개최 문의: https://flitunion.vercel.app/ (외부 링크)
 - 관리자 비밀번호: `flit2026!` (코드 내 하드코딩)
 
