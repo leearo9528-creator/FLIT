@@ -26,7 +26,8 @@ export default function MyRecruitmentsPage() {
     }, [user, authLoading, router]);
 
     useEffect(() => {
-        if (!user || plan !== 'organizer') return;
+        if (!user) return;
+        if (plan !== 'organizer') { setLoading(false); return; }
         (async () => {
             try {
                 const sb = createClient();
