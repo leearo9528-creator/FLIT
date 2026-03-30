@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-// loadTossPayments는 사용 시점에 dynamic import
 import { useRouter } from 'next/navigation';
 import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
@@ -163,37 +162,46 @@ export default function RecruitmentWritePage() {
 
         setIsSubmitting(true);
         try {
-            const orderId = `NEW_${Date.now()}_${user.id.replace(/-/g, '').slice(0, 8)}`;
+            const sb = createClient();
+            const feeNum = fee ? parseInt(fee.replace(/,/g, ''), 10) : 0;
 
-            // 결제 후 성공 페이지에서 사용할 폼 데이터 저장
-            sessionStorage.setItem(`draft_${orderId}`, JSON.stringify({
-                selectedBaseEvent,
-                eventDate, eventDateEnd, location,
-                title, content,
-                fee: fee ? parseInt(fee.replace(/,/g, ''), 10) : 0,
-                endDate,
-                applicationMethod: applicationMethod.trim() || null,
-                organizerId: organizer?.id || null,
-                images: images.length > 0 ? images : null,
-            }));
+            // event_instance 생성
+            const { data: instance, error: instErr } = await sb
+                .from('event_instances')
+                .insert({
+                    base_event_id: selectedBaseEvent.id,
+                    organizer_id: organizer?.id || null,
+                    location: location.trim(),
+                    location_sido: location.trim().split(' ')[0],
+                    event_date: eventDate,
+                    event_date_end: eventDateEnd || eventDate,
+                })
+                .select('id')
+                .single();
+            if (instErr) throw instErr;
 
-            const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-            const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
-            const tossPayments = await loadTossPayments(clientKey);
-            const payment = tossPayments.payment({ customerKey: user.id });
-            await payment.requestPayment({
-                method: 'CARD',
-                amount: { currency: 'KRW', value: 10000 },
-                orderId,
-                orderName: '모집공고 등록 1건',
-                successUrl: `${window.location.origin}/recruitments/write/success`,
-                failUrl: `${window.location.origin}/recruitments/write`,
-                customerEmail: user.email || undefined,
-                customerName: user.user_metadata?.full_name || user.user_metadata?.name || '주최사',
-            });
+            // recruitment 생성
+            const recPayload = {
+                event_instance_id: instance.id,
+                title: title.trim(),
+                content: content.trim(),
+                fee: feeNum,
+                end_date: endDate,
+                status: 'OPEN',
+                application_method: applicationMethod.trim() || null,
+            };
+            if (images.length > 0) recPayload.images = images;
+            const { data: rec, error: recErr } = await sb
+                .from('recruitments')
+                .insert(recPayload)
+                .select('id')
+                .single();
+            if (recErr) throw recErr;
+
+            router.push(`/recruitments/${rec.id}`);
         } catch (err) {
-            console.error('결제 오류:', err);
-            alert('결제 중 오류가 발생했습니다.\n' + (err.message || ''));
+            console.error('공고 등록 오류:', err);
+            alert('등록 중 오류가 발생했습니다.\n' + (err.message || ''));
             setIsSubmitting(false);
         }
     };
@@ -504,7 +512,7 @@ export default function RecruitmentWritePage() {
                         marginTop: 8,
                     }}
                 >
-                    {isSubmitting ? '결제 페이지로 이동 중...' : '공고 등록하기 (10,000원)'}
+                    {isSubmitting ? '등록 중...' : '공고 등록하기'}
                 </button>
 
             </div>
