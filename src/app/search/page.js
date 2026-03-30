@@ -140,7 +140,7 @@ function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
 
                 {/* 제목 */}
                 <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.4, marginBottom: 12 }}>
-                    {rec.title}
+                    {(rec.title || '').replace(/^\[.*?\]\s*/, '')}
                 </div>
 
                 {/* 정보 테이블 */}

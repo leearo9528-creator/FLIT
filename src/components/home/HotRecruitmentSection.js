@@ -36,7 +36,7 @@ function RecruitmentCard({ rec }) {
                 </div>
 
                 <div style={{ fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.4, marginBottom: 10 }}>
-                    {rec.title || '-'}
+                    {(rec.title || '-').replace(/^\[.*?\]\s*/, '')}
                 </div>
 
                 {org.name && <div style={ROW}><span style={LABEL}>주최사</span><span style={VALUE}>{org.name}</span></div>}
