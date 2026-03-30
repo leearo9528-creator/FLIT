@@ -6,6 +6,7 @@ import { Bell } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { createClient } from '@/utils/supabase/client';
 import HeroBanner from '@/components/home/HeroBanner';
 import HotRecruitmentSection from '@/components/home/HotRecruitmentSection';
 import RecentReviewsSection from '@/components/home/RecentReviewsSection';
@@ -20,7 +21,14 @@ export default function HomeClient({ initialRecruitments, initialReviews, initia
 
     useEffect(() => {
         if (!user) { setUnreadCount(0); return; }
-        setUnreadCount(0);
+        (async () => {
+            const sb = createClient();
+            const { count } = await sb.from('notifications')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+            setUnreadCount(count || 0);
+        })();
     }, [user]);
 
     return (
