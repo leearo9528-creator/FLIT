@@ -22,7 +22,11 @@
       "Bash(grep -n \"scrap\\\\|Bookmark\\\\|bookmark\" src/app/events/[id]/EventDetailClient.js src/app/recruitments/[id]/RecruitmentDetailClient.js)",
       "Bash(grep -n \"import.*createClient\\\\|import.*useAuth\" src/app/recruitments/[id]/RecruitmentDetailClient.js)",
       "Bash(xargs grep:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python -c \"import openpyxl; print\\(''ok''\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python3 -c \"import openpyxl; print\\(''ok''\\)\")",
+      "Bash(python3 -m pip install openpyxl -q)"
     ]
   }
 }
