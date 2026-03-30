@@ -79,10 +79,8 @@ function ReviewLock({ isLoggedIn }) {
 
 /* ─── Review Card ──────────────────────────────────────────── */
 function ReviewCard({ review, canView, isLoggedIn }) {
-    const avgRating = (
-        (review.rating_profit || 0) + (review.rating_traffic || 0) +
-        (review.rating_support || 0) + (review.rating_manners || 0)
-    ) / 4;
+    const scores = [review.rating_profit, review.rating_traffic, review.rating_support, review.rating_manners].filter(v => v != null);
+    const avgRating = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
 
     if (!canView) return <ReviewLock isLoggedIn={isLoggedIn} />;
 
@@ -151,14 +149,14 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const dDay = calcDDay(recruitment.end_date);
     const totalEventReviews = baseEvent.total_reviews ?? 0;
 
-    const avgSupport = reviews.length > 0
-        ? reviews.reduce((s, r) => s + (r.rating_support || 0), 0) / reviews.length : 0;
-    const avgManners = reviews.length > 0
-        ? reviews.reduce((s, r) => s + (r.rating_manners || 0), 0) / reviews.length : 0;
-    const avgProfit = reviews.length > 0
-        ? reviews.reduce((s, r) => s + (r.rating_profit || 0), 0) / reviews.length : 0;
-    const avgTraffic = reviews.length > 0
-        ? reviews.reduce((s, r) => s + (r.rating_traffic || 0), 0) / reviews.length : 0;
+    function ratingAvg(key) {
+        const vals = reviews.map(r => r[key]).filter(v => v != null);
+        return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    }
+    const avgSupport = ratingAvg('rating_support');
+    const avgManners = ratingAvg('rating_manners');
+    const avgProfit  = ratingAvg('rating_profit');
+    const avgTraffic = ratingAvg('rating_traffic');
     const overallAvg = reviews.length > 0
         ? reviews.reduce((s, r) => {
             const scores = [r.rating_profit, r.rating_traffic, r.rating_support, r.rating_manners, r.rating_promotion].filter(v => v != null);
