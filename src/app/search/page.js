@@ -108,57 +108,50 @@ function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
         onToggleScrap(rec.id);
     };
 
+    const feeText = rec.fee == null ? '미정' : rec.fee === 0 ? '무료' : `${Number(rec.fee).toLocaleString()}원`;
+    const dateText = inst.event_date
+        ? new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+          + (inst.event_date_end && inst.event_date_end !== inst.event_date ? ` ~ ${new Date(inst.event_date_end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}` : '')
+        : '미정';
+
+    const ROW = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 };
+    const LABEL = { fontSize: 12, fontWeight: 700, color: T.gray, width: 48, flexShrink: 0 };
+    const VALUE = { fontSize: 13, fontWeight: 600, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+
     return (
         <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
             <Card padding={16} style={{ border: `1px solid ${T.border}` }}>
+                {/* 상단: 상태 + D-Day + 북마크 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <div style={{
-                        padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                        background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
-                        color: rec.status === 'OPEN' ? T.green : T.gray,
-                    }}>
-                        {rec.status === 'OPEN' ? '모집중' : '마감됨'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: rec.status === 'OPEN' ? T.greenLt : T.grayLt, color: rec.status === 'OPEN' ? T.green : T.gray }}>
+                            {rec.status === 'OPEN' ? '모집중' : '마감됨'}
+                        </span>
                         {daysLeft !== null && daysLeft >= 0 && (
-                            <div style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
                                 {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
-                            </div>
+                            </span>
                         )}
-                        <div onClick={handleScrap} style={{ cursor: 'pointer', padding: 4 }}>
-                            <Bookmark size={18} color={isScrapped ? T.blue : T.gray} fill={isScrapped ? T.blue : 'none'} strokeWidth={2} />
-                        </div>
+                    </div>
+                    <div onClick={handleScrap} style={{ cursor: 'pointer', padding: 4 }}>
+                        <Bookmark size={18} color={isScrapped ? T.blue : T.gray} fill={isScrapped ? T.blue : 'none'} strokeWidth={2} />
                     </div>
                 </div>
 
-                <div style={{ fontSize: 16, fontWeight: 700, color: T.text, lineHeight: 1.4, marginBottom: 6 }}>
+                {/* 제목 */}
+                <div style={{ fontSize: 16, fontWeight: 800, color: T.text, lineHeight: 1.4, marginBottom: 12 }}>
                     {rec.title}
                 </div>
 
-                {(org.name || ev.name) && (
-                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 8 }}>
-                        {[org.name, ev.name].filter(Boolean).join(' · ')}
-                    </div>
-                )}
-
-                <div style={{ fontSize: 15, fontWeight: 800, color: T.blue, marginBottom: 6 }}>
-                    {!rec.fee ? '참가비 무료' : `참가비 ${Number(rec.fee).toLocaleString()}원`}
+                {/* 정보 테이블 */}
+                <div style={{ marginBottom: 12 }}>
+                    {org.name && <div style={ROW}><span style={LABEL}>주최사</span><span style={VALUE}>{org.name}</span></div>}
+                    <div style={ROW}><span style={LABEL}>참가비</span><span style={{ ...VALUE, color: T.blue, fontWeight: 800 }}>{feeText}</span></div>
+                    <div style={ROW}><span style={LABEL}>일시</span><span style={VALUE}>{dateText}</span></div>
+                    <div style={{ ...ROW, marginBottom: 0 }}><span style={LABEL}>장소</span><span style={VALUE}>{inst.location || '미정'}</span></div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: T.textSub, marginBottom: inst.event_date ? 8 : 12 }}>
-                    <MapPin size={13} color={T.gray} />
-                    {inst.location || '장소 미정'}
-                </div>
-
-                {inst.event_date && (
-                    <div style={{ fontSize: 12, color: T.gray, marginBottom: 12 }}>
-                        🗓 {new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                        {inst.event_date_end && inst.event_date_end !== inst.event_date && (
-                            <> ~ {new Date(inst.event_date_end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}</>
-                        )}
-                    </div>
-                )}
-
+                {/* 하단: 평점 + 리뷰 */}
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 14 }}>⭐</span>
                     <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{rating}</span>
