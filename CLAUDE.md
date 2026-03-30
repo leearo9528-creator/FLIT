@@ -28,8 +28,9 @@
 
 - [x] 커뮤니티 글 상세 "게시글을 찾을 수 없어요" 오류 (posts 테이블 컬럼 누락 → migration 적용)
 - [x] 커뮤니티 목록 `fetchPosts` useCallback 의존성 배열에 `category` 누락
-- [ ] 평점 null → 0 처리로 평균 왜곡 (`RecruitmentDetail`, `mypage/reviews`)
-- [ ] 주최사 리뷰 `visitor_types` 배열/string 혼용 가능성
+- [x] 평점 null → 0 처리로 평균 왜곡 (`RecruitmentDetailClient` 수정 완료)
+- [x] 주최사 리뷰 `visitor_types` 배열/string 혼용 → 모든 곳에서 `Array.isArray` 처리 중 (정상)
+- [x] Supabase 에러 처리 누락 (6개 파일) + onboarding loading 상태 버그
 
 ### 🟡 기능 개발
 
