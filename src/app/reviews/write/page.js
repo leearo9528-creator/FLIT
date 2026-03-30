@@ -450,7 +450,7 @@ export default function ReviewWritePage() {
                         <div style={{ fontSize: 12, color: T.gray, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${T.border}` }}>
                             📍 행사/장소 관련
                         </div>
-                        <StarRow label={isSeller ? '💳 구매력' : '💰 수익성'} value={rProfit} onChange={setRProfit} color="#10B981" />
+                        <StarRow label="💰 구매력" value={rProfit} onChange={setRProfit} color="#10B981" />
                         <StarRow label="👥 유동인구 / 집객력" value={rTraffic} onChange={setRTraffic} color="#3B82F6" />
 
                         <div style={{ fontSize: 12, color: T.gray, fontWeight: 700, marginBottom: 10, paddingBottom: 6, borderBottom: `1px solid ${T.border}`, marginTop: 6 }}>

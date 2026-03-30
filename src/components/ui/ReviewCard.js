@@ -107,7 +107,7 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
                     {/* 항목별 평가 (바 차트) */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
                         {[
-                            { field: 'rating_profit',    label: isFoodtruck ? '수익성' : '구매력' },
+                            { field: 'rating_profit',    label: '구매력' },
                             { field: 'rating_traffic',   label: '유동인구' },
                             { field: 'rating_support',   label: '운영지원' },
                             { field: 'rating_manners',   label: '주최매너' },
