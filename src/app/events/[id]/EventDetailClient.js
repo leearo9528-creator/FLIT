@@ -389,46 +389,33 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                 <div style={{ textAlign: 'center', padding: '20px 0', color: T.gray, fontSize: 13 }}>아직 리뷰가 없어요.</div>
                             ) : (
                                 <>
-                                    {/* 종합 점수 + 별 */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-                                        <div style={{
-                                            width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
-                                            background: `${scoreColor}18`, border: `2px solid ${scoreColor}40`,
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
-                                                {activeOverallScore.toFixed(1)}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
+                                    {/* 종합 요약 카드 */}
+                                    <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                                        <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>종합 평점</div>
+                                            <div style={{ fontSize: 22, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>{activeOverallScore.toFixed(1)}</div>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: 1, marginTop: 4 }}>
                                                 {[1,2,3,4,5].map(i => (
-                                                    <span key={i} style={{ fontSize: 16, color: i <= Math.round(activeOverallScore) ? '#F59E0B' : '#E5E7EB' }}>★</span>
+                                                    <span key={i} style={{ fontSize: 12, color: i <= Math.round(activeOverallScore) ? '#F59E0B' : '#E5E7EB' }}>★</span>
                                                 ))}
                                             </div>
-                                            <div style={{ fontSize: 12, color: T.gray }}>
-                                                셀러 <strong style={{ color: T.text }}>{activeReviews.length}</strong>명 리뷰 기준
-                                            </div>
                                         </div>
+                                        <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>리뷰</div>
+                                            <div style={{ fontSize: 22, fontWeight: 900, color: T.text, lineHeight: 1 }}>{activeReviews.length}</div>
+                                            <div style={{ fontSize: 11, color: T.gray, marginTop: 4 }}>명 참여</div>
+                                        </div>
+                                        {(() => {
+                                            const topRev = Object.entries(revenueDistribution).sort((a, b) => b[1] - a[1])[0];
+                                            return topRev ? (
+                                                <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>최다 매출</div>
+                                                    <div style={{ fontSize: 15, fontWeight: 800, color: T.green, lineHeight: 1.2 }}>{topRev[0]}</div>
+                                                    <div style={{ fontSize: 11, color: T.gray, marginTop: 4 }}>{topRev[1]}명</div>
+                                                </div>
+                                            ) : null;
+                                        })()}
                                     </div>
-
-                                    {/* 매출 요약 */}
-                                    {Object.keys(revenueDistribution).length > 0 && (() => {
-                                        const revReviews = activeReviews.filter(r => r.revenue_range);
-                                        const topRevenue = Object.entries(revenueDistribution).sort((a, b) => b[1] - a[1])[0];
-                                        return (
-                                            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                                                <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
-                                                    <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>매출 응답</div>
-                                                    <div style={{ fontSize: 16, fontWeight: 900, color: T.text }}>{revReviews.length}명</div>
-                                                </div>
-                                                <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
-                                                    <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>최다 매출대</div>
-                                                    <div style={{ fontSize: 14, fontWeight: 800, color: T.green }}>{topRevenue?.[0] || '-'}</div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
 
                                     {/* 항목별 평균 별점 */}
                                     {Object.keys(avgRatings).length > 0 && (
