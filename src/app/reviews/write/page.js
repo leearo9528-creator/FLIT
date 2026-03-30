@@ -53,26 +53,15 @@ const VISITOR_TYPES = [
     '관광객 / 외국인',
 ];
 
-/* ─── Progress Bar ───────────────────────────────────────────── */
-function ProgressBar({ count }) {
-    const MAX = 3;
-    const filled = Math.min(count, MAX);
-    const isDone = filled >= MAX;
-    const pct = Math.round((filled / MAX) * 100);
+/* ─── 열람권 안내 배너 ────────────────────────────────────────── */
+function ReviewBanner() {
     return (
-        <div style={{ background: isDone ? T.greenLt : T.blueLt, borderRadius: T.radiusLg, padding: '16px 18px', marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: isDone ? T.green : T.blue }}>
-                    {isDone ? '🎉 첫 달 무료 혜택 달성!' : `리뷰 ${filled}/${MAX} — ${MAX - filled}개 더 쓰면 첫 달 0원! 🎁`}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: isDone ? T.green : T.blue }}>{filled}/{MAX}</span>
+        <div style={{ background: T.blueLt, borderRadius: T.radiusLg, padding: '14px 18px', marginBottom: 20, border: `1px solid ${T.blue}30` }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.blue, marginBottom: 4 }}>
+                📝 리뷰 1개 작성 → 1주일간 전체 열람
             </div>
-            <div style={{ height: 8, background: isDone ? T.green + '33' : T.blue + '33', borderRadius: 99 }}>
-                <div style={{
-                    height: '100%', borderRadius: 99, width: `${pct}%`,
-                    background: isDone ? T.green : T.blue,
-                    transition: 'width 0.4s ease', minWidth: filled > 0 ? 24 : 0,
-                }} />
+            <div style={{ fontSize: 12, color: T.gray, lineHeight: 1.6 }}>
+                다른 셀러의 매출·평점·방문객 데이터를 확인할 수 있어요. 매주 월요일 자정에 리셋됩니다.
             </div>
         </div>
     );
@@ -339,7 +328,7 @@ export default function ReviewWritePage() {
             <TopBar title="행사 리뷰 작성" back />
 
             <div className="page-padding">
-                <ProgressBar count={reviewCount} />
+                <ReviewBanner />
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -545,7 +534,7 @@ export default function ReviewWritePage() {
                             cursor: isSubmitting ? 'default' : 'pointer', transition: 'opacity 0.15s',
                         }}
                     >
-                        {isSubmitting ? '처리 중...' : '리뷰 등록하고 무료 혜택 받기 🎁'}
+                        {isSubmitting ? '처리 중...' : '리뷰 등록하기'}
                     </div>
                 </div>
             </div>
