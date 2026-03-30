@@ -19,12 +19,15 @@ const btnOutline = { ...btnPrimary, background: T.white, color: T.text, border: 
 const cellStyle = { fontSize: 13, color: T.text, padding: '10px 8px', borderBottom: `1px solid ${T.border}`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 };
 const thStyle = { ...cellStyle, fontWeight: 700, fontSize: 11, color: T.gray, background: T.bg, position: 'sticky', top: 0 };
 
+/* ─── 관리자 비밀번호 ─── */
+const ADMIN_PASSWORD = 'flit2026!';
+
 /* ─── 탭 설정 ─── */
 const TABS = [
-    { key: 'pending', label: '승인 대기', icon: Clock },
     { key: 'events', label: '행사', icon: Calendar },
     { key: 'recruitments', label: '모집공고', icon: Megaphone },
     { key: 'organizers', label: '주최사', icon: Building2 },
+    { key: 'users', label: '회원', icon: Users },
     { key: 'upload', label: '엑셀 업로드', icon: Upload },
     { key: 'paste', label: '텍스트 입력', icon: FileText },
 ];
@@ -505,18 +508,43 @@ function TextPasteParser({ onComplete }) {
     );
 }
 
+/* ─── 비밀번호 게이트 ─── */
+function PasswordGate({ onPass }) {
+    const [pw, setPw] = useState('');
+    const [error, setError] = useState(false);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (pw === ADMIN_PASSWORD) { onPass(); }
+        else { setError(true); setPw(''); }
+    };
+    return (
+        <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <form onSubmit={handleSubmit} style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 32, width: 320, textAlign: 'center' }}>
+                <Shield size={32} color={T.blue} style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>관리자 인증</div>
+                <div style={{ fontSize: 13, color: T.gray, marginBottom: 20 }}>비밀번호를 입력하세요</div>
+                <input type="password" value={pw} onChange={e => { setPw(e.target.value); setError(false); }}
+                    placeholder="비밀번호" autoFocus
+                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, border: `1.5px solid ${error ? T.red : T.border}`, borderRadius: T.radiusMd, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }} />
+                {error && <div style={{ fontSize: 12, color: T.red, marginBottom: 8 }}>비밀번호가 틀렸습니다.</div>}
+                <button type="submit" style={{ width: '100%', padding: '12px 0', borderRadius: T.radiusMd, background: T.blue, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>확인</button>
+            </form>
+        </div>
+    );
+}
+
 /* ─── Admin Page ─── */
 export default function AdminPage() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingAdmin, setCheckingAdmin] = useState(true);
-    const [tab, setTab] = useState('pending');
-    const [pending, setPending] = useState([]);
+    const [pwPassed, setPwPassed] = useState(false);
+    const [tab, setTab] = useState('events');
     const [events, setEvents] = useState([]);
-    const [instances, setInstances] = useState([]);
     const [recruitments, setRecruitments] = useState([]);
     const [orgList, setOrgList] = useState([]);
+    const [userList, setUserList] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -538,36 +566,21 @@ export default function AdminPage() {
         setLoading(true);
         try {
             const sb = createClient();
-            const [pRes, eRes, iRes, rRes, oRes] = await Promise.all([
-                sb.from('profiles').select('id, name, email, plan, organizer_name, created_at').eq('plan', 'organizer_pending').order('created_at', { ascending: false }),
+            const [eRes, rRes, oRes, uRes] = await Promise.all([
                 sb.from('base_events').select('id, name, category, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('event_instances').select('id, location, location_sido, event_date, event_date_end, base_event:base_events(name), organizer:organizers(name)').order('event_date', { ascending: false }).limit(100),
                 sb.from('recruitments').select('id, title, status, fee, end_date, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
                 sb.from('organizers').select('id, name, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
+                sb.from('profiles').select('id, name, email, plan, seller_type, review_count, created_at').order('created_at', { ascending: false }).limit(100),
             ]);
-            setPending(pRes.data || []);
             setEvents(eRes.data || []);
-            setInstances(iRes.data || []);
             setRecruitments(rRes.data || []);
             setOrgList(oRes.data || []);
+            setUserList(uRes.data || []);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     }, [isAdmin]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
-
-    const handleApprove = async (id) => {
-        if (!confirm('주최사로 승인하시겠습니까?')) return;
-        const sb = createClient();
-        await sb.from('profiles').update({ plan: 'organizer' }).eq('id', id);
-        fetchAll();
-    };
-    const handleReject = async (id) => {
-        if (!confirm('주최사 신청을 거절하시겠습니까?')) return;
-        const sb = createClient();
-        await sb.from('profiles').update({ plan: 'free' }).eq('id', id);
-        fetchAll();
-    };
 
     const handleDelete = (table) => async (id) => {
         if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
@@ -583,11 +596,13 @@ export default function AdminPage() {
         }
     };
 
-    if (authLoading || checkingAdmin || !isAdmin) return (
+    if (authLoading || checkingAdmin) return (
         <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ color: T.gray, fontSize: 15 }}>로딩 중...</div>
         </div>
     );
+    if (!isAdmin) return null;
+    if (!pwPassed) return <PasswordGate onPass={() => setPwPassed(true)} />;
 
     const evtCols = [
         { key: 'name', label: '행사명' },
@@ -608,6 +623,13 @@ export default function AdminPage() {
         { key: 'status', label: '상태', render: r => r.status === 'OPEN' ? '모집중' : '마감' },
         { key: 'end_date', label: '마감일', render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
     ];
+    const userCols = [
+        { key: 'name', label: '이름' },
+        { key: 'email', label: '이메일' },
+        { key: 'plan', label: '역할', render: r => r.plan === 'organizer' ? '주최사' : '셀러' },
+        { key: 'review_count', label: '리뷰' },
+        { key: 'created_at', label: '가입일', render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
+    ];
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 40 }}>
@@ -615,10 +637,10 @@ export default function AdminPage() {
 
             {/* 통계 */}
             <div style={{ padding: '16px 16px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <StatCard label="승인 대기" count={pending.length} color={T.red} />
                 <StatCard label="행사" count={events.length} color={T.blue} />
                 <StatCard label="공고" count={recruitments.length} color={T.green} />
                 <StatCard label="주최사" count={orgList.length} color="#B45309" />
+                <StatCard label="회원" count={userList.length} color={T.text} />
             </div>
 
             {/* 탭 */}
@@ -634,9 +656,6 @@ export default function AdminPage() {
                             display: 'flex', alignItems: 'center', gap: 5,
                         }}>
                             <t.icon size={13}/> {t.label}
-                            {t.key === 'pending' && pending.length > 0 && (
-                                <span style={{ background: T.red, color: '#fff', fontSize: 10, fontWeight: 800, padding: '1px 5px', borderRadius: 8 }}>{pending.length}</span>
-                            )}
                         </button>
                     );
                 })}
@@ -646,19 +665,14 @@ export default function AdminPage() {
             <div style={{ padding: '12px 0 0' }}>
                 {loading ? (
                     <div style={{ padding: '0 16px' }}>{Array(3).fill(0).map((_, i) => <div key={i} style={{ height: 50, background: T.grayLt, borderRadius: T.radiusLg, marginBottom: 8, animation: 'pulse 1.5s infinite' }}/>)}</div>
-                ) : tab === 'pending' ? (
-                    <div style={{ padding: '0 16px' }}>
-                        {pending.length === 0
-                            ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>승인 대기 중인 사용자가 없어요.</div>
-                            : pending.map(p => <UserCard key={p.id} profile={p} onApprove={handleApprove} onReject={handleReject} />)
-                        }
-                    </div>
                 ) : tab === 'events' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={evtCols} rows={events} onDelete={handleDelete('base_events')} emptyMsg="등록된 행사가 없어요." /></div>
                 ) : tab === 'recruitments' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={recCols} rows={recruitments} onDelete={handleDelete('recruitments')} emptyMsg="등록된 공고가 없어요." /></div>
                 ) : tab === 'organizers' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." /></div>
+                ) : tab === 'users' ? (
+                    <div style={{ padding: '0 16px' }}><DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." /></div>
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
                 ) : tab === 'paste' ? (
