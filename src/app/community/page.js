@@ -10,7 +10,7 @@ import { SellerBadge, LocationTag } from '@/components/ui/SellerBadge';
 
 const PAGE_SIZE = 10;
 
-const CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보', '익명'];
+const CATEGORIES = ['익명', '전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보'];
 
 const SORT_OPTIONS = [
     { key: 'latest', label: '최신순' },
@@ -30,7 +30,7 @@ function PostCard({ post, onClick }) {
         }}>
             {/* 배지 */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                {post.category && (
+                {post.category && post.category !== '익명' && post.category !== '일반' && (
                     <span style={{
                         fontSize: 11, fontWeight: 700, color: T.blue,
                         background: T.blueLt, padding: '2px 8px', borderRadius: 4,
@@ -111,8 +111,7 @@ export default function CommunityPage() {
             .from('posts')
             .select('id, title, content, category, location, seller_type, likes, created_at, is_anonymous');
 
-        if (category === '익명') q = q.eq('is_anonymous', true);
-        else if (category !== '전체') q = q.eq('category', category);
+        if (category !== '전체') q = q.eq('category', category);
         if (sellerType !== '전체') q = q.eq('seller_type', sellerType === '일반셀러' ? 'seller' : 'foodtruck');
 
         q = q.order(sortBy === 'likes' ? 'likes' : 'created_at', { ascending: false })
