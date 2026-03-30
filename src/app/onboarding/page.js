@@ -49,7 +49,7 @@ export default function OnboardingPage() {
             const sb = createClient();
             const isOrganizer = selected === 'organizer';
             const update = isOrganizer
-                ? { plan: 'organizer' }
+                ? { plan: 'organizer_pending' }
                 : { seller_type: selected };
             const { error } = await sb.from('profiles').update(update).eq('id', user.id);
             if (error) throw error;

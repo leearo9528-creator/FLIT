@@ -171,6 +171,21 @@ export default function RecruitmentWritePage() {
     };
 
     /* 플랜 체크 */
+    if (plan === 'organizer_pending') {
+        return (
+            <div style={{ minHeight: '100vh', background: T.bg }}>
+                <TopBar title="공고 올리기" back />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 44, marginBottom: 12 }}>⏳</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 8 }}>승인 대기 중입니다</div>
+                    <div style={{ fontSize: 14, color: T.gray, lineHeight: 1.6 }}>
+                        주최사 신청이 접수되었어요.<br />관리자 승인 후 공고를 올릴 수 있어요.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (plan !== 'organizer') {
         return (
             <div style={{ minHeight: '100vh', background: T.bg }}>
@@ -178,7 +193,7 @@ export default function RecruitmentWritePage() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', textAlign: 'center' }}>
                     <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
                     <div style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 8 }}>주최사 전용 기능입니다</div>
-                    <div style={{ fontSize: 14, color: T.gray }}>organizer 플랜에서만 공고를 올릴 수 있어요</div>
+                    <div style={{ fontSize: 14, color: T.gray }}>주최사로 가입 후 이용할 수 있어요</div>
                 </div>
             </div>
         );
