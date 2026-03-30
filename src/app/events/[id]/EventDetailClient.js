@@ -180,7 +180,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
         { key: 'recruit', label: '모집공고', count: initialRecruitments.length },
         { key: 'history', label: '개최이력', count: instances.length },
     ];
-    const revenueOrder = ['100만원 이상', '50-100만원', '30-50만원', '10-30만원', '10만원 미만'];
+    const revenueOrder = ['0~20만','20~40만','40~60만','60~80만','80~100만','100~150만','150~200만','200만 이상','0~30만','30~70만','70~100만','200~300만','300~400만','400~500만','500만 이상'];
     const ratingFields = ['rating_profit', 'rating_traffic', 'rating_promotion', 'rating_support', 'rating_manners'];
 
     // 활성 탭 기준 통계
