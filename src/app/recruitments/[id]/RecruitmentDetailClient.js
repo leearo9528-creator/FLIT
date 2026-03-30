@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
+import ReviewCard from '@/components/ui/ReviewCard';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 function calcDDay(dateStr) {
@@ -49,83 +50,6 @@ function RatingBar({ icon, label, value, color }) {
             <span style={{ fontSize: 13, fontWeight: 800, color, width: 28, textAlign: 'right' }}>
                 {(value || 0).toFixed(1)}
             </span>
-        </div>
-    );
-}
-
-/* ─── Review Lock ───────────────────────────────────────────── */
-function ReviewLock({ isLoggedIn }) {
-    return (
-        <div style={{
-            background: T.white, borderRadius: T.radiusXl,
-            padding: 20, border: `1px solid ${T.border}`, textAlign: 'center',
-        }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 4 }}>
-                {isLoggedIn ? '리뷰를 작성하면 볼 수 있어요' : '로그인이 필요해요'}
-            </div>
-            <div style={{ fontSize: 12, color: T.gray, marginBottom: 14 }}>
-                {isLoggedIn ? '리뷰 1개 이상 작성하면 열람 가능합니다' : '로그인 후 리뷰를 작성하면 열람 가능합니다'}
-            </div>
-            <Link href={isLoggedIn ? '/reviews/write' : '/login'} style={{
-                display: 'inline-block', padding: '9px 20px',
-                background: T.blue, color: '#fff',
-                borderRadius: T.radiusFull, fontSize: 13, fontWeight: 700, textDecoration: 'none',
-            }}>
-                {isLoggedIn ? '리뷰 작성하기' : '로그인하기'}
-            </Link>
-        </div>
-    );
-}
-
-/* ─── Review Card ──────────────────────────────────────────── */
-function ReviewCard({ review, canView, isLoggedIn }) {
-    const scores = [review.rating_profit, review.rating_traffic, review.rating_support, review.rating_manners].filter(v => v != null);
-    const avgRating = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-
-    if (!canView) return <ReviewLock isLoggedIn={isLoggedIn} />;
-
-    return (
-        <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 16, border: `1px solid ${T.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ display: 'flex', gap: 2 }}>
-                    {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} size={13}
-                            fill={s <= Math.round(avgRating) ? '#FFB800' : T.border}
-                            color={s <= Math.round(avgRating) ? '#FFB800' : T.border} />
-                    ))}
-                </div>
-                {review.is_verified && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: T.green, background: T.greenLt, padding: '2px 7px', borderRadius: 4 }}>
-                        인증됨
-                    </span>
-                )}
-            </div>
-            {review.title && (
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 8 }}>{review.title}</div>
-            )}
-            <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.green, marginBottom: 4 }}>👍 장점</div>
-                <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.6 }}>{review.pros || '-'}</div>
-            </div>
-            <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.red, marginBottom: 4 }}>👎 단점</div>
-                <div style={{ fontSize: 13, color: T.textSub, lineHeight: 1.6 }}>{review.cons || '-'}</div>
-            </div>
-            <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {[
-                    { label: '수익성', value: review.rating_profit, color: T.green },
-                    { label: '집객력', value: review.rating_traffic, color: T.blue },
-                    { label: '운영지원', value: review.rating_support, color: T.yellow },
-                    { label: '매너', value: review.rating_manners, color: '#E91E63' },
-                ].map(({ label, value, color }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 11, color: T.gray }}>{label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 800, color }}>{(value || 0).toFixed(1)}</span>
-                    </div>
-                ))}
-                <span style={{ fontSize: 11, color: T.gray, marginLeft: 'auto' }}>{timeAgo(review.created_at)}</span>
-            </div>
         </div>
     );
 }
