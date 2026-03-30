@@ -10,6 +10,14 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
 
+const REVENUE_COLOR = {
+    '100만원 이상': { bg: '#DCFCE7', color: '#16A34A' },
+    '50-100만원': { bg: '#DCFCE7', color: '#16A34A' },
+    '30-50만원': { bg: '#DBEAFE', color: '#2563EB' },
+    '10-30만원': { bg: '#FEF3C7', color: '#D97706' },
+    '10만원 미만': { bg: '#FEE2E2', color: '#DC2626' },
+};
+
 /* ─── 개최 이력 카드 ────────────────────────────────────────── */
 function InstanceCard({ inst }) {
     const isPast = inst.event_date && new Date(inst.event_date) < new Date();

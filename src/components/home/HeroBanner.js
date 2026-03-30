@@ -25,6 +25,15 @@ const BANNERS = [
     },
     {
         id: 3,
+        gradient: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)',
+        tag: '📖 서비스 안내',
+        title: '플릿 처음이신가요?\n이용 가이드 확인하기',
+        sub: '행사 · 공고 · 리뷰 · 주최사 — 서비스 구조를 알려드려요',
+        cta: '가이드 보기',
+        href: '/notices',
+    },
+    {
+        id: 4,
         gradient: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
         tag: '🏢 행사 개최 문의',
         title: '행사 개최\n전문가에게 맡기세요',
