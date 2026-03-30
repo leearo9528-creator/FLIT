@@ -83,7 +83,7 @@ export default function MyPage() {
                 const isOrganizer = plan === 'organizer';
                 const [rv, ev, pt, profile, rc] = await Promise.all([
                     sb.from('reviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-                    sb.from('scraps').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+                    sb.from('scraps').select('user_id', { count: 'exact', head: true }).eq('user_id', user.id),
                     sb.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
                     sb.from('profiles').select('name').eq('id', user.id).maybeSingle(),
                     isOrganizer

@@ -99,7 +99,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
         (async () => {
             const sb = createClient();
             const { data } = await sb.from('scraps')
-                .select('id').eq('user_id', user.id).eq('recruitment_id', recruitment.id).maybeSingle();
+                .select('user_id').eq('user_id', user.id).eq('recruitment_id', recruitment.id).maybeSingle();
             setScrapped(!!data);
         })();
     }, [user, recruitment.id]);
