@@ -177,34 +177,48 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const handleScrap = async () => {
         if (!user) { router.push('/login'); return; }
         if (scrapLoading) return;
+        const prev = scrapped;
+        setScrapped(!prev);
         setScrapLoading(true);
-        const sb = createClient();
-        if (scrapped) {
-            await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recruitment.id);
-            setScrapped(false);
-        } else {
-            await sb.from('scraps').insert({ user_id: user.id, recruitment_id: recruitment.id });
-            setScrapped(true);
+        try {
+            const sb = createClient();
+            if (prev) {
+                const { error } = await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recruitment.id);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from('scraps').insert({ user_id: user.id, recruitment_id: recruitment.id });
+                if (error) throw error;
+            }
+        } catch (err) {
+            console.error('스크랩 처리 실패:', err);
+            setScrapped(prev);
+        } finally {
+            setScrapLoading(false);
         }
-        setScrapLoading(false);
     };
 
     useEffect(() => {
         if (activeTab !== 1 || !organizer.id || reviews.length > 0) return;
         setReviewsLoading(true);
         (async () => {
-            const sb = createClient();
-            // 해당 주최사의 모든 인스턴스 조회
-            const { data: instances } = await sb
-                .from('event_instances').select('id').eq('organizer_id', organizer.id);
-            const instanceIds = (instances || []).map(i => i.id);
-            if (instanceIds.length === 0) { setReviewsLoading(false); return; }
-            const { data } = await sb
-                .from('reviews').select('*, event_instance:event_instances(id, base_event:base_events(id, name))')
-                .in('event_instance_id', instanceIds)
-                .order('created_at', { ascending: false }).limit(30);
-            if (data) setReviews(data);
-            setReviewsLoading(false);
+            try {
+                const sb = createClient();
+                const { data: instances, error: instErr } = await sb
+                    .from('event_instances').select('id').eq('organizer_id', organizer.id);
+                if (instErr) throw instErr;
+                const instanceIds = (instances || []).map(i => i.id);
+                if (instanceIds.length === 0) { setReviewsLoading(false); return; }
+                const { data, error } = await sb
+                    .from('reviews').select('*, event_instance:event_instances(id, base_event:base_events(id, name))')
+                    .in('event_instance_id', instanceIds)
+                    .order('created_at', { ascending: false }).limit(30);
+                if (error) throw error;
+                if (data) setReviews(data);
+            } catch (err) {
+                console.error('주최사 리뷰 로드 실패:', err);
+            } finally {
+                setReviewsLoading(false);
+            }
         })();
     }, [activeTab, organizer.id]);
 

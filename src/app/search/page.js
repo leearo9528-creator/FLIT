@@ -328,7 +328,7 @@ function ReviewFeed({ query, sellerFilter, reviewSortBy }) {
         setLoading(false); setLoadingMore(false);
     }, [query, sellerFilter, reviewSortBy]);
 
-    useEffect(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter, reviewSortBy); }, [sellerFilter, reviewSortBy]);
+    useEffect(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter, reviewSortBy); }, [sellerFilter, reviewSortBy, fetchReviews]);
 
     useEffect(() => {
         const t = setTimeout(() => { setPage(0); setHasMore(true); fetchReviews(0, true, query, sellerFilter, reviewSortBy); }, 350);
@@ -505,17 +505,23 @@ function SearchContent() {
     useEffect(() => {
         (async () => {
             setLoadingRec(true);
-            const sb = createClient();
-            const { data } = await sb
-                .from('recruitments')
-                .select(`*, instance:event_instances(
-                    id, location, location_sido, event_date, event_date_end,
-                    base_event:base_events(id, name, category, avg_event_rating, total_reviews),
-                    organizer:organizers(name)
-                )`)
-                .order('created_at', { ascending: false });
-            if (data) setRecruitments(data);
-            setLoadingRec(false);
+            try {
+                const sb = createClient();
+                const { data, error } = await sb
+                    .from('recruitments')
+                    .select(`*, instance:event_instances(
+                        id, location, location_sido, event_date, event_date_end,
+                        base_event:base_events(id, name, category, avg_event_rating, total_reviews),
+                        organizer:organizers(name)
+                    )`)
+                    .order('created_at', { ascending: false });
+                if (error) throw error;
+                if (data) setRecruitments(data);
+            } catch (err) {
+                console.error('모집공고 로드 실패:', err);
+            } finally {
+                setLoadingRec(false);
+            }
         })();
     }, []);
 

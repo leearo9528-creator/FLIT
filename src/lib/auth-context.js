@@ -12,10 +12,15 @@ export function AuthProvider({ children }) {
     const [reviewCount, setReviewCount] = useState(0);
 
     const fetchPlan = async (uid) => {
-        const sb = createClient();
-        const { data } = await sb.from('profiles').select('plan, review_count').eq('id', uid).single();
-        setPlan(data?.plan ?? 'free');
-        setReviewCount(data?.review_count ?? 0);
+        try {
+            const sb = createClient();
+            const { data, error } = await sb.from('profiles').select('plan, review_count').eq('id', uid).single();
+            if (error) throw error;
+            setPlan(data?.plan ?? 'free');
+            setReviewCount(data?.review_count ?? 0);
+        } catch (err) {
+            console.error('프로필 로드 실패:', err);
+        }
     };
 
     useEffect(() => {

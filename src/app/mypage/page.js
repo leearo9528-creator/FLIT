@@ -32,13 +32,17 @@ export default function MyPage() {
     useEffect(() => {
         if (!user) return;
         (async () => {
-            const sb = createClient();
-            const [rv, ev, pt] = await Promise.all([
-                sb.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-                sb.from('scraps').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-                sb.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-            ]);
-            setCounts({ reviews: rv.count || 0, events: ev.count || 0, posts: pt.count || 0 });
+            try {
+                const sb = createClient();
+                const [rv, ev, pt] = await Promise.all([
+                    sb.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+                    sb.from('scraps').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+                    sb.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+                ]);
+                setCounts({ reviews: rv.count || 0, events: ev.count || 0, posts: pt.count || 0 });
+            } catch (err) {
+                console.error('마이페이지 통계 로드 실패:', err);
+            }
         })();
     }, [user]);
 

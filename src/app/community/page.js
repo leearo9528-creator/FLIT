@@ -132,7 +132,7 @@ export default function CommunityPage() {
         setPage(0);
         setHasMore(true);
         fetchPosts(0, true);
-    }, [category, sellerType, sortBy]);
+    }, [category, sellerType, sortBy, fetchPosts]);
 
     /* 무한 스크롤 */
     useEffect(() => {
