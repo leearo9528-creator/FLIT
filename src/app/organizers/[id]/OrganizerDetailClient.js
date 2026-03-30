@@ -144,7 +144,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
     const router = useRouter();
     const { user, plan, canViewReviews } = useAuth();
     const canView = !!(user && canViewReviews);
-    const [activeTab, setActiveTab] = useState('recruit');
+    const [activeTab, setActiveTab] = useState('reviews');
 
     const openRecruits   = initialRecruitments.filter(r => r.status === 'OPEN');
     const closedRecruits = initialRecruitments.filter(r => r.status !== 'OPEN');
@@ -162,9 +162,9 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
     const overallColor = overallAvg >= 4.0 ? T.green : overallAvg >= 3.0 ? T.blue : T.gray;
 
     const TABS = [
+        { key: 'reviews', label: '리뷰', count: initialReviews.length },
         { key: 'recruit', label: '모집공고', count: initialRecruitments.length },
-        { key: 'history', label: '행사 이력', count: instances.length },
-        { key: 'reviews', label: '셀러 리뷰', count: initialReviews.length },
+        { key: 'history', label: '개최이력', count: instances.length },
     ];
 
     return (

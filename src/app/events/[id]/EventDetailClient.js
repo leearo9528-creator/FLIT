@@ -10,11 +10,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
 
-const TABS = [
-    { key: 'reviews', label: '리뷰' },
-    { key: 'recruit', label: '모집공고' },
-    { key: 'history', label: '개최이력' },
-];
+// TABS는 컴포넌트 내에서 데이터 개수와 함께 정의
 
 /* ─── 매출 금액 칩 ──────────────────────────────────────────── */
 const REVENUE_COLOR = {
@@ -231,6 +227,12 @@ export default function EventDetailClient({ event, instances, initialReviews, in
 
     const openRecruits   = initialRecruitments.filter(r => r.status === 'OPEN');
     const closedRecruits = initialRecruitments.filter(r => r.status !== 'OPEN');
+
+    const TABS = [
+        { key: 'reviews', label: '리뷰', count: initialReviews.length },
+        { key: 'recruit', label: '모집공고', count: initialRecruitments.length },
+        { key: 'history', label: '개최이력', count: instances.length },
+    ];
     const revenueOrder = ['100만원 이상', '50-100만원', '30-50만원', '10-30만원', '10만원 미만'];
     const ratingFields = ['rating_profit', 'rating_traffic', 'rating_promotion', 'rating_support', 'rating_manners'];
 
@@ -357,29 +359,22 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                 borderBottom: `1px solid ${T.border}`,
                 display: 'flex',
             }}>
-                {TABS.map(tab => {
-                    const count = tab.key === 'recruit'
-                        ? initialRecruitments.length
-                        : tab.key === 'reviews'
-                            ? initialReviews.length
-                            : null;
-                    return (
-                        <div
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
-                            style={{
-                                flex: 1, textAlign: 'center', padding: '13px 0',
-                                fontSize: 13, fontWeight: activeTab === tab.key ? 800 : 500,
-                                color: activeTab === tab.key ? T.text : T.gray,
-                                cursor: 'pointer',
-                                borderBottom: activeTab === tab.key ? `2.5px solid ${T.text}` : '2.5px solid transparent',
-                                transition: 'all 0.2s',
-                            }}
-                        >
-                            {tab.label}{count !== null && count > 0 ? ` (${count})` : ''}
-                        </div>
-                    );
-                })}
+                {TABS.map(tab => (
+                    <div
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        style={{
+                            flex: 1, textAlign: 'center', padding: '13px 0',
+                            fontSize: 13, fontWeight: activeTab === tab.key ? 800 : 500,
+                            color: activeTab === tab.key ? T.text : T.gray,
+                            cursor: 'pointer',
+                            borderBottom: activeTab === tab.key ? `2.5px solid ${T.text}` : '2.5px solid transparent',
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
+                    </div>
+                ))}
             </div>
 
             {/* ── 탭 콘텐츠 ── */}
