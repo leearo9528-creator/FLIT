@@ -10,10 +10,11 @@ const TYPES = [
     {
         key: 'seller',
         emoji: '🛍️',
-        label: '플리마켓 셀러',
+        label: '일반 셀러',
         desc: '핸드메이드, 의류, 소품 등\n플리마켓에 참가하는 셀러',
         color: T.blue,
         bg: T.blueLt,
+        role: 'seller',
     },
     {
         key: 'foodtruck',
@@ -22,6 +23,16 @@ const TYPES = [
         desc: '음식, 음료 등을\n판매하는 푸드트럭 운영자',
         color: T.green,
         bg: T.greenLt,
+        role: 'seller',
+    },
+    {
+        key: 'organizer',
+        emoji: '🏢',
+        label: '주최사',
+        desc: '플리마켓·팝업마켓을 기획하고\n셀러를 모집하는 주최사',
+        color: '#B45309',
+        bg: '#FFFBEB',
+        role: 'organizer',
     },
 ];
 
@@ -36,7 +47,11 @@ export default function OnboardingPage() {
         setLoading(true);
         try {
             const sb = createClient();
-            const { error } = await sb.from('profiles').update({ seller_type: selected }).eq('id', user.id);
+            const isOrganizer = selected === 'organizer';
+            const update = isOrganizer
+                ? { plan: 'organizer' }
+                : { seller_type: selected };
+            const { error } = await sb.from('profiles').update(update).eq('id', user.id);
             if (error) throw error;
             await refreshPlan();
             router.replace('/');
@@ -60,10 +75,10 @@ export default function OnboardingPage() {
                         플릿 <span style={{ color: T.blue }}>●</span>
                     </div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 8 }}>
-                        어떤 셀러로 활동하시나요?
+                        어떤 역할로 활동하시나요?
                     </div>
                     <div style={{ fontSize: 14, color: T.gray, lineHeight: 1.6 }}>
-                        선택한 유형에 맞는 행사 정보와<br />리뷰를 추천해 드릴게요
+                        선택한 유형에 맞는 기능을<br />제공해 드릴게요
                     </div>
                 </div>
 
