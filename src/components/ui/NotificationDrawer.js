@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
@@ -75,7 +75,8 @@ function NotifItem({ notif, onRead }) {
                     WebkitBoxOrient: 'vertical', overflow: 'hidden',
                     fontWeight: notif.is_read ? 400 : 600,
                 }}>
-                    {notif.message}
+                    <span style={{ fontWeight: 700, color: T.text }}>{notif.title}</span>
+                    {notif.body && <span> — {notif.body}</span>}
                 </div>
                 <div style={{ fontSize: 12, color: T.gray, marginTop: 5 }}>
                     {timeAgo(notif.created_at)}
@@ -104,7 +105,9 @@ function GroupSection({ label, items, onRead }) {
 export default function NotificationDrawer({ open, onClose, userId }) {
     const [notifs, setNotifs] = useState([]);
     const [loading, setLoading] = useState(false);
+    const channelRef = useRef(null);
 
+    // 초기 데이터 로드
     useEffect(() => {
         if (!userId) return;
         setLoading(true);
@@ -120,6 +123,24 @@ export default function NotificationDrawer({ open, onClose, userId }) {
             if (data) setNotifs(data);
             setLoading(false);
         })();
+
+        // Realtime 구독 — 새 알림 실시간 수신
+        const sb = createClient();
+        channelRef.current = sb
+            .channel(`notifications:${userId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${userId}`,
+            }, (payload) => {
+                setNotifs(prev => [payload.new, ...prev]);
+            })
+            .subscribe();
+
+        return () => {
+            channelRef.current?.unsubscribe();
+        };
     }, [userId]);
 
     const handleRead = async (id) => {
