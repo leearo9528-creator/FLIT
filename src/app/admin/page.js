@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Shield, CheckCircle, XCircle, Users, Clock, ChevronDown, ChevronUp,
-    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2,
+    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -26,6 +26,7 @@ const TABS = [
     { key: 'recruitments', label: '모집공고', icon: Megaphone },
     { key: 'organizers', label: '주최사', icon: Building2 },
     { key: 'upload', label: '엑셀 업로드', icon: Upload },
+    { key: 'paste', label: '텍스트 입력', icon: FileText },
 ];
 
 /* ─── InfoItem ─── */
@@ -256,6 +257,242 @@ function ExcelUploader({ onComplete }) {
     );
 }
 
+/* ─── 텍스트 파서 ─── */
+const PARSE_KEYS = [
+    { pattern: /\[마켓[·・]행사[·・]샵인샵\]\s*명칭|마켓명|행사명/i, key: 'eventName', label: '행사명' },
+    { pattern: /주제|카테고리/i, key: 'category', label: '카테고리' },
+    { pattern: /주최[·・]주관|주최사/i, key: 'organizer', label: '주최사' },
+    { pattern: /개최.*장소|입점.*장소|장소/i, key: 'location', label: '장소' },
+    { pattern: /개최.*일정|입점.*일정|일정/i, key: 'schedule', label: '일정' },
+    { pattern: /모집기간/i, key: 'recruitPeriod', label: '모집기간' },
+    { pattern: /모집규모/i, key: 'scale', label: '모집규모' },
+    { pattern: /모집조건/i, key: 'conditions', label: '모집조건' },
+    { pattern: /참가.*비용|입점.*비용|참가비/i, key: 'fee', label: '참가비' },
+    { pattern: /환불규정|환불/i, key: 'refund', label: '환불규정' },
+    { pattern: /유동인구/i, key: 'traffic', label: '유동인구' },
+    { pattern: /주차지원|주차/i, key: 'parking', label: '주차지원' },
+    { pattern: /현장지원/i, key: 'support', label: '현장지원' },
+    { pattern: /신청방법|접수/i, key: 'applyMethod', label: '신청방법' },
+    { pattern: /담당자.*연락처|연락처/i, key: 'contact', label: '담당자 연락처' },
+    { pattern: /현장소개|현장.*사진/i, key: 'description', label: '현장소개' },
+];
+
+function parsePostText(raw) {
+    const lines = raw.split('\n');
+    const result = {};
+    let currentKey = null;
+    let buffer = [];
+
+    const flush = () => {
+        if (currentKey && buffer.length > 0) {
+            result[currentKey] = buffer.join('\n').replace(/^👉\s*/gm, '').trim();
+        }
+        buffer = [];
+    };
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        // ✅ 로 시작하는 라벨 감지
+        if (trimmed.startsWith('✅')) {
+            flush();
+            const matched = PARSE_KEYS.find(k => k.pattern.test(trimmed));
+            currentKey = matched ? matched.key : null;
+            // 같은 줄에 👉 값이 있으면 바로 처리
+            const arrow = trimmed.indexOf('👉');
+            if (arrow !== -1) {
+                buffer.push(trimmed.slice(arrow + 1).trim());
+            }
+        } else if (trimmed.startsWith('👉')) {
+            buffer.push(trimmed.replace(/^👉\s*/, ''));
+        } else if (currentKey) {
+            buffer.push(trimmed);
+        }
+    }
+    flush();
+    return result;
+}
+
+function TextPasteParser({ onComplete }) {
+    const [raw, setRaw] = useState('');
+    const [parsed, setParsed] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    const handleParse = () => {
+        if (!raw.trim()) return;
+        setParsed(parsePostText(raw));
+        setSaved(false);
+    };
+
+    const handleSave = async () => {
+        if (!parsed?.eventName) return alert('행사명을 파싱할 수 없습니다. 텍스트를 확인해주세요.');
+        setSaving(true);
+        try {
+            const sb = createClient();
+
+            // 1. 주최사
+            let organizerId = null;
+            if (parsed.organizer) {
+                // 괄호 안 사업자번호 제거, 이름만 추출
+                const orgName = parsed.organizer.replace(/\s*\(.*\)\s*/, '').trim();
+                const { data: existing } = await sb.from('organizers').select('id').eq('name', orgName).maybeSingle();
+                if (existing) {
+                    organizerId = existing.id;
+                } else {
+                    const { data: newOrg, error } = await sb.from('organizers').insert({ name: orgName }).select('id').single();
+                    if (error) throw new Error(`주최사 생성 실패: ${error.message}`);
+                    organizerId = newOrg.id;
+                }
+            }
+
+            // 2. 행사 (base_event)
+            const { data: existingEvt } = await sb.from('base_events').select('id').eq('name', parsed.eventName).maybeSingle();
+            let baseEventId;
+            if (existingEvt) {
+                baseEventId = existingEvt.id;
+            } else {
+                const cat = parsed.category || null;
+                const { data: newEvt, error } = await sb.from('base_events').insert({
+                    name: parsed.eventName,
+                    category: cat,
+                    description: parsed.description || null,
+                }).select('id').single();
+                if (error) throw new Error(`행사 생성 실패: ${error.message}`);
+                baseEventId = newEvt.id;
+            }
+
+            // 3. 행사 개최 (event_instance)
+            const locationSido = parsed.location ? parsed.location.split(/\s+/)[0] : null;
+            const { data: inst, error: instErr } = await sb.from('event_instances').insert({
+                base_event_id: baseEventId,
+                organizer_id: organizerId,
+                location: parsed.location || '장소 미정',
+                location_sido: locationSido,
+            }).select('id').single();
+            if (instErr) throw new Error(`행사 개최 생성 실패: ${instErr.message}`);
+
+            // 4. 모집공고
+            // 참가비 파싱: 숫자 추출 시도
+            let fee = null;
+            if (parsed.fee) {
+                const nums = parsed.fee.match(/(\d[\d,]*)\s*원/);
+                if (nums) fee = parseInt(nums[1].replace(/,/g, ''));
+            }
+
+            // 공고 내용 조합
+            const contentParts = [];
+            if (parsed.conditions) contentParts.push(`■ 모집조건\n${parsed.conditions}`);
+            if (parsed.scale) contentParts.push(`■ 모집규모\n${parsed.scale}`);
+            if (parsed.fee) contentParts.push(`■ 참가비\n${parsed.fee}`);
+            if (parsed.refund) contentParts.push(`■ 환불규정\n${parsed.refund}`);
+            if (parsed.support) contentParts.push(`■ 현장지원\n${parsed.support}`);
+            if (parsed.parking) contentParts.push(`■ 주차\n${parsed.parking}`);
+            if (parsed.traffic) contentParts.push(`■ 유동인구\n${parsed.traffic}`);
+            if (parsed.contact) contentParts.push(`■ 담당자 연락처\n${parsed.contact}`);
+            if (parsed.description) contentParts.push(`■ 현장소개\n${parsed.description}`);
+
+            const title = `${parsed.eventName} 셀러 모집`;
+            const content = contentParts.join('\n\n') || parsed.eventName;
+            const appMethod = parsed.applyMethod || parsed.contact || null;
+
+            const { error: recErr } = await sb.from('recruitments').insert({
+                event_instance_id: inst.id,
+                title,
+                content,
+                fee,
+                application_method: appMethod,
+                status: 'OPEN',
+            });
+            if (recErr) throw new Error(`공고 생성 실패: ${recErr.message}`);
+
+            setSaved(true);
+            onComplete?.();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleReset = () => { setRaw(''); setParsed(null); setSaved(false); };
+
+    return (
+        <div style={{ padding: '0 16px' }}>
+            {/* 입력 */}
+            <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>모집글 텍스트 붙여넣기</div>
+                <div style={{ fontSize: 12, color: T.gray, marginBottom: 16, lineHeight: 1.6 }}>
+                    문화상점, 셀러카페 등의 모집글을 그대로 복사해서 붙여넣으세요.<br/>
+                    ✅ 키워드를 자동으로 인식해서 데이터를 추출합니다.
+                </div>
+                <textarea
+                    value={raw}
+                    onChange={e => { setRaw(e.target.value); setParsed(null); setSaved(false); }}
+                    placeholder={"✅[마켓·행사·샵인샵] 명칭\n👉 서울밤도깨비야시장\n\n✅주최·주관\n👉 서울플리마켓협회\n\n... 전체 텍스트를 붙여넣으세요"}
+                    rows={10}
+                    style={{
+                        width: '100%', padding: 14, fontSize: 13, color: T.text,
+                        border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd,
+                        outline: 'none', background: T.bg, resize: 'vertical',
+                        lineHeight: 1.7, fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button onClick={handleParse} disabled={!raw.trim()} style={{ ...btnPrimary, opacity: raw.trim() ? 1 : 0.5 }}>파싱하기</button>
+                    <button onClick={handleReset} style={btnOutline}>초기화</button>
+                </div>
+            </div>
+
+            {/* 미리보기 */}
+            {parsed && (
+                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>파싱 결과 미리보기</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {PARSE_KEYS.map(k => {
+                            const val = parsed[k.key];
+                            if (!val) return null;
+                            return (
+                                <div key={k.key} style={{ display: 'flex', gap: 10, borderBottom: `1px solid ${T.border}`, paddingBottom: 8 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, width: 90, flexShrink: 0 }}>{k.label}</span>
+                                    <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6, whiteSpace: 'pre-line', flex: 1 }}>{val}</span>
+                                </div>
+                            );
+                        })}
+                        {Object.keys(parsed).length === 0 && (
+                            <div style={{ color: T.red, fontSize: 13 }}>파싱된 데이터가 없습니다. ✅ 키워드가 포함된 텍스트인지 확인해주세요.</div>
+                        )}
+                    </div>
+
+                    {parsed.eventName && (
+                        <div style={{ marginTop: 16, padding: 14, background: T.blueLt, borderRadius: T.radiusMd }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.blue, marginBottom: 8 }}>저장될 데이터</div>
+                            <div style={{ fontSize: 12, color: T.text, lineHeight: 1.8 }}>
+                                <b>주최사:</b> {parsed.organizer?.replace(/\s*\(.*\)\s*/, '').trim() || '(없음)'}<br/>
+                                <b>행사:</b> {parsed.eventName}<br/>
+                                <b>장소:</b> {parsed.location || '미정'}<br/>
+                                <b>모집공고:</b> {parsed.eventName} 셀러 모집
+                            </div>
+                        </div>
+                    )}
+
+                    {!saved ? (
+                        <button onClick={handleSave} disabled={saving || !parsed.eventName}
+                            style={{ ...btnPrimary, marginTop: 14, width: '100%', padding: '14px 0', fontSize: 15, opacity: parsed.eventName ? 1 : 0.5 }}>
+                            {saving ? '저장 중...' : 'DB에 저장하기'}
+                        </button>
+                    ) : (
+                        <div style={{ marginTop: 14, textAlign: 'center', padding: 14, background: T.greenLt, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.green }}>
+                            ✅ 저장 완료! (주최사 + 행사 + 개최 + 공고)
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* ─── Admin Page ─── */
 export default function AdminPage() {
     const router = useRouter();
@@ -406,6 +643,8 @@ export default function AdminPage() {
                     <div style={{ padding: '0 16px' }}><DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." /></div>
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
+                ) : tab === 'paste' ? (
+                    <TextPasteParser onComplete={fetchAll} />
                 ) : null}
             </div>
         </div>
