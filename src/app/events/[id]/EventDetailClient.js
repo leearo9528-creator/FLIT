@@ -412,6 +412,24 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                         </div>
                                     </div>
 
+                                    {/* 매출 요약 */}
+                                    {Object.keys(revenueDistribution).length > 0 && (() => {
+                                        const revReviews = activeReviews.filter(r => r.revenue_range);
+                                        const topRevenue = Object.entries(revenueDistribution).sort((a, b) => b[1] - a[1])[0];
+                                        return (
+                                            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                                                <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>매출 응답</div>
+                                                    <div style={{ fontSize: 16, fontWeight: 900, color: T.text }}>{revReviews.length}명</div>
+                                                </div>
+                                                <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>최다 매출대</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: T.green }}>{topRevenue?.[0] || '-'}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* 항목별 평균 별점 */}
                                     {Object.keys(avgRatings).length > 0 && (
                                         <>
