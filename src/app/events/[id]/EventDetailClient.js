@@ -268,6 +268,13 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                 </div>
             </div>
 
+            {/* ── 대표 사진 ── */}
+            {event.image_url && (
+                <div style={{ position: 'relative', width: '100%', height: 200 }}>
+                    <Image src={event.image_url} alt={event.name} fill style={{ objectFit: 'cover' }} sizes="100vw" />
+                </div>
+            )}
+
             {/* ── 탭 바 ── */}
             <div style={{
                 position: 'sticky', top: 0, zIndex: 99,

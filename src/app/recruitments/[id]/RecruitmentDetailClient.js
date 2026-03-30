@@ -161,6 +161,19 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 )}
             </InfoSection>
 
+            {/* 사진 */}
+            {recruitment.images?.length > 0 && (
+                <InfoSection emoji="📷" title="사진">
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+                        {recruitment.images.map((url, i) => (
+                            <div key={i} style={{ position: 'relative', width: 160, height: 120, borderRadius: T.radiusMd, overflow: 'hidden', flexShrink: 0 }}>
+                                <Image src={url} alt={`사진 ${i + 1}`} fill style={{ objectFit: 'cover' }} sizes="160px" />
+                            </div>
+                        ))}
+                    </div>
+                </InfoSection>
+            )}
+
             {/* 주최사 정보 */}
             {organizer.id && (
                 <InfoSection emoji="🏢" title="주최사">
