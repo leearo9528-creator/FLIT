@@ -119,13 +119,24 @@ export default function ProfilePage() {
             // profiles 업데이트 (새 컬럼이 없으면 기본 필드만 저장)
             const { error: profileErr } = await sb.from('profiles').update(profileUpdate).eq('id', user.id);
             if (profileErr) {
-                // 새 컬럼이 없는 경우 기본 필드만 재시도
                 console.warn('전체 업데이트 실패, 기본 필드만 저장:', profileErr.message);
-                const fallback = { name: name.trim(), organizer_name: isOrganizer ? orgName.trim() : null };
+                const fallback = { name: name.trim(), organizer_name: orgName.trim() || null };
                 if (profileUpdate.plan) fallback.plan = profileUpdate.plan;
                 if (profileUpdate.seller_type !== undefined) fallback.seller_type = profileUpdate.seller_type;
                 const { error: fallbackErr } = await sb.from('profiles').update(fallback).eq('id', user.id);
                 if (fallbackErr) throw fallbackErr;
+            }
+
+            // 주최사 선택 시 organizers 테이블 동기화
+            if (isOrganizer) {
+                await sb.from('organizers').upsert({
+                    id: user.id,
+                    name: orgName.trim() || name.trim(),
+                    description: orgDesc.trim() || null,
+                    phone: phone.trim() || null,
+                    promo_link: promoLink.trim() || null,
+                    contact_name: realName.trim() || null,
+                }, { onConflict: 'id' });
             }
 
             await refreshPlan();

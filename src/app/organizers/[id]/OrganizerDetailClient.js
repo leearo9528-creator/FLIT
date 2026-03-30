@@ -211,8 +211,30 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
 
                     {/* 설명 */}
                     {organizer.description && (
-                        <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.65, marginBottom: 16 }}>
+                        <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.65, marginBottom: 12 }}>
                             {organizer.description}
+                        </div>
+                    )}
+
+                    {/* 연락처 / 홍보링크 */}
+                    {(organizer.contact_name || organizer.phone || organizer.promo_link) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                            {organizer.contact_name && (
+                                <span style={{ fontSize: 12, color: T.gray, background: T.bg, padding: '4px 10px', borderRadius: 20 }}>
+                                    👤 {organizer.contact_name}
+                                </span>
+                            )}
+                            {organizer.phone && (
+                                <a href={`tel:${organizer.phone}`} style={{ fontSize: 12, color: T.blue, background: T.blueLt, padding: '4px 10px', borderRadius: 20, textDecoration: 'none' }}>
+                                    📞 {organizer.phone}
+                                </a>
+                            )}
+                            {organizer.promo_link && (
+                                <a href={organizer.promo_link.startsWith('http') ? organizer.promo_link : `https://${organizer.promo_link}`} target="_blank" rel="noopener noreferrer"
+                                    style={{ fontSize: 12, color: T.blue, background: T.blueLt, padding: '4px 10px', borderRadius: 20, textDecoration: 'none' }}>
+                                    🔗 홍보 링크
+                                </a>
+                            )}
                         </div>
                     )}
 

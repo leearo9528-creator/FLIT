@@ -20,7 +20,7 @@ export default async function OrganizerPage({ params }) {
     // 주최사 기본 정보
     const { data: organizer } = await supabase
         .from('organizers')
-        .select('id, name, description, logo_url, total_instances, total_reviews')
+        .select('id, name, description, logo_url, total_instances, total_reviews, phone, promo_link, contact_name')
         .eq('id', id)
         .single();
     if (!organizer) return notFound();
