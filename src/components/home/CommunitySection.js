@@ -21,16 +21,20 @@ function PostItem({ post }) {
                     </div>
                     <span style={{ fontSize: 11, color: T.gray }}>{timeAgo(post.created_at)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <div style={{
-                        fontSize: 15, fontWeight: 800, color: T.text, lineHeight: 1.4,
-                        display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                        flex: 1,
-                    }}>
-                        {post.title}
-                    </div>
-                    <span style={{ fontSize: 16, color: T.gray, flexShrink: 0 }}>›</span>
+                <div style={{
+                    fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.4, marginBottom: 4,
+                    display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
+                    {post.title}
                 </div>
+                {post.content && (
+                    <div style={{
+                        fontSize: 13, color: T.textSub, lineHeight: 1.5,
+                        display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                        {post.content}
+                    </div>
+                )}
             </div>
         </Link>
     );

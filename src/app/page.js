@@ -34,7 +34,7 @@ export default async function HomePage() {
             .order('created_at', { ascending: false })
             .limit(5),
         sb.from('posts')
-            .select('id, title, category, likes, created_at')
+            .select('id, title, content, category, likes, created_at')
             .order('likes', { ascending: false })
             .limit(5),
     ]);

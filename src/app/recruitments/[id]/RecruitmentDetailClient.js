@@ -160,13 +160,13 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     { icon: <Banknote size={15} color={T.yellow} />, label: '참가비', value: !recruitment.fee ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`, valueColor: T.blue },
                 ].map((row, i, arr) => (
                     <div key={row.label} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        display: 'flex', alignItems: 'flex-start', gap: 12,
                         paddingBottom: i < arr.length - 1 ? 12 : 0,
                         marginBottom: i < arr.length - 1 ? 12 : 0,
                         borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.gray, fontSize: 14 }}>{row.icon}{row.label}</div>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: row.valueColor || T.text }}>{row.value}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: T.gray, fontSize: 13, width: 80, flexShrink: 0, paddingTop: 1 }}>{row.icon}{row.label}</div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: row.valueColor || T.text, flex: 1, lineHeight: 1.5, wordBreak: 'keep-all' }}>{row.value}</span>
                     </div>
                 ))}
             </InfoSection>
