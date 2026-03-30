@@ -10,6 +10,13 @@ import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
 import { SellerBadge } from '@/components/ui/SellerBadge';
 
+/* ─── Random anon name ──────────────────────────────────────── */
+const ANON_ADJ = ['바쁜', '열정적인', '능숙한', '씩씩한', '수줍은', '활발한'];
+const ANON_NOUN = ['타코야키 셀러', '액세서리 장인', '푸드트럭 요리사', '핸드메이드 작가', '빈티지 큐레이터', '향수 제조자'];
+function randomAnonName() {
+    return `${ANON_ADJ[Math.floor(Math.random() * ANON_ADJ.length)]} ${ANON_NOUN[Math.floor(Math.random() * ANON_NOUN.length)]}`;
+}
+
 /* ─── Avatar ────────────────────────────────────────────────── */
 function Avatar({ name, size = 36 }) {
     const initial = (name || '?')[0].toUpperCase();
@@ -117,15 +124,14 @@ export default function PostDetailPage() {
         if (!commentText.trim() || !user) return;
         setIsSubmittingComment(true);
         const sb = createClient();
-        const isAnon = post?.is_anonymous ?? false;
-        const displayName = isAnon
-            ? (post?.anonymous_name || '익명')
-            : (user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러');
+        const isAnon = post?.category === '익명' || post?.is_anonymous === true;
+        const myAnonName = randomAnonName();
+        const myRealName = user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러';
         const { data, error } = await sb.from('post_comments').insert({
             post_id: id,
             user_id: user.id,
-            author: isAnon ? null : displayName,
-            anonymous_name: isAnon ? displayName : null,
+            author: isAnon ? null : myRealName,
+            anonymous_name: isAnon ? myAnonName : null,
             content: commentText.trim(),
             is_anonymous: isAnon,
         }).select().single();
@@ -157,7 +163,8 @@ export default function PostDetailPage() {
     const handleEditPostSave = async () => {
         if (!editPostTitle.trim()) return;
         const sb = createClient();
-        await sb.from('posts').update({ title: editPostTitle.trim(), content: editPostContent.trim() }).eq('id', id);
+        const { error } = await sb.from('posts').update({ title: editPostTitle.trim(), content: editPostContent.trim() }).eq('id', id);
+        if (error) { console.error('글 수정 실패:', error); alert('수정 중 오류가 발생했어요.'); return; }
         setPost(prev => ({ ...prev, title: editPostTitle.trim(), content: editPostContent.trim() }));
         setIsEditingPost(false);
     };
@@ -166,7 +173,8 @@ export default function PostDetailPage() {
     const handleDelete = async () => {
         if (!window.confirm('게시글을 삭제할까요?')) return;
         const sb = createClient();
-        await sb.from('posts').delete().eq('id', id);
+        const { error } = await sb.from('posts').delete().eq('id', id);
+        if (error) { console.error('글 삭제 실패:', error); alert('삭제 중 오류가 발생했어요.'); return; }
         router.replace('/community');
     };
 
@@ -268,12 +276,12 @@ export default function PostDetailPage() {
 
                         {/* 배지 */}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                            {post.category && (
+                            {post.category && post.category !== '익명' && post.category !== '일반' && (
                                 <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 4 }}>
                                     {post.category}
                                 </span>
                             )}
-                            {post.seller_type && <SellerBadge type={post.seller_type} />}
+                            {post.seller_type && !post.is_anonymous && <SellerBadge type={post.seller_type} />}
                             {post.is_anonymous && (
                                 <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 4 }}>
                                     익명

@@ -33,12 +33,14 @@ export default function CommunityWritePage() {
         (async () => {
             const sb = createClient();
             const { data: { session } } = await sb.auth.getSession();
-            if (session?.user) {
-                const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러';
-                setUserNickname(name);
+            if (!session?.user) {
+                router.replace('/login');
+                return;
             }
+            const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러';
+            setUserNickname(name);
         })();
-    }, []);
+    }, [router]);
 
     const handleSubmit = async () => {
         if (!title.trim()) return alert('제목을 입력해주세요.');
