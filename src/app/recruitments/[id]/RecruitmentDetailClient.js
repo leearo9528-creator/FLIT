@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import Link from 'next/link';
 import {
     ArrowLeft, Bookmark, MapPin, Calendar, Banknote,
@@ -141,6 +142,9 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const [reviewsLoading, setReviewsLoading] = useState(false);
     const [scrapped, setScrapped] = useState(false);
     const [scrapLoading, setScrapLoading] = useState(false);
+    const [bumpLoading, setBumpLoading] = useState(false);
+
+    const isOwnOrganizer = plan === 'organizer' && organizer.id === user?.id;
 
     const instance = recruitment.instance || {};
     const baseEvent = instance.base_event || {};
@@ -194,6 +198,31 @@ export default function RecruitmentDetailClient({ recruitment }) {
             setScrapped(prev);
         } finally {
             setScrapLoading(false);
+        }
+    };
+
+    const handleBump = async () => {
+        if (bumpLoading) return;
+        setBumpLoading(true);
+        try {
+            const orderId = `BUMP_${recruitment.id}_${Date.now()}`;
+            const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+            const tossPayments = await loadTossPayments(clientKey);
+            const payment = tossPayments.payment({ customerKey: user.id });
+            await payment.requestPayment({
+                method: 'CARD',
+                amount: { currency: 'KRW', value: 10000 },
+                orderId,
+                orderName: '공고 끌올 1건',
+                successUrl: `${window.location.origin}/recruitments/write/success`,
+                failUrl: `${window.location.origin}/recruitments/${recruitment.id}`,
+                customerEmail: user.email || undefined,
+                customerName: user.user_metadata?.full_name || user.user_metadata?.name || '주최사',
+            });
+        } catch (err) {
+            console.error('끌올 결제 오류:', err);
+            alert('결제 중 오류가 발생했습니다.');
+            setBumpLoading(false);
         }
     };
 
@@ -446,22 +475,39 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         <ArrowLeft size={18} color="#fff" />
                     </button>
 
-                    <button
-                        onClick={handleScrap}
-                        style={{
-                            background: scrapped ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
-                            border: 'none', borderRadius: T.radiusFull,
-                            width: 36, height: 36,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        <Bookmark
-                            size={18}
-                            fill={scrapped ? T.blue : 'none'}
-                            color={scrapped ? T.blue : '#fff'}
-                        />
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {isOwnOrganizer && (
+                            <button
+                                onClick={handleBump}
+                                disabled={bumpLoading}
+                                style={{
+                                    background: 'rgba(255,255,255,0.15)', border: 'none',
+                                    borderRadius: T.radiusFull, padding: '0 14px', height: 36,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    cursor: bumpLoading ? 'default' : 'pointer',
+                                    fontSize: 12, fontWeight: 700, color: '#fff',
+                                }}
+                            >
+                                {bumpLoading ? '...' : '📢 끌올 (1만원)'}
+                            </button>
+                        )}
+                        <button
+                            onClick={handleScrap}
+                            style={{
+                                background: scrapped ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
+                                border: 'none', borderRadius: T.radiusFull,
+                                width: 36, height: 36,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <Bookmark
+                                size={18}
+                                fill={scrapped ? T.blue : 'none'}
+                                color={scrapped ? T.blue : '#fff'}
+                            />
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
