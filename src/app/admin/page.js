@@ -10,7 +10,7 @@ import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
-import * as XLSX from 'xlsx';
+// XLSX는 사용 시점에 dynamic import
 
 /* ─── 공통 스타일 ─── */
 const btnPrimary = { padding: '8px 16px', borderRadius: T.radiusMd, background: T.blue, color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' };
@@ -121,6 +121,7 @@ function ExcelUploader({ onComplete }) {
         setUploading(true); setLog([]); setStatus('파싱 중...');
 
         try {
+            const XLSX = await import('xlsx');
             const data = await file.arrayBuffer();
             const wb = XLSX.read(data);
             const sb = createClient();

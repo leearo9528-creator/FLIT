@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+// loadTossPayments는 사용 시점에 dynamic import
 import Link from 'next/link';
 import {
     ArrowLeft, Bookmark, MapPin, Calendar, Banknote,
@@ -131,6 +131,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
         try {
             const orderId = `BUMP_${recruitment.id}_${Date.now()}`;
             const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+            const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
             const tossPayments = await loadTossPayments(clientKey);
             const payment = tossPayments.payment({ customerKey: user.id });
             await payment.requestPayment({

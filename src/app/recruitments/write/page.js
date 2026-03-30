@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+// loadTossPayments는 사용 시점에 dynamic import
 import { useRouter } from 'next/navigation';
 import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
@@ -178,6 +178,7 @@ export default function RecruitmentWritePage() {
             }));
 
             const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+            const { loadTossPayments } = await import('@tosspayments/tosspayments-sdk');
             const tossPayments = await loadTossPayments(clientKey);
             const payment = tossPayments.payment({ customerKey: user.id });
             await payment.requestPayment({
