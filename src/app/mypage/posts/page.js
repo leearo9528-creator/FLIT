@@ -22,11 +22,12 @@ export default function MyPostsPage() {
 
     async function fetchPosts() {
         const sb = createClient();
-        const { data } = await sb
+        const { data, error } = await sb
             .from('posts')
             .select('id, title, content, category, likes, created_at, is_anonymous')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
+        if (error) console.error('내 게시글 로드 실패:', error);
         if (data) setPosts(data);
         setFetching(false);
     }

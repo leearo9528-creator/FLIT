@@ -34,10 +34,16 @@ export default function OnboardingPage() {
     const handleConfirm = async () => {
         if (!selected || !user) return;
         setLoading(true);
-        const sb = createClient();
-        await sb.from('profiles').update({ seller_type: selected }).eq('id', user.id);
-        await refreshPlan();
-        router.replace('/');
+        try {
+            const sb = createClient();
+            const { error } = await sb.from('profiles').update({ seller_type: selected }).eq('id', user.id);
+            if (error) throw error;
+            await refreshPlan();
+            router.replace('/');
+        } catch (err) {
+            console.error('온보딩 저장 실패:', err);
+            setLoading(false);
+        }
     };
 
     return (

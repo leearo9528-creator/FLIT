@@ -21,7 +21,7 @@ export default function MyEventsPage() {
 
     async function fetchScraps() {
         const sb = createClient();
-        const { data } = await sb
+        const { data, error } = await sb
             .from('scraps')
             .select(`
                 created_at,
@@ -35,6 +35,7 @@ export default function MyEventsPage() {
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
+        if (error) console.error('관심 행사 로드 실패:', error);
         if (data) setScraps(data.filter(s => s.recruitment));
         setFetching(false);
     }

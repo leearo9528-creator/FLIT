@@ -51,7 +51,7 @@ export default function MyReviewsPage() {
 
     async function fetchReviews() {
         const sb = createClient();
-        const { data } = await sb
+        const { data, error } = await sb
             .from('reviews')
             .select(`
                 id, seller_type, is_verified, created_at,
@@ -65,6 +65,7 @@ export default function MyReviewsPage() {
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
+        if (error) console.error('내 리뷰 로드 실패:', error);
         if (data) setReviews(data);
         setFetching(false);
     }

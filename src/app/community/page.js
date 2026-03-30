@@ -126,7 +126,8 @@ export default function CommunityPage() {
         q = q.order(sortBy === 'likes' ? 'likes' : 'created_at', { ascending: false })
              .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
 
-        const { data } = await q;
+        const { data, error } = await q;
+        if (error) console.error('커뮤니티 글 로드 실패:', error);
         const fetched = data || [];
 
         setPosts(prev => reset ? fetched : [...prev, ...fetched]);

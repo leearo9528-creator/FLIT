@@ -110,12 +110,13 @@ export default function NotificationDrawer({ open, onClose, userId }) {
         setLoading(true);
         (async () => {
             const sb = createClient();
-            const { data } = await sb
+            const { data, error } = await sb
                 .from('notifications')
                 .select('id, user_id, type, title, body, link, is_read, created_at')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(50);
+            if (error) console.error('알림 로드 실패:', error);
             if (data) setNotifs(data);
             setLoading(false);
         })();
