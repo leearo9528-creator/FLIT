@@ -107,7 +107,7 @@ export default function ProfilePage() {
             // 역할 변경 처리 (승인 없이 즉시 전환)
             if (isOrganizer && currentPlan !== 'organizer') {
                 profileUpdate.plan = 'organizer';
-            } else if (!isOrganizer && currentPlan === 'organizer') {
+            } else if (!isOrganizer && (currentPlan === 'organizer' || currentPlan === 'organizer_pending')) {
                 profileUpdate.plan = 'free';
                 profileUpdate.seller_type = 'seller';
             }
