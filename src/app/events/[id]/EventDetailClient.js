@@ -11,8 +11,9 @@ import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
 
 const TABS = [
-    { key: 'recruit', label: '모집공고' },
     { key: 'reviews', label: '리뷰' },
+    { key: 'recruit', label: '모집공고' },
+    { key: 'history', label: '개최이력' },
 ];
 
 /* ─── 매출 금액 칩 ──────────────────────────────────────────── */
@@ -347,23 +348,6 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                     </div>
                 )}
 
-                {/* 모집 중 배지 */}
-                {openRecruits.length > 0 && (
-                    <div style={{ padding: '12px 20px 16px' }}>
-                        <div
-                            onClick={() => setActiveTab('recruit')}
-                            style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                background: T.greenLt, borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 13, fontWeight: 700, color: T.green }}>
-                                🟢 지금 모집 중 ({openRecruits.length}개 공고)
-                            </span>
-                            <span style={{ fontSize: 12, color: T.green, fontWeight: 700 }}>공고 보기 →</span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* ── 탭 바 ── */}
@@ -653,6 +637,49 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                             </div>
                         </Link>
                     </>
+                )}
+
+                {/* ── 개최이력 탭 ── */}
+                {activeTab === 'history' && (
+                    instances.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>개최 이력이 없어요.</div>
+                    ) : (
+                        instances.map((inst, i) => {
+                            const org = inst.organizer || {};
+                            return (
+                                <div key={inst.id} style={{
+                                    background: T.white, borderRadius: 14,
+                                    border: `1px solid ${T.border}`, padding: 16,
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                                        <div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                                                {inst.event_date && new Date(inst.event_date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                {inst.event_date_end && inst.event_date_end !== inst.event_date && (
+                                                    <> ~ {new Date(inst.event_date_end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}</>
+                                                )}
+                                            </div>
+                                            {inst.location && (
+                                                <div style={{ fontSize: 12, color: T.gray, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <MapPin size={12} /> {inst.location}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {inst.review_count > 0 && (
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 6 }}>
+                                                리뷰 {inst.review_count}개
+                                            </span>
+                                        )}
+                                    </div>
+                                    {org.name && (
+                                        <Link href={`/organizers/${org.id}`} style={{ textDecoration: 'none' }}>
+                                            <div style={{ fontSize: 12, color: T.blue, fontWeight: 600 }}>🏢 {org.name} →</div>
+                                        </Link>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )
                 )}
             </div>
         </div>

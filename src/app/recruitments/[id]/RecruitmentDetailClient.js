@@ -197,22 +197,23 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const renderDetail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* 행사 정보 확인하기 */}
+            {/* 행사 상세 리뷰 확인하기 */}
             {baseEvent.id && (
                 <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{
+                        background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark || '#1B64DA'})`,
+                        borderRadius: T.radiusXl, padding: '18px 20px',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        background: T.blueLt, borderRadius: T.radiusXl,
-                        padding: '14px 18px', border: `1px solid ${T.blue}20`,
                     }}>
                         <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, marginBottom: 3 }}>행사 정보 확인하기</div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{baseEvent.name}</div>
-                            {baseEvent.total_reviews > 0 && (
-                                <div style={{ fontSize: 12, color: T.gray, marginTop: 3 }}>리뷰 {baseEvent.total_reviews}개 보기</div>
-                            )}
+                            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+                                {baseEvent.name}
+                            </div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
+                                행사 상세 리뷰 확인하기 {baseEvent.total_reviews > 0 ? `(${baseEvent.total_reviews}개)` : ''} →
+                            </div>
                         </div>
-                        <ExternalLink size={18} color={T.blue} />
+                        <div style={{ fontSize: 32, opacity: 0.3 }}>⭐</div>
                     </div>
                 </Link>
             )}
