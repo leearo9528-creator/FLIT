@@ -10,12 +10,10 @@ import { timeAgo } from '@/lib/helpers';
 export function ReviewLock({ isLoggedIn }) {
     return (
         <div style={{
-            background: 'rgba(248,249,250,0.92)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(248,249,250,0.92)', backdropFilter: 'blur(6px)',
             borderRadius: 10, padding: '16px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            border: `1px solid ${T.border}`,
-            marginTop: 8,
+            border: `1px solid ${T.border}`, marginTop: 8,
         }}>
             <Lock size={20} color={T.gray} />
             <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
@@ -37,6 +35,9 @@ export function ReviewLock({ isLoggedIn }) {
     );
 }
 
+const INFO_LABEL = { fontSize: 12, fontWeight: 700, color: T.gray, width: 56, flexShrink: 0 };
+const INFO_VALUE = { fontSize: 13, fontWeight: 600, color: T.text };
+
 /* ─── 리뷰 카드 ─── */
 export default function ReviewCard({ review, canView, isLoggedIn, showEventLink, showOrgInfo }) {
     const [expanded, setExpanded] = useState(false);
@@ -47,13 +48,14 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
 
     const allScores = [review.rating_profit, review.rating_traffic, review.rating_promotion, review.rating_support, review.rating_manners].filter(v => v != null);
     const overall   = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
-    const scoreLabel = overall >= 4.5 ? '최고예요' : overall >= 3.5 ? '좋아요' : overall >= 2.5 ? '보통이에요' : '아쉬워요';
     const sColor = overall >= 4.0 ? T.green : overall >= 3.0 ? T.blue : T.gray;
 
     const prosChips    = review.pros ? review.pros.split('\n').map(s => s.trim()).filter(Boolean) : [];
     const consChips    = review.cons ? review.cons.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    const ageGroups    = Array.isArray(review.age_groups)    ? review.age_groups    : [];
-    const visitorTypes = Array.isArray(review.visitor_types) ? review.visitor_types : [];
+
+    const dateStr = inst.event_date
+        ? new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+        : null;
 
     return (
         <div style={{ background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, padding: '16px' }}>
@@ -62,50 +64,55 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
             {showEventLink && ev.name && (
                 <Link href={`/events/${ev.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 10 }}>
-                        🎪 {ev.name}
-                        {inst.event_date && (
-                            <span style={{ fontWeight: 400, color: T.gray, marginLeft: 6 }}>
-                                {new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-                            </span>
-                        )}
+                        🎪 {ev.name} →
                     </div>
                 </Link>
             )}
 
-            {/* 상단: 셀러 유형 + 점수 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div>
-                    <span style={{ fontSize: 11, color: T.gray, fontWeight: 600 }}>
-                        {isFoodtruck ? '🚚 푸드트럭' : '🛍️ 일반셀러'}
-                        {review.is_verified && ' · ✅ 인증'}
-                    </span>
-                    {showOrgInfo && (org.name || inst.event_date) && (
-                        <div style={{ fontSize: 12, color: T.gray, marginTop: 3, display: 'flex', gap: 8 }}>
-                            {org.name && <span>{org.name}</span>}
-                            {inst.event_date && <span>{new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}</span>}
-                        </div>
-                    )}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: sColor, lineHeight: 1 }}>{overall.toFixed(1)}</div>
-                    <div style={{ fontSize: 10, color: T.gray, marginTop: 2 }}>{scoreLabel}</div>
+            {/* 상단: 셀러 유형 뱃지 + 종합 점수 */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                    background: isFoodtruck ? T.greenLt : T.blueLt,
+                    color: isFoodtruck ? T.green : T.blue,
+                }}>
+                    {isFoodtruck ? '🚚 푸드트럭' : '🛍️ 일반 셀러'}
+                    {review.is_verified && ' · ✅'}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 18, fontWeight: 900, color: sColor }}>{overall.toFixed(1)}</span>
+                    <span style={{ fontSize: 12, color: '#F59E0B' }}>★</span>
                 </div>
             </div>
 
-            <div style={{ height: 1, background: T.border, marginBottom: 12 }} />
+            {/* 정보 테이블 */}
+            <div style={{ background: T.bg, borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+                {dateStr && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span style={INFO_LABEL}>참여일자</span>
+                        <span style={INFO_VALUE}>{dateStr}</span>
+                    </div>
+                )}
+                {org.name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={INFO_LABEL}>주최사</span>
+                        <span style={INFO_VALUE}>{org.name}</span>
+                    </div>
+                )}
+            </div>
 
             {canView ? (
                 <>
                     {/* 매출 */}
                     {review.revenue_range && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <span style={{ fontSize: 12, color: T.gray, width: 40, flexShrink: 0 }}>매출</span>
-                            <span style={{ fontSize: 13, fontWeight: 800, color: T.text }}>{review.revenue_range}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                            <span style={{ fontSize: 12, color: T.gray, width: 56, flexShrink: 0 }}>💰 매출</span>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: T.green }}>{review.revenue_range}</span>
                         </div>
                     )}
 
-                    {/* 항목별 평가 (바 차트) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
+                    {/* 항목별 평가 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                         {[
                             { field: 'rating_profit',    label: '구매력' },
                             { field: 'rating_traffic',   label: '유동인구' },
@@ -121,35 +128,25 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
                                     <div style={{ flex: 1, height: 5, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
                                         <div style={{ width: `${(val / 5) * 100}%`, height: '100%', background: c, borderRadius: 3 }} />
                                     </div>
-                                    <span style={{ fontSize: 12, fontWeight: 800, color: c, width: 28, textAlign: 'right', flexShrink: 0 }}>{val}.0</span>
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: c, width: 24, textAlign: 'right', flexShrink: 0 }}>{val}.0</span>
                                 </div>
                             );
                         })}
                     </div>
 
-                    {/* 방문객 */}
-                    {(ageGroups.length > 0 || visitorTypes.length > 0) && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-                            <span style={{ fontSize: 11, color: T.gray }}>방문객</span>
-                            {[...ageGroups, ...visitorTypes].map(tag => (
-                                <span key={tag} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{tag}</span>
-                            ))}
-                        </div>
-                    )}
-
                     {/* 장단점 */}
                     {(prosChips.length > 0 || consChips.length > 0) && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
                             {prosChips.length > 0 && (
-                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                                     <span style={{ fontSize: 11, color: T.gray }}>👍</span>
-                                    {prosChips.map(c => <span key={c} style={{ fontSize: 12, padding: '2px 9px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{c}</span>)}
+                                    {prosChips.map(c => <span key={c} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: T.greenLt, color: T.green, fontWeight: 600 }}>{c}</span>)}
                                 </div>
                             )}
                             {consChips.length > 0 && (
-                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                                     <span style={{ fontSize: 11, color: T.gray }}>👎</span>
-                                    {consChips.map(c => <span key={c} style={{ fontSize: 12, padding: '2px 9px', borderRadius: 20, background: T.bg, color: T.gray, fontWeight: 600 }}>{c}</span>)}
+                                    {consChips.map(c => <span key={c} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: '#FEE2E2', color: '#EF4444', fontWeight: 600 }}>{c}</span>)}
                                 </div>
                             )}
                         </div>
@@ -169,10 +166,8 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
                                 {review.content}
                             </div>
                             {review.content.length > 60 && (
-                                <button
-                                    onClick={() => setExpanded(v => !v)}
-                                    style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: T.blue, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}
-                                >
+                                <button onClick={() => setExpanded(v => !v)}
+                                    style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: T.blue, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
                                     {expanded ? '접기 ▲' : '더 보기 ▼'}
                                 </button>
                             )}
