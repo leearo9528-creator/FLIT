@@ -27,12 +27,10 @@ export function AuthProvider({ children }) {
         const sb = createClient();
         let realtimeChannel = null;
 
-        sb.auth.getSession().then(async ({ data: { session } }) => {
+        sb.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
-            if (session?.user) {
-                await fetchPlan(session.user.id);
-            }
             setLoading(false);
+            if (session?.user) fetchPlan(session.user.id);
         });
 
         const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
