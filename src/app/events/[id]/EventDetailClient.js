@@ -222,78 +222,55 @@ export default function EventDetailClient({ event, instances, initialReviews, in
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
 
-            {/* ── 상단 네비 바 ── */}
+            {/* ── Hero Header ── */}
             <div style={{
-                position: 'sticky', top: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
-                borderBottom: `1px solid ${T.border}`,
-                display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px',
+                background: 'linear-gradient(160deg, #1A2A4A 0%, #1B64DA 100%)',
+                position: 'relative', overflow: 'hidden',
             }}>
-                <div onClick={() => router.back()} style={{ cursor: 'pointer', padding: 4, flexShrink: 0 }}>
-                    <ChevronLeft size={22} color={T.text} />
-                </div>
-                <div style={{
-                    flex: 1, fontSize: 16, fontWeight: 800, color: T.text,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                    {event.name}
-                </div>
-            </div>
+                <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ position: 'absolute', bottom: -60, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-            {/* ── 히어로 섹션 ── */}
-            <div style={{ background: T.white, borderBottom: `1px solid ${T.border}` }}>
+                {/* 뒤로가기 */}
+                <div style={{ padding: '16px 16px 0', position: 'relative', zIndex: 2 }}>
+                    <button onClick={() => router.back()} style={{
+                        background: 'rgba(255,255,255,0.15)', border: 'none',
+                        borderRadius: T.radiusFull, width: 36, height: 36,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    }}>
+                        <ChevronLeft size={18} color="#fff" />
+                    </button>
+                </div>
 
-                {/* 행사 제목 영역 */}
-                <div style={{ padding: '20px 20px 16px' }}>
+                <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
                     {event.category && (
-                        <span style={{
-                            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-                            background: T.blueLt, color: T.blue, display: 'inline-block', marginBottom: 8,
+                        <div style={{
+                            display: 'inline-block', padding: '4px 10px', borderRadius: 6,
+                            fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.25)', color: '#fff',
+                            marginBottom: 10,
                         }}>
                             {event.category}
-                        </span>
+                        </div>
                     )}
-                    <div style={{ fontSize: 22, fontWeight: 900, color: T.text, lineHeight: 1.3, marginBottom: 10 }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 10 }}>
                         {event.name}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                         {instances[0]?.location && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: T.gray }}>
-                                <MapPin size={13} color={T.gray} strokeWidth={2} />
-                                {instances[0].location}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                                <MapPin size={13} /> {instances[0].location}
                             </div>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: T.gray }}>
-                            <Calendar size={13} color={T.gray} strokeWidth={2} />
-                            총 {event.total_instances || 0}회 개최
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                            <Calendar size={13} /> 총 {event.total_instances || 0}회 개최
+                            {event.total_reviews > 0 && <> · 리뷰 {event.total_reviews}개</>}
                         </div>
                     </div>
                 </div>
-
-                {/* 상세 사진 */}
-                {event.image_url ? (
-                    <div style={{ position: 'relative', width: '100%', height: 200 }}>
-                        <Image src={event.image_url} alt={event.name} fill style={{ objectFit: 'cover' }} sizes="100vw" />
-                    </div>
-                ) : (
-                    <div style={{
-                        width: '100%', height: 160, background: `linear-gradient(135deg, ${T.blueLt}, #dbeafe)`,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    }}>
-                        <span style={{ fontSize: 44 }}>
-                            {event.category === '푸드트럭' ? '🚚'
-                                : event.category === '플리+푸드 전체' ? '🎪'
-                                : '🛍️'}
-                        </span>
-                        <span style={{ fontSize: 12, color: T.gray }}>대표 사진 없음</span>
-                    </div>
-                )}
-
             </div>
 
             {/* ── 탭 바 ── */}
             <div style={{
-                position: 'sticky', top: 52, zIndex: 99,
+                position: 'sticky', top: 0, zIndex: 99,
                 background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
                 borderBottom: `1px solid ${T.border}`,
                 display: 'flex',

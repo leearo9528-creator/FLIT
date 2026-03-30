@@ -170,74 +170,78 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
 
-            {/* ── 상단 네비 바 ── */}
+            {/* ── Hero Header ── */}
             <div style={{
-                position: 'sticky', top: 0, zIndex: 100,
-                background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
-                borderBottom: `1px solid ${T.border}`,
-                display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px',
+                background: 'linear-gradient(160deg, #1A2A4A 0%, #1B64DA 100%)',
+                position: 'relative', overflow: 'hidden',
             }}>
-                <div onClick={() => router.back()} style={{ cursor: 'pointer', padding: 4, flexShrink: 0 }}>
-                    <ChevronLeft size={22} color={T.text} />
-                </div>
-                <div style={{ flex: 1, fontSize: 16, fontWeight: 800, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {organizer.name}
-                </div>
-            </div>
+                <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ position: 'absolute', bottom: -60, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-            {/* ── 히어로 ── */}
-            <div style={{ background: T.white, borderBottom: `1px solid ${T.border}` }}>
-                <div style={{ padding: '24px 20px 20px' }}>
+                {/* 뒤로가기 */}
+                <div style={{ padding: '16px 16px 0', position: 'relative', zIndex: 2 }}>
+                    <button onClick={() => router.back()} style={{
+                        background: 'rgba(255,255,255,0.15)', border: 'none',
+                        borderRadius: T.radiusFull, width: 36, height: 36,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    }}>
+                        <ChevronLeft size={18} color="#fff" />
+                    </button>
+                </div>
 
-                    {/* 로고 + 이름 */}
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ padding: '14px 20px 24px', position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
                         <div style={{
-                            width: 68, height: 68, borderRadius: 16, flexShrink: 0,
-                            background: T.grayLt, overflow: 'hidden',
+                            width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+                            background: 'rgba(255,255,255,0.15)', overflow: 'hidden',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                             {organizer.logo_url
-                                ? <Image src={organizer.logo_url} alt={organizer.name} fill style={{ objectFit: 'cover' }} sizes="80px" />
-                                : <span style={{ fontSize: 28 }}>🏢</span>
+                                ? <Image src={organizer.logo_url} alt={organizer.name} fill style={{ objectFit: 'cover' }} sizes="56px" />
+                                : <span style={{ fontSize: 24 }}>🏢</span>
                             }
                         </div>
                         <div>
-                            <div style={{ fontSize: 22, fontWeight: 900, color: T.text, lineHeight: 1.3, marginBottom: 4 }}>
+                            <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.3 }}>
                                 {organizer.name}
                             </div>
-                            <div style={{ fontSize: 12, color: T.gray }}>행사 기획 · 주최</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>
+                                행사 {organizer.total_instances ?? 0}회 · 리뷰 {organizer.total_reviews ?? 0}개
+                            </div>
                         </div>
                     </div>
 
-                    {/* 설명 */}
                     {organizer.description && (
-                        <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.65, marginBottom: 12 }}>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, marginBottom: 10 }}>
                             {organizer.description}
                         </div>
                     )}
 
-                    {/* 연락처 / 홍보링크 */}
                     {(organizer.contact_name || organizer.phone || organizer.promo_link) && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {organizer.contact_name && (
-                                <span style={{ fontSize: 12, color: T.gray, background: T.bg, padding: '4px 10px', borderRadius: 20 }}>
+                                <span style={{ fontSize: 11, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 20 }}>
                                     👤 {organizer.contact_name}
                                 </span>
                             )}
                             {organizer.phone && (
-                                <a href={`tel:${organizer.phone}`} style={{ fontSize: 12, color: T.blue, background: T.blueLt, padding: '4px 10px', borderRadius: 20, textDecoration: 'none' }}>
+                                <a href={`tel:${organizer.phone}`} style={{ fontSize: 11, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>
                                     📞 {organizer.phone}
                                 </a>
                             )}
                             {organizer.promo_link && (
                                 <a href={organizer.promo_link.startsWith('http') ? organizer.promo_link : `https://${organizer.promo_link}`} target="_blank" rel="noopener noreferrer"
-                                    style={{ fontSize: 12, color: T.blue, background: T.blueLt, padding: '4px 10px', borderRadius: 20, textDecoration: 'none' }}>
+                                    style={{ fontSize: 11, color: '#fff', background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>
                                     🔗 홍보 링크
                                 </a>
                             )}
                         </div>
                     )}
+                </div>
+            </div>
 
+            {/* ── 통계 ── */}
+            <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, padding: '16px 20px' }}>
                     {/* 통계 카드 */}
                     <div style={{
                         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
@@ -287,30 +291,11 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* 모집 중 배지 */}
-                {openRecruits.length > 0 && (
-                    <div style={{ padding: '0 20px 16px' }}>
-                        <div
-                            onClick={() => setActiveTab('recruit')}
-                            style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                background: T.greenLt, borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
-                            }}
-                        >
-                            <span style={{ fontSize: 13, fontWeight: 700, color: T.green }}>
-                                🟢 지금 모집 중 ({openRecruits.length}개 공고)
-                            </span>
-                            <span style={{ fontSize: 12, color: T.green, fontWeight: 700 }}>공고 보기 →</span>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* ── 탭 바 ── */}
             <div style={{
-                position: 'sticky', top: 52, zIndex: 99,
+                position: 'sticky', top: 0, zIndex: 99,
                 background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
                 borderBottom: `1px solid ${T.border}`,
                 display: 'flex',
