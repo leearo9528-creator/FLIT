@@ -9,7 +9,8 @@ const path = require('path');
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function uuid(prefix, n) { return `${prefix}-0000-0000-0000-${String(n).padStart(12, '0')}`; }
-function esc(s) { return s.replace(/'/g, "''"); }
+function esc(s) { return s.replace(/'/g, "''").replace(/\n/g, "\\n"); }
+function sqlStr(s) { return `E'${esc(s)}'`; }
 function randDate(daysBack) { return `NOW() - interval '${rand(1, daysBack)} days'`; }
 
 // ─── 한국 이름 ───
@@ -186,8 +187,8 @@ DELETE FROM auth.users WHERE id::text LIKE 'f0%' OR id::text LIKE 'f1%';
     ];
     sql += `\n-- 모집공고\n`;
     recTitles.forEach((r, i) => {
-        const content = `셀러를 모집합니다.\\n\\n■ 부스 규격: 2m x 2m\\n■ 운영 시간: 10:00 ~ 20:00\\n■ 포함: 테이블, 의자 제공`;
-        sql += `INSERT INTO public.recruitments (id, event_instance_id, title, content, fee, application_method, end_date, status) VALUES ('${uuid('d0000001', i+1)}', '${instances[r.instIdx].id}', '${esc(r.title)}', '${content}', ${r.fee}, '${esc(r.method)}', '2026-04-${String(rand(1, 28)).padStart(2, '0')}', 'OPEN');\n`;
+        const content = `셀러를 모집합니다.\n\n■ 부스 규격: 2m x 2m\n■ 운영 시간: 10:00 ~ 20:00\n■ 포함: 테이블, 의자 제공`;
+        sql += `INSERT INTO public.recruitments (id, event_instance_id, title, content, fee, application_method, end_date, status) VALUES ('${uuid('d0000001', i+1)}', '${instances[r.instIdx].id}', ${sqlStr(r.title)}, ${sqlStr(content)}, ${r.fee}, ${sqlStr(r.method)}, '2026-04-${String(rand(1, 28)).padStart(2, '0')}', 'OPEN');\n`;
     });
 
     // ─── 유저 100명 ───
@@ -221,7 +222,7 @@ DELETE FROM auth.users WHERE id::text LIKE 'f0%' OR id::text LIKE 'f1%';
             const vis = [pick(VISITORS)];
             const pros = [...new Set([pick(isTruck ? PROS_T : PROS_S), pick(isTruck ? PROS_T : PROS_S)])];
             const cons = [pick(isTruck ? CONS_T : CONS_S)];
-            sql += `INSERT INTO public.reviews (event_instance_id, user_id, seller_type, rating_profit, rating_traffic, rating_support, rating_manners, rating_promotion, revenue_range, age_groups, visitor_types, pros, cons, content, created_at) VALUES ('${inst.id}', '${u.id}', '${u.sellerType}', ${rand(2,5)}, ${rand(2,5)}, ${rand(2,5)}, ${rand(2,5)}, ${rand(1,5)}, '${rev}', ARRAY[${ages.map(a=>`'${a}'`).join(',')}], ARRAY[${vis.map(v=>`'${esc(v)}'`).join(',')}], '${pros.join("'||E'\\n'||'")}', '${cons.join("'||E'\\n'||'")}', '${esc(pick(REVIEW_CONTENTS))}', ${randDate(30)});\n`;
+            sql += `INSERT INTO public.reviews (event_instance_id, user_id, seller_type, rating_profit, rating_traffic, rating_support, rating_manners, rating_promotion, revenue_range, age_groups, visitor_types, pros, cons, content, created_at) VALUES ('${inst.id}', '${u.id}', '${u.sellerType}', ${rand(2,5)}, ${rand(2,5)}, ${rand(2,5)}, ${rand(2,5)}, ${rand(1,5)}, '${rev}', ARRAY[${ages.map(a=>`'${a}'`).join(',')}], ARRAY[${vis.map(v=>`'${esc(v)}'`).join(',')}], ${sqlStr(pros.join('\n'))}, ${sqlStr(cons.join('\n'))}, ${sqlStr(pick(REVIEW_CONTENTS))}, ${randDate(30)});\n`;
             reviewCount++;
         }
     });
@@ -237,7 +238,7 @@ DELETE FROM auth.users WHERE id::text LIKE 'f0%' OR id::text LIKE 'f1%';
             const tmpl = templates[i % templates.length];
             const isAnon = cat === '익명';
             const suffix = i >= templates.length ? ` (${rand(1, 99)})` : '';
-            sql += `INSERT INTO public.posts (user_id, title, content, category, seller_type, author, is_anonymous, likes, created_at) VALUES ('${u.id}', '${esc(tmpl.t + suffix)}', '${esc(tmpl.c)}', '${cat}', '${u.sellerType}', ${isAnon ? 'null' : `'${esc(u.name)}'`}, ${isAnon}, ${rand(0, 50)}, ${randDate(30)});\n`;
+            sql += `INSERT INTO public.posts (user_id, title, content, category, seller_type, author, is_anonymous, likes, created_at) VALUES ('${u.id}', ${sqlStr(tmpl.t + suffix)}, ${sqlStr(tmpl.c)}, '${cat}', '${u.sellerType}', ${isAnon ? 'null' : sqlStr(u.name)}, ${isAnon}, ${rand(0, 50)}, ${randDate(30)});\n`;
             postCount++;
         }
     }

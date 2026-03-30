@@ -467,15 +467,19 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     )}
 
                                     {/* 방문객 연령대 분포 */}
-                                    {ageGroupTotal > 0 && (
+                                    {ageGroupTotal > 0 && (() => {
+                                        const AGE_ORDER = ['10대','20대','30대','40대','50대 이상','전 연령층'];
+                                        const sorted = AGE_ORDER.filter(a => ageGroupCount[a]);
+                                        return (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>👥 방문객 연령대</div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                                                {Object.entries(ageGroupCount).sort((a, b) => b[1] - a[1]).map(([age, cnt]) => {
+                                                {sorted.map(age => {
+                                                    const cnt = ageGroupCount[age];
                                                     const pct = Math.round((cnt / ageGroupTotal) * 100);
                                                     return (
                                                         <div key={age} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                            <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 700, width: 36, flexShrink: 0 }}>{age}</span>
+                                                            <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 700, width: 56, flexShrink: 0 }}>{age}</span>
                                                             <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
                                                                 <div style={{ width: `${pct}%`, height: '100%', background: '#7C3AED', borderRadius: 3 }} />
                                                             </div>
@@ -485,25 +489,35 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                                 })}
                                             </div>
                                         </>
-                                    )}
+                                        );
+                                    })()}
 
                                     {/* 방문 유형 분포 */}
-                                    {visitorTypeTotal > 0 && (
+                                    {/* 방문 유형 분포 */}
+                                    {visitorTypeTotal > 0 && (() => {
+                                        const TYPE_ORDER = ['가족 단위 (아이 동반)','커플 / 연인','친구 / 지인','나홀로 방문객 (혼쇼족)','관광객 / 외국인'];
+                                        const sorted = TYPE_ORDER.filter(t => visitorTypeCount[t]);
+                                        return (
                                         <>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>🧭 방문 유형</div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                                                {Object.entries(visitorTypeCount).sort((a, b) => b[1] - a[1]).map(([type, cnt]) => {
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                                                {sorted.map(type => {
+                                                    const cnt = visitorTypeCount[type];
                                                     const pct = Math.round((cnt / visitorTypeTotal) * 100);
                                                     return (
-                                                        <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20, background: '#FEF3C7' }}>
-                                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>{type}</span>
-                                                            <span style={{ fontSize: 11, color: '#92400E', fontWeight: 600 }}>{pct}%</span>
+                                                        <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 11, color: '#D97706', fontWeight: 700, width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{type.replace(/ \(.*\)/, '')}</span>
+                                                            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                                                                <div style={{ width: `${pct}%`, height: '100%', background: '#D97706', borderRadius: 3 }} />
+                                                            </div>
+                                                            <span style={{ fontSize: 12, color: T.gray, width: 32, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
                                                         </div>
                                                     );
                                                 })}
                                             </div>
                                         </>
-                                    )}
+                                        );
+                                    })()}
 
                                     {/* 주최사별 평가 */}
                                     {Object.values(organizerStats).filter(s => s.reviewCount > 0).length > 0 && (
