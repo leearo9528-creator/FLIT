@@ -339,9 +339,8 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
                     }}>
                         <span style={{ fontSize: 44 }}>
-                            {event.category === '푸드트럭페스티벌' ? '🚚'
-                                : event.category === '팝업마켓' ? '🏪'
-                                : event.category === '복합문화행사' ? '🎪'
+                            {event.category === '푸드트럭' ? '🚚'
+                                : event.category === '플리+푸드 전체' ? '🎪'
                                 : '🛍️'}
                         </span>
                         <span style={{ fontSize: 12, color: T.gray }}>대표 사진 없음</span>

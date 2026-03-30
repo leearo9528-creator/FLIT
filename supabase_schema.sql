@@ -129,7 +129,7 @@ CREATE TRIGGER on_profile_plan_organizer
 CREATE TABLE public.base_events (
     id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name            TEXT UNIQUE NOT NULL,
-    category        TEXT,         -- 플리마켓 / 푸드트럭페스티벌 / 팝업마켓 / 복합문화행사
+    category        TEXT,         -- 플리마켓 / 푸드트럭 / 플리+푸드 전체
     description     TEXT,
     image_url       TEXT,
 

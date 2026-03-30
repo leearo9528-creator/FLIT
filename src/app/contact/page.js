@@ -7,7 +7,7 @@ import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
 import { createClient } from '@/utils/supabase/client';
 
-const EVENT_TYPES = ['플리마켓', '푸드트럭 페스티벌', '복합 행사 (플리 + 푸드트럭)', '팝업 마켓', '기타'];
+const EVENT_TYPES = ['플리마켓', '푸드트럭', '플리+푸드 전체', '기타'];
 const SCALE_OPTIONS = ['10팀 미만', '10~30팀', '30~50팀', '50~100팀', '100팀 이상'];
 const ORG_TYPES = ['공공기관 / 관공서', '기업 / 브랜드', '학교 / 대학교', '민간단체 / 협회', '개인 주최', '기타'];
 

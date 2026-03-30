@@ -284,7 +284,7 @@ export default function RecruitmentWritePage() {
                                 <input value={newEventName} onChange={e => setNewEventName(e.target.value)} placeholder="행사명"
                                     style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box', marginBottom: 8 }} />
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                                    {['플리마켓', '푸드트럭페스티벌', '팝업마켓', '복합문화행사'].map(c => (
+                                    {['플리마켓', '푸드트럭', '플리+푸드 전체'].map(c => (
                                         <div key={c} onClick={() => setNewEventCategory(c)} style={{
                                             padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer', fontSize: 12, fontWeight: 600,
                                             background: newEventCategory === c ? T.blue : T.white, color: newEventCategory === c ? '#fff' : T.gray,
