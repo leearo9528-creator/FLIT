@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, MapPin, Tag, ArrowUpDown, X, Lock } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Tag, ArrowUpDown, X, Lock, Bookmark } from 'lucide-react';
 import { T, FILTERS } from '@/lib/design-tokens';
 import { calcRating, timeAgo } from '@/lib/helpers';
 import { createClient } from '@/utils/supabase/client';
@@ -89,7 +89,7 @@ function Skeleton({ count = 3, height = 140 }) {
 /* ════════════════════════════════════════════════════════════════
    공고 탭
 ════════════════════════════════════════════════════════════════ */
-function RecruitCard({ rec }) {
+function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
     const inst = rec.instance || {};
     const ev = inst.base_event || {};
     const org = inst.organizer || {};
@@ -98,6 +98,15 @@ function RecruitCard({ rec }) {
     const daysLeft = rec.end_date
         ? Math.ceil((new Date(rec.end_date) - Date.now()) / 86400000)
         : null;
+    const isScrapped = scrappedSet.has(rec.id);
+    const router = useRouter();
+
+    const handleScrap = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) { router.push('/login'); return; }
+        onToggleScrap(rec.id);
+    };
 
     return (
         <Link href={`/recruitments/${rec.id}`} style={{ textDecoration: 'none' }}>
@@ -110,11 +119,16 @@ function RecruitCard({ rec }) {
                     }}>
                         {rec.status === 'OPEN' ? '모집중' : '마감됨'}
                     </div>
-                    {daysLeft !== null && daysLeft >= 0 && (
-                        <div style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
-                            {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {daysLeft !== null && daysLeft >= 0 && (
+                            <div style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
+                                {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
+                            </div>
+                        )}
+                        <div onClick={handleScrap} style={{ cursor: 'pointer', padding: 4 }}>
+                            <Bookmark size={18} color={isScrapped ? T.blue : T.gray} fill={isScrapped ? T.blue : 'none'} strokeWidth={2} />
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 <div style={{ fontSize: 16, fontWeight: 700, color: T.text, lineHeight: 1.4, marginBottom: 6 }}>
@@ -501,29 +515,45 @@ function SearchContent() {
     // 공고 데이터
     const [recruitments, setRecruitments] = useState([]);
     const [loadingRec, setLoadingRec] = useState(true);
+    const [scrappedSet, setScrappedSet] = useState(new Set());
+    const { user } = useAuth();
 
     useEffect(() => {
         (async () => {
             setLoadingRec(true);
             try {
                 const sb = createClient();
-                const { data, error } = await sb
-                    .from('recruitments')
-                    .select(`*, instance:event_instances(
-                        id, location, location_sido, event_date, event_date_end,
-                        base_event:base_events(id, name, category, avg_event_rating, total_reviews),
-                        organizer:organizers(name)
-                    )`)
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                if (data) setRecruitments(data);
+                const [recRes, scrapRes] = await Promise.all([
+                    sb.from('recruitments')
+                        .select(`*, instance:event_instances(
+                            id, location, location_sido, event_date, event_date_end,
+                            base_event:base_events(id, name, category, avg_event_rating, total_reviews),
+                            organizer:organizers(name)
+                        )`)
+                        .order('created_at', { ascending: false }),
+                    user ? sb.from('scraps').select('recruitment_id').eq('user_id', user.id) : Promise.resolve({ data: [] }),
+                ]);
+                if (recRes.error) throw recRes.error;
+                if (recRes.data) setRecruitments(recRes.data);
+                if (scrapRes.data) setScrappedSet(new Set(scrapRes.data.map(s => s.recruitment_id)));
             } catch (err) {
                 console.error('모집공고 로드 실패:', err);
             } finally {
                 setLoadingRec(false);
             }
         })();
-    }, []);
+    }, [user]);
+
+    const toggleScrap = async (recId) => {
+        if (!user) return;
+        const sb = createClient();
+        const isScrapped = scrappedSet.has(recId);
+        setScrappedSet(prev => { const next = new Set(prev); isScrapped ? next.delete(recId) : next.add(recId); return next; });
+        try {
+            if (isScrapped) await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recId);
+            else await sb.from('scraps').insert({ user_id: user.id, recruitment_id: recId });
+        } catch { setScrappedSet(prev => { const next = new Set(prev); isScrapped ? next.add(recId) : next.delete(recId); return next; }); }
+    };
 
     const filteredRecruitments = useMemo(() => {
         let list = recruitments;
@@ -667,7 +697,7 @@ function SearchContent() {
                             ? <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 15 }}>
                                 {query ? `"${query}" 관련 공고가 없어요.` : '진행 중인 공고가 없어요.'}
                             </div>
-                            : filteredRecruitments.map(r => <RecruitCard key={r.id} rec={r} />)
+                            : filteredRecruitments.map(r => <RecruitCard key={r.id} rec={r} user={user} scrappedSet={scrappedSet} onToggleScrap={toggleScrap} />)
                     }
                 </div>
             )}
