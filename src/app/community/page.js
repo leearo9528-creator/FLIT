@@ -10,12 +10,7 @@ import { SellerBadge, LocationTag } from '@/components/ui/SellerBadge';
 
 const PAGE_SIZE = 10;
 
-const TABS = [
-    { key: 'all', label: '전체 게시글' },
-    { key: 'anonymous', label: '익명 게시판' },
-];
-
-const FILTER_CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보'];
+const CATEGORIES = ['전체', '실시간 행사 현황', '자유게시판', '질문/답변', '팁/정보', '익명'];
 
 const SORT_OPTIONS = [
     { key: 'latest', label: '최신순' },
@@ -91,7 +86,6 @@ function PostCard({ post, onClick }) {
 export default function CommunityPage() {
     const router = useRouter();
 
-    const [activeTab, setActiveTab] = useState('all');
     const [query, setQuery] = useState('');
     const [category, setCategory] = useState('전체');
     const [sellerType, setSellerType] = useState('전체');
@@ -117,10 +111,8 @@ export default function CommunityPage() {
             .from('posts')
             .select('id, title, content, category, location, seller_type, likes, created_at, is_anonymous');
 
-        if (activeTab === 'anonymous') q = q.eq('is_anonymous', true);
-        else if (activeTab === 'trade') q = q.eq('category', '사고팔고');
-
-        if (category !== '전체') q = q.eq('category', category);
+        if (category === '익명') q = q.eq('is_anonymous', true);
+        else if (category !== '전체') q = q.eq('category', category);
         if (sellerType !== '전체') q = q.eq('seller_type', sellerType === '일반셀러' ? 'seller' : 'foodtruck');
 
         q = q.order(sortBy === 'likes' ? 'likes' : 'created_at', { ascending: false })
@@ -134,14 +126,14 @@ export default function CommunityPage() {
         setHasMore(fetched.length === PAGE_SIZE);
         setLoading(false);
         setLoadingMore(false);
-    }, [activeTab, category, sellerType, sortBy]);
+    }, [category, sellerType, sortBy]);
 
-    /* 탭/필터 변경 시 초기화 */
+    /* 필터 변경 시 초기화 */
     useEffect(() => {
         setPage(0);
         setHasMore(true);
         fetchPosts(0, true);
-    }, [activeTab, category, sellerType, sortBy]);
+    }, [category, sellerType, sortBy]);
 
     /* 무한 스크롤 */
     useEffect(() => {
@@ -166,7 +158,7 @@ export default function CommunityPage() {
           )
         : posts;
 
-    const activeFilterCount = [category !== '전체', sellerType !== '전체', sortBy !== 'latest'].filter(Boolean).length;
+    const activeFilterCount = [sellerType !== '전체', sortBy !== 'latest'].filter(Boolean).length;
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
@@ -236,22 +228,6 @@ export default function CommunityPage() {
                                 ))}
                             </div>
                         </div>
-                        <div style={{ padding: '0 16px 8px' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>카테고리</div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {FILTER_CATEGORIES.map(cat => (
-                                    <div key={cat} onClick={() => setCategory(cat)} style={{
-                                        padding: '7px 14px', borderRadius: T.radiusFull, cursor: 'pointer',
-                                        fontSize: 13, fontWeight: 600,
-                                        background: category === cat ? T.text : T.white,
-                                        color: category === cat ? T.white : T.gray,
-                                        border: `1px solid ${category === cat ? T.text : T.border}`,
-                                        transition: 'all 0.15s',
-                                    }}>{cat}</div>
-                                ))}
-                            </div>
-                        </div>
-
                         <div style={{ padding: '0 16px 12px' }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 8 }}>셀러 유형</div>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -270,29 +246,34 @@ export default function CommunityPage() {
                     </div>
                 )}
 
-                {/* 탭 바 */}
-                <div style={{ display: 'flex', borderTop: `1px solid ${T.border}` }}>
-                    {TABS.map(tab => (
-                        <div
-                            key={tab.key}
-                            onClick={() => { setActiveTab(tab.key); setQuery(''); }}
-                            style={{
-                                flex: 1, textAlign: 'center', padding: '13px 0',
-                                fontSize: 13, fontWeight: activeTab === tab.key ? 800 : 500,
-                                color: activeTab === tab.key ? T.text : T.gray,
-                                cursor: 'pointer',
-                                borderBottom: activeTab === tab.key ? `2.5px solid ${T.text}` : '2.5px solid transparent',
-                                transition: 'all 0.2s',
-                            }}
-                        >
-                            {tab.label}
-                        </div>
-                    ))}
-                </div>
+            </div>
+
+            {/* ── 카테고리 스위치 ── */}
+            <div style={{
+                display: 'flex', gap: 8, padding: '12px 16px 4px',
+                overflowX: 'auto', scrollbarWidth: 'none',
+            }}>
+                {CATEGORIES.map(cat => (
+                    <div
+                        key={cat}
+                        onClick={() => setCategory(cat)}
+                        style={{
+                            flexShrink: 0,
+                            padding: '7px 14px', borderRadius: T.radiusFull, cursor: 'pointer',
+                            fontSize: 13, fontWeight: 600,
+                            background: category === cat ? T.text : T.white,
+                            color: category === cat ? T.white : T.gray,
+                            border: `1.5px solid ${category === cat ? T.text : T.border}`,
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        {cat}
+                    </div>
+                ))}
             </div>
 
             {/* ── 게시글 목록 ── */}
-            <div style={{ padding: '16px 16px 0' }}>
+            <div style={{ padding: '12px 16px 0' }}>
                 {loading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {Array(4).fill(0).map((_, i) => (
