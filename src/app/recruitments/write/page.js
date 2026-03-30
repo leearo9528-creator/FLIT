@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
@@ -32,7 +32,7 @@ function Section({ title, required, hint, children }) {
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function RecruitmentWritePage() {
     const router = useRouter();
-    const { user, plan } = useAuth();
+    const { user, plan, loading: authLoading } = useAuth();
 
     const [organizer, setOrganizer] = useState(null);
 
@@ -59,6 +59,12 @@ export default function RecruitmentWritePage() {
     const [applicationMethod, setApplicationMethod] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    /* 비주최사 접근 차단 */
+    useEffect(() => {
+        if (authLoading) return;
+        if (plan !== 'organizer') router.replace('/');
+    }, [authLoading, plan, router]);
 
     /* organizer 확인 + 행사 목록 로드 */
     useEffect(() => {
@@ -170,34 +176,8 @@ export default function RecruitmentWritePage() {
         }
     };
 
-    /* 플랜 체크 */
-    if (plan === 'organizer_pending') {
-        return (
-            <div style={{ minHeight: '100vh', background: T.bg }}>
-                <TopBar title="공고 올리기" back />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 44, marginBottom: 12 }}>⏳</div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 8 }}>승인 대기 중입니다</div>
-                    <div style={{ fontSize: 14, color: T.gray, lineHeight: 1.6 }}>
-                        주최사 신청이 접수되었어요.<br />관리자 승인 후 공고를 올릴 수 있어요.
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (plan !== 'organizer') {
-        return (
-            <div style={{ minHeight: '100vh', background: T.bg }}>
-                <TopBar title="공고 올리기" back />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-                    <div style={{ fontSize: 17, fontWeight: 800, color: T.text, marginBottom: 8 }}>주최사 전용 기능입니다</div>
-                    <div style={{ fontSize: 14, color: T.gray }}>주최사로 가입 후 이용할 수 있어요</div>
-                </div>
-            </div>
-        );
-    }
+    /* 비주최사는 useEffect에서 리다이렉트, 로딩 중엔 빈 화면 */
+    if (authLoading || plan !== 'organizer') return null;
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
