@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
 import { useRouter } from 'next/navigation';
-import { Search, X, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
+import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
+import ImageUploader from '@/components/ui/ImageUploader';
 
 /* ─── Section 컴포넌트 ───────────────────────────────────────── */
 function Section({ title, required, hint, children }) {
@@ -58,6 +59,15 @@ export default function RecruitmentWritePage() {
 
     // 신청 방법
     const [applicationMethod, setApplicationMethod] = useState('');
+
+    // 이미지
+    const [images, setImages] = useState([]);
+
+    // 새 행사 추가
+    const [showAddEvent, setShowAddEvent] = useState(false);
+    const [newEventName, setNewEventName] = useState('');
+    const [newEventCategory, setNewEventCategory] = useState('플리마켓');
+    const [addingEvent, setAddingEvent] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -123,6 +133,25 @@ export default function RecruitmentWritePage() {
         e.name.toLowerCase().includes(eventKeyword.toLowerCase())
     );
 
+    const handleAddEvent = async () => {
+        if (!newEventName.trim()) return alert('행사명을 입력해주세요.');
+        setAddingEvent(true);
+        try {
+            const sb = createClient();
+            const { data, error } = await sb.from('base_events')
+                .insert({ name: newEventName.trim(), category: newEventCategory })
+                .select('id, name, category').single();
+            if (error) throw error;
+            setBaseEvents(prev => [data, ...prev]);
+            setSelectedBaseEvent(data);
+            setEventKeyword(data.name);
+            setShowAddEvent(false);
+            setNewEventName('');
+        } catch (err) {
+            alert(`행사 추가 실패: ${err.message}`);
+        } finally { setAddingEvent(false); }
+    };
+
     const handleSubmit = async () => {
         if (!selectedBaseEvent) return alert('행사를 선택해주세요.');
         if (!eventDate) return alert('행사 일자를 입력해주세요.');
@@ -144,6 +173,7 @@ export default function RecruitmentWritePage() {
                 endDate,
                 applicationMethod: applicationMethod.trim() || null,
                 organizerId: organizer?.id || null,
+                images: images.length > 0 ? images : null,
             }));
 
             const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
@@ -223,7 +253,7 @@ export default function RecruitmentWritePage() {
                             }}>
                                 {filteredEvents.length === 0 ? (
                                     <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>
-                                        검색 결과가 없어요. 새 행사명을 직접 입력할 수 없으니 관리자에게 문의하세요.
+                                        검색 결과가 없어요.
                                     </div>
                                 ) : filteredEvents.map((e, i) => (
                                     <div
@@ -239,6 +269,33 @@ export default function RecruitmentWritePage() {
                                         {e.category && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{e.category}</div>}
                                     </div>
                                 ))}
+                                <div
+                                    onClick={() => { setIsEventOpen(false); setShowAddEvent(true); setNewEventName(eventKeyword); }}
+                                    style={{ padding: '12px 16px', cursor: 'pointer', borderTop: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.blue, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Plus size={14} /> 새 행사 추가하기
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 새 행사 추가 폼 */}
+                        {showAddEvent && (
+                            <div style={{ marginTop: 12, background: T.blueLt, borderRadius: T.radiusMd, padding: 16, border: `1.5px solid ${T.blue}` }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 10 }}>새 행사 추가</div>
+                                <input value={newEventName} onChange={e => setNewEventName(e.target.value)} placeholder="행사명"
+                                    style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box', marginBottom: 8 }} />
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                                    {['플리마켓', '푸드트럭페스티벌', '팝업마켓', '복합문화행사'].map(c => (
+                                        <div key={c} onClick={() => setNewEventCategory(c)} style={{
+                                            padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                                            background: newEventCategory === c ? T.blue : T.white, color: newEventCategory === c ? '#fff' : T.gray,
+                                            border: `1px solid ${newEventCategory === c ? T.blue : T.border}`,
+                                        }}>{c}</div>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button onClick={() => { setShowAddEvent(false); setNewEventName(''); }} style={{ flex: 1, padding: '10px 0', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 13, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</button>
+                                    <button onClick={addingEvent ? null : handleAddEvent} style={{ flex: 2, padding: '10px 0', borderRadius: T.radiusMd, fontSize: 13, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer', background: addingEvent ? T.gray : T.blue, border: 'none' }}>{addingEvent ? '추가 중...' : '추가하기'}</button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -422,6 +479,11 @@ export default function RecruitmentWritePage() {
                             }}
                         />
                     </div>
+                </Section>
+
+                {/* ── 사진 첨부 ── */}
+                <Section title="사진 첨부" hint="행사장, 부스 배치 등 참고 사진을 첨부하세요. (최대 5장)">
+                    <ImageUploader images={images} onChange={setImages} folder="recruitments" max={5} />
                 </Section>
 
                 {/* ── 등록 버튼 ── */}
