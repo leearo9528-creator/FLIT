@@ -8,10 +8,10 @@ const BANNERS = [
     {
         id: 1,
         gradient: `linear-gradient(135deg, ${T.blue} 0%, ${T.blueDark} 100%)`,
-        tag: '🎁 첫 달 혜택',
-        title: '리뷰 3개 쓰고\n첫 달 구독료 0원',
-        sub: '지금 바로 리뷰를 작성하고 무료 혜택을 받아보세요',
-        cta: '리뷰 작성하러 가기',
+        tag: '📝 리뷰 열람권',
+        title: '리뷰 1개 쓰면\n1주일간 전체 열람',
+        sub: '매주 월요일 리셋 — 다른 셀러의 매출·평점 데이터를 확인하세요',
+        cta: '리뷰 작성하기',
         href: '/reviews/write',
     },
     {
