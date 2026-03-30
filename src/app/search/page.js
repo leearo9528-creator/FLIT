@@ -445,7 +445,7 @@ function OrganizerList({ query, orgSortBy }) {
         (async () => {
             setLoading(true);
             const sb = createClient();
-            let q = sb.from('organizers').select('*');
+            let q = sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, avg_support, avg_manners');
             if (query.trim()) q = q.ilike('name', `%${query.trim()}%`);
             if (orgSortBy === 'reviews') q = q.order('total_reviews', { ascending: false });
             else if (orgSortBy === 'instances') q = q.order('total_instances', { ascending: false });
@@ -518,7 +518,7 @@ function SearchContent() {
                 const sb = createClient();
                 const [recRes, scrapRes] = await Promise.all([
                     sb.from('recruitments')
-                        .select(`*, instance:event_instances(
+                        .select(`id, title, fee, end_date, status, created_at, instance:event_instances(
                             id, location, location_sido, event_date, event_date_end,
                             base_event:base_events(id, name, category, avg_event_rating, total_reviews),
                             organizer:organizers(name)
@@ -559,7 +559,7 @@ function SearchContent() {
                 (r.instance?.organizer?.name || '').toLowerCase().includes(q)
             );
         }
-        if (regionFilter !== '전체') list = list.filter(r => (r.instance?.location || '').includes(regionFilter));
+        if (regionFilter !== '전체') list = list.filter(r => (r.instance?.location_sido || '').includes(regionFilter));
         if (categoryFilter !== '전체') list = list.filter(r => (r.instance?.base_event?.category || '').includes(categoryFilter));
         if (sortBy === 'fee_asc') list = [...list].sort((a, b) => (a.fee ?? 0) - (b.fee ?? 0));
         else if (sortBy === 'fee_desc') list = [...list].sort((a, b) => (b.fee ?? 0) - (a.fee ?? 0));
