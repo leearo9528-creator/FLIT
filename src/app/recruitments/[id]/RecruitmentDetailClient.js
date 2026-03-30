@@ -13,7 +13,6 @@ import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
-// ReviewCard 제거 — 주최사 리뷰는 주최사 상세 페이지에서 확인
 
 /* ─── 통일 섹션 UI ────────────────────────────────────────── */
 function InfoSection({ emoji, title, children }) {

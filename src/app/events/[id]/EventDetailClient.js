@@ -2,69 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, MapPin, Tag, Calendar, Building2, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Calendar, Building2 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
-
-// TABS는 컴포넌트 내에서 데이터 개수와 함께 정의
-
-/* ─── 매출 금액 칩 ──────────────────────────────────────────── */
-const REVENUE_COLOR = {
-    '100만원 이상': { bg: '#DCFCE7', color: '#16A34A' },
-    '50-100만원':   { bg: '#DCFCE7', color: '#16A34A' },
-    '30-50만원':    { bg: '#DBEAFE', color: '#2563EB' },
-    '10-30만원':    { bg: '#FEF3C7', color: '#D97706' },
-    '10만원 미만':  { bg: '#FEE2E2', color: '#DC2626' },
-};
-
-function RevenueChip({ value }) {
-    const style = REVENUE_COLOR[value] || { bg: '#F3F4F6', color: '#6B7280' };
-    return (
-        <span style={{
-            fontSize: 13, fontWeight: 800,
-            padding: '4px 12px', borderRadius: 20,
-            background: style.bg, color: style.color,
-        }}>
-            💰 {value}
-        </span>
-    );
-}
-
-/* ─── 별점 행 ───────────────────────────────────────────────── */
-function StarRow({ label, value }) {
-    if (value == null) return null;
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, color: T.gray, width: 52, flexShrink: 0 }}>{label}</span>
-            <div style={{ display: 'flex', gap: 2 }}>
-                {[1,2,3,4,5].map(i => (
-                    <span key={i} style={{ fontSize: 14, color: i <= value ? '#F59E0B' : '#E5E7EB', lineHeight: 1 }}>★</span>
-                ))}
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 800, color: T.text, marginLeft: 2 }}>{value}.0</span>
-        </div>
-    );
-}
-
-/* ─── 히어로 평점 바 (행사 상세 요약 전용) ─────────────────── */
-function RatingBar({ label, value, color }) {
-    if (!value && value !== 0) return null;
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: T.gray, width: 28, flexShrink: 0 }}>{label}</span>
-            <div style={{ flex: 1, height: 6, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ width: `${(value / 5) * 100}%`, height: '100%', background: color, borderRadius: 3 }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 800, color, width: 28, textAlign: 'right' }}>
-                {Number(value).toFixed(1)}
-            </span>
-        </div>
-    );
-}
 
 /* ─── 개최 이력 카드 ────────────────────────────────────────── */
 function InstanceCard({ inst }) {
@@ -203,11 +147,6 @@ function RecruitCard({ rec }) {
         </div>
         </Link>
     );
-}
-
-/* ─── 구분선 ────────────────────────────────────────────────── */
-function Divider() {
-    return <div style={{ height: 1, background: T.border, margin: '10px 0' }} />;
 }
 
 /* ─── Main ───────────────────────────────────────────────────── */
