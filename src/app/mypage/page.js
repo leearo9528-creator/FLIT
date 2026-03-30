@@ -160,7 +160,7 @@ export default function MyPage() {
 
             {/* ── 스크랩 ── */}
             <div style={{ background: T.white }}>
-                <MenuItem icon={Bookmark} label="스크랩한 공고" href="/mypage/events" />
+                <MenuItem icon={Bookmark} label="스크랩" sub="공고 · 행사 관리" href="/mypage/events" />
             </div>
 
             <SectionGap />

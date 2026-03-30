@@ -14,7 +14,7 @@ const tabs = [
 
 export default function BottomTab() {
     const pathname = usePathname();
-    const { user, plan } = useAuth();
+    const { user, plan, canViewReviews } = useAuth();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [pendingPath, setPendingPath] = useState(null);
@@ -44,7 +44,7 @@ export default function BottomTab() {
     };
 
     const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname === '/community';
-    const showPromo = showFAB && !isOrganizer;
+    const showPromo = showFAB && !isOrganizer && !canViewReviews;
 
     const handleWriteClick = (path) => {
         setIsMenuOpen(false);

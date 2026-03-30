@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { T } from '@/lib/design-tokens';
+import { timeAgo } from '@/lib/helpers';
 
 function ReviewPreviewCard({ review }) {
     const inst = review.event_instance || {};
@@ -51,6 +52,8 @@ function ReviewPreviewCard({ review }) {
                         &ldquo;{review.content}&rdquo;
                     </div>
                 )}
+
+                <div style={{ fontSize: 11, color: T.gray, marginTop: 6 }}>{timeAgo(review.created_at)}</div>
             </div>
         </Link>
     );

@@ -8,159 +8,150 @@ import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 
-export default function MyEventsPage() {
+const TABS = [
+    { key: 'recruitments', label: '공고 스크랩' },
+    { key: 'events', label: '행사 스크랩' },
+];
+
+export default function MyScrapsPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [scraps, setScraps] = useState([]);
+    const [tab, setTab] = useState('recruitments');
+    const [recScraps, setRecScraps] = useState([]);
+    const [evtScraps, setEvtScraps] = useState([]);
     const [fetching, setFetching] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) { router.replace('/login'); return; }
-        if (user) fetchScraps();
+        if (user) fetchAll();
     }, [user, loading]);
 
-    async function fetchScraps() {
+    async function fetchAll() {
         const sb = createClient();
-        const { data, error } = await sb
-            .from('scraps')
-            .select(`
-                created_at,
-                recruitment:recruitments (
-                    id, title, fee, start_date, end_date, status,
-                    instance:event_instances(
-                        id, location, location_sido, event_date, event_date_end,
-                        base_event:base_events(id, name, category)
-                    )
-                )
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-        if (error) console.error('관심 행사 로드 실패:', error);
-        if (data) setScraps(data.filter(s => s.recruitment));
+        const [recRes, evtRes] = await Promise.all([
+            sb.from('scraps')
+                .select('created_at, recruitment:recruitments(id, title, fee, status, instance:event_instances(location, event_date, base_event:base_events(id, name)))')
+                .eq('user_id', user.id).order('created_at', { ascending: false }),
+            sb.from('event_scraps')
+                .select('created_at, base_event:base_events(id, name, category, total_reviews, avg_event_rating)')
+                .eq('user_id', user.id).order('created_at', { ascending: false }),
+        ]);
+        setRecScraps((recRes.data || []).filter(s => s.recruitment));
+        setEvtScraps((evtRes.data || []).filter(s => s.base_event));
         setFetching(false);
     }
 
-    const handleUnscrap = async (recruitmentId) => {
+    const unscrapRec = async (recId) => {
         const sb = createClient();
-        await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recruitmentId);
-        setScraps(prev => prev.filter(s => s.recruitment?.id !== recruitmentId));
+        await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recId);
+        setRecScraps(prev => prev.filter(s => s.recruitment?.id !== recId));
     };
 
-    if (loading || fetching) return (
-        <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <div style={{ color: T.gray }}>로딩 중...</div>
-        </div>
-    );
+    const unscrapEvt = async (evtId) => {
+        const sb = createClient();
+        await sb.from('event_scraps').delete().eq('user_id', user.id).eq('base_event_id', evtId);
+        setEvtScraps(prev => prev.filter(s => s.base_event?.id !== evtId));
+    };
+
+    if (loading || !user) return null;
+
+    const recCount = recScraps.length;
+    const evtCount = evtScraps.length;
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 80 }}>
-            <TopBar title="관심 가는 행사" back />
+            <TopBar title="스크랩" back />
 
-            {scraps.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px' }}>
-                    <div style={{ fontSize: 44, marginBottom: 12, opacity: 0.4 }}>🎪</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 6 }}>관심 등록한 공고가 없어요</div>
-                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 24 }}>마음에 드는 공고에 북마크를 눌러보세요</div>
-                    <div
-                        onClick={() => router.push('/search')}
-                        style={{
-                            background: T.blue, color: '#fff',
-                            padding: '10px 24px', borderRadius: T.radiusFull,
-                            fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                        }}
-                    >
-                        행사 찾아보기
-                    </div>
+            {/* 탭 */}
+            <div style={{ display: 'flex', background: T.white, borderBottom: `1px solid ${T.border}` }}>
+                {TABS.map(t => {
+                    const active = tab === t.key;
+                    const count = t.key === 'recruitments' ? recCount : evtCount;
+                    return (
+                        <div key={t.key} onClick={() => setTab(t.key)} style={{
+                            flex: 1, padding: '14px 0', textAlign: 'center', cursor: 'pointer',
+                            borderBottom: active ? `2.5px solid ${T.blue}` : '2.5px solid transparent',
+                        }}>
+                            <span style={{ fontSize: 14, fontWeight: active ? 800 : 600, color: active ? T.blue : T.gray }}>
+                                {t.label}
+                            </span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: active ? T.blue : T.gray, marginLeft: 4 }}>{count}</span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {fetching ? (
+                <div style={{ padding: 16 }}>
+                    {Array(3).fill(0).map((_, i) => <div key={i} style={{ height: 80, background: T.grayLt, borderRadius: T.radiusLg, marginBottom: 10, animation: 'pulse 1.5s infinite' }} />)}
                 </div>
-            ) : (
-                <div style={{ background: T.white }}>
-                    {scraps.map((scrap, i) => {
-                        const rec  = scrap.recruitment;
-                        const inst = rec?.instance || {};
-                        const ev   = inst.base_event || {};
-                        const isOpen = rec?.status === 'OPEN';
-                        const eventDate = inst.event_date
-                            ? new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
-                            : null;
-
-                        return (
-                            <div
-                                key={rec.id}
-                                style={{
-                                    padding: '18px 20px',
-                                    borderBottom: i < scraps.length - 1 ? `1px solid ${T.border}` : 'none',
-                                }}
-                            >
-                                {/* 상단 배지 + 북마크 해제 */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                    <div style={{ display: 'flex', gap: 6 }}>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 700,
-                                            padding: '3px 8px', borderRadius: 4,
-                                            background: isOpen ? T.greenLt : T.grayLt,
-                                            color: isOpen ? T.green : T.gray,
-                                        }}>
-                                            {isOpen ? '모집 중' : '마감'}
+            ) : tab === 'recruitments' ? (
+                recScraps.length === 0 ? (
+                    <Empty icon="📋" title="스크랩한 공고가 없어요" sub="마음에 드는 공고에 북마크를 눌러보세요" cta="공고 찾기" href="/search" router={router} />
+                ) : (
+                    <div style={{ background: T.white }}>
+                        {recScraps.map((s, i) => {
+                            const rec = s.recruitment;
+                            const inst = rec?.instance || {};
+                            const ev = inst.base_event || {};
+                            return (
+                                <div key={rec.id} style={{ padding: '14px 20px', borderBottom: i < recScraps.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: rec.status === 'OPEN' ? T.greenLt : T.grayLt, color: rec.status === 'OPEN' ? T.green : T.gray }}>
+                                            {rec.status === 'OPEN' ? '모집중' : '마감'}
                                         </span>
-                                        {ev?.category && (
-                                            <span style={{
-                                                fontSize: 11, fontWeight: 700, color: T.blue,
-                                                background: T.blueLt, padding: '3px 8px', borderRadius: 4,
-                                            }}>
-                                                {ev.category}
-                                            </span>
-                                        )}
+                                        <Bookmark size={18} fill={T.blue} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => unscrapRec(rec.id)} />
                                     </div>
-                                    <Bookmark
-                                        size={18}
-                                        fill={T.blue}
-                                        color={T.blue}
-                                        style={{ cursor: 'pointer', flexShrink: 0 }}
-                                        onClick={() => handleUnscrap(rec.id)}
-                                    />
+                                    <div onClick={() => router.push(`/recruitments/${rec.id}`)} style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4, cursor: 'pointer' }}>
+                                        {rec.title}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10, fontSize: 12, color: T.gray, flexWrap: 'wrap' }}>
+                                        {ev.name && <span>🎪 {ev.name}</span>}
+                                        {inst.location && <span><MapPin size={11} style={{ verticalAlign: -1 }} /> {inst.location.split(' ').slice(0, 2).join(' ')}</span>}
+                                        {inst.event_date && <span><Calendar size={11} style={{ verticalAlign: -1 }} /> {new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>}
+                                    </div>
                                 </div>
-
-                                {/* 공고 제목 */}
-                                <div
-                                    onClick={() => ev.id ? router.push(`/events/${ev.id}`) : router.push(`/recruitments/${rec.id}`)}
-                                    style={{
-                                        fontSize: 15, fontWeight: 700, color: T.text,
-                                        marginBottom: 6, lineHeight: 1.4, cursor: 'pointer',
-                                        display: '-webkit-box', WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                                    }}
-                                >
-                                    {rec.title}
+                            );
+                        })}
+                    </div>
+                )
+            ) : (
+                evtScraps.length === 0 ? (
+                    <Empty icon="🎪" title="스크랩한 행사가 없어요" sub="행사 상세에서 북마크를 눌러보세요" cta="행사 찾기" href="/search" router={router} />
+                ) : (
+                    <div style={{ background: T.white }}>
+                        {evtScraps.map((s, i) => {
+                            const ev = s.base_event;
+                            const rating = ev.avg_event_rating ? Number(ev.avg_event_rating).toFixed(1) : '-';
+                            return (
+                                <div key={ev.id} style={{ padding: '14px 20px', borderBottom: i < evtScraps.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {ev.category && <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 4 }}>{ev.category}</span>}
+                                            {ev.total_reviews > 0 && <span style={{ fontSize: 11, color: T.gray }}>⭐ {rating} · 리뷰 {ev.total_reviews}개</span>}
+                                        </div>
+                                        <Bookmark size={18} fill={T.blue} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => unscrapEvt(ev.id)} />
+                                    </div>
+                                    <div onClick={() => router.push(`/events/${ev.id}`)} style={{ fontSize: 15, fontWeight: 700, color: T.text, cursor: 'pointer' }}>
+                                        {ev.name}
+                                    </div>
                                 </div>
-
-                                {/* 행사 정보 */}
-                                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                                    {ev?.name && (
-                                        <span style={{ fontSize: 13, color: T.textSub }}>
-                                            🎪 {ev.name}
-                                        </span>
-                                    )}
-                                    {inst?.location_sido && (
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13, color: T.gray }}>
-                                            <MapPin size={12} /> {inst.location_sido}
-                                        </span>
-                                    )}
-                                    {eventDate && (
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13, color: T.gray }}>
-                                            <Calendar size={12} /> {eventDate}
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* 참가비 */}
-                                <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: rec.fee === 0 ? T.green : T.text }}>
-                                    {rec.fee === 0 ? '무료 입점' : `참가비 ${rec.fee.toLocaleString()}원`}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )
             )}
+        </div>
+    );
+}
+
+function Empty({ icon, title, sub, cta, href, router }) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>{icon}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>{title}</div>
+            <div style={{ fontSize: 13, color: T.gray, marginBottom: 20 }}>{sub}</div>
+            {cta && <div onClick={() => router.push(href)} style={{ background: T.blue, color: '#fff', padding: '9px 22px', borderRadius: T.radiusFull, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{cta}</div>}
         </div>
     );
 }
