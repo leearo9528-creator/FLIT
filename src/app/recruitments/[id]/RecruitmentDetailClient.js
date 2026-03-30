@@ -130,25 +130,22 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const renderDetail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* 행사 상세 리뷰 확인하기 */}
+            {/* 모집 중인 행사 정보 */}
             {baseEvent.id && (
-                <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark || '#1B64DA'})`,
-                        borderRadius: T.radiusXl, padding: '18px 20px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    }}>
-                        <div>
-                            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
-                                {baseEvent.name}
-                            </div>
-                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
-                                행사 상세 리뷰 확인하기 {baseEvent.total_reviews > 0 ? `(${baseEvent.total_reviews}개)` : ''} →
+                <InfoSection emoji="🎪" title="모집 중인 행사 정보">
+                    <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                                    {baseEvent.name}
+                                </div>
+                                <div style={{ fontSize: 13, color: T.blue, fontWeight: 600 }}>
+                                    행사 상세 리뷰 확인하기 {baseEvent.total_reviews > 0 ? `(${baseEvent.total_reviews}개)` : ''} →
+                                </div>
                             </div>
                         </div>
-                        <div style={{ fontSize: 32, opacity: 0.3 }}>⭐</div>
-                    </div>
-                </Link>
+                    </Link>
+                </InfoSection>
             )}
 
             {/* 공고 핵심 정보 */}
