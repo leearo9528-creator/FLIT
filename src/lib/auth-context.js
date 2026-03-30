@@ -3,16 +3,19 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
-function canViewReviewsNow(lastReviewAt) {
-    if (!lastReviewAt) return false;
-    const now = new Date();
-    // 가장 최근 월요일 00:00 (리셋 시점) 계산
-    const day = now.getDay(); // 0=일, 1=월, ...
-    const sinceMonday = day === 0 ? 6 : day - 1; // 월요일로부터 며칠 지났는지
-    const lastMonday = new Date(now);
-    lastMonday.setDate(now.getDate() - sinceMonday);
-    lastMonday.setHours(0, 0, 0, 0);
-    return new Date(lastReviewAt) >= lastMonday;
+function canViewReviewsNow(lastReviewAt, reviewCount) {
+    // last_review_at이 있으면 주간 리셋 기준으로 판단
+    if (lastReviewAt) {
+        const now = new Date();
+        const day = now.getDay(); // 0=일, 1=월, ...
+        const sinceMonday = day === 0 ? 6 : day - 1;
+        const lastMonday = new Date(now);
+        lastMonday.setDate(now.getDate() - sinceMonday);
+        lastMonday.setHours(0, 0, 0, 0);
+        return new Date(lastReviewAt) >= lastMonday;
+    }
+    // last_review_at 없는 기존 유저: reviewCount 기반 폴백
+    return (reviewCount ?? 0) >= 1;
 }
 
 const AuthContext = createContext({ user: null, loading: true, plan: 'free', reviewCount: 0, canViewReviews: false, signOut: async () => {}, refreshPlan: async () => {} });
@@ -31,7 +34,7 @@ export function AuthProvider({ children }) {
             if (error) throw error;
             setPlan(data?.plan ?? 'free');
             setReviewCount(data?.review_count ?? 0);
-            setCanViewReviews(canViewReviewsNow(data?.last_review_at));
+            setCanViewReviews(canViewReviewsNow(data?.last_review_at, data?.review_count));
         } catch (err) {
             console.error('프로필 로드 실패:', err);
         }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, X, Plus } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
+import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
 import ChipGroup from '@/components/ui/ChipGroup';
@@ -159,6 +160,7 @@ function MultiChips({ options, values, onChange }) {
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function ReviewWritePage() {
     const router = useRouter();
+    const { refreshPlan } = useAuth();
 
     const [instances, setInstances] = useState([]);
     const [reviewCount, setReviewCount] = useState(0);
@@ -307,6 +309,7 @@ export default function ReviewWritePage() {
                 last_review_at: new Date().toISOString(),
             }).eq('id', session.user.id);
 
+            await refreshPlan();
             router.push('/mypage');
         } catch (err) {
             console.error('리뷰 등록 에러:', err);
