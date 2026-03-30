@@ -28,9 +28,12 @@
 
 - [x] 커뮤니티 글 상세 "게시글을 찾을 수 없어요" 오류 (posts 테이블 컬럼 누락 → migration 적용)
 - [x] 커뮤니티 목록 `fetchPosts` useCallback 의존성 배열에 `category` 누락
-- [x] 평점 null → 0 처리로 평균 왜곡 (`RecruitmentDetailClient` 수정 완료)
-- [x] 주최사 리뷰 `visitor_types` 배열/string 혼용 → 모든 곳에서 `Array.isArray` 처리 중 (정상)
+- [x] 평점 null → 0 처리로 평균 왜곡 (`RecruitmentDetailClient`)
+- [x] 주최사 리뷰 `visitor_types` 배열/string 혼용 → `Array.isArray` 처리 중 (정상)
 - [x] Supabase 에러 처리 누락 (6개 파일) + onboarding loading 상태 버그
+- [x] 커뮤니티 글쓰기 `category` NOT NULL 누락 → INSERT 실패
+- [x] 좋아요 에러 시 UI 롤백 없음 + 댓글 삭제/수정 에러 처리 누락
+- [x] auth-context `fetchPlan` 완료 전 `loading=false` 처리 (race condition)
 
 ### 🟡 기능 개발
 
@@ -45,7 +48,7 @@
 - [x] 핫한 모집공고 / 최근 리뷰 피드 / 커뮤니티 인기글 섹션
 - [x] 홈 데이터 SSR 최적화 (`Promise.all` 병렬 fetch)
 - [x] NotificationDrawer 동적 임포트 (`ssr: false`)
-- [ ] 알림 실제 데이터 연동
+- [x] 알림 실제 데이터 연동 (notifications 테이블 + 댓글 트리거 + Realtime)
 
 #### 검색
 - [x] 모집공고 / 리뷰 / 주최사 탭 검색
