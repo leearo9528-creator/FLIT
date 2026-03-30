@@ -16,7 +16,7 @@ import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
 import ReviewCard from '@/components/ui/ReviewCard';
 import dynamic from 'next/dynamic';
-const NaverMap = dynamic(() => import('@/components/ui/NaverMap'), { ssr: false });
+const NaverMap = dynamic(() => import('@/components/ui/NaverMap').then(mod => mod.default), { ssr: false, loading: () => <div style={{ height: 200, background: '#F2F4F6', borderRadius: 12 }} /> });
 
 /* ─── helpers ──────────────────────────────────────────────── */
 function calcDDay(dateStr) {

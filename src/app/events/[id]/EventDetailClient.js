@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
 import dynamic from 'next/dynamic';
-const NaverMap = dynamic(() => import('@/components/ui/NaverMap'), { ssr: false });
+const NaverMap = dynamic(() => import('@/components/ui/NaverMap').then(mod => mod.default), { ssr: false, loading: () => <div style={{ height: 180, background: '#F2F4F6', borderRadius: 12 }} /> });
 
 const TABS = [
     { key: 'recruit', label: '모집공고' },
