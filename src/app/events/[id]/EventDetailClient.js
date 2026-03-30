@@ -9,6 +9,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import ReviewCard from '@/components/ui/ReviewCard';
+import dynamic from 'next/dynamic';
+const NaverMap = dynamic(() => import('@/components/ui/NaverMap'), { ssr: false });
 
 const TABS = [
     { key: 'recruit', label: '모집공고' },
@@ -365,6 +367,13 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                     </div>
                 )}
             </div>
+
+            {/* ── 위치 지도 ── */}
+            {instances[0]?.location && (
+                <div style={{ padding: '0 16px 16px' }}>
+                    <NaverMap lat={37.5665} lng={126.978} height="180px" markerLabel={instances[0].location} />
+                </div>
+            )}
 
             {/* ── 탭 바 ── */}
             <div style={{

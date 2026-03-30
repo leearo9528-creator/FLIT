@@ -15,6 +15,8 @@ import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
 import ReviewCard from '@/components/ui/ReviewCard';
+import dynamic from 'next/dynamic';
+const NaverMap = dynamic(() => import('@/components/ui/NaverMap'), { ssr: false });
 
 /* ─── helpers ──────────────────────────────────────────────── */
 function calcDDay(dateStr) {
@@ -225,6 +227,15 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     </div>
                 ))}
             </div>
+
+            {/* 위치 지도 */}
+            {instance.location && (
+                <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 20, border: `1px solid ${T.border}` }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>위치</div>
+                    <NaverMap lat={37.5665} lng={126.978} height="200px" markerLabel={instance.location} />
+                    <div style={{ fontSize: 13, color: T.gray, marginTop: 8 }}>📍 {instance.location}</div>
+                </div>
+            )}
 
             {/* 상세 모집 요강 */}
             <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 20, border: `1px solid ${T.border}` }}>

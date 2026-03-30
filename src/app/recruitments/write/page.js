@@ -9,6 +9,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
 import ImageUploader from '@/components/ui/ImageUploader';
+import { AddressSearchMap } from '@/components/ui/NaverMap';
 
 /* ─── Section 컴포넌트 ───────────────────────────────────────── */
 function Section({ title, required, hint, children }) {
@@ -333,12 +334,9 @@ export default function RecruitmentWritePage() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <MapPin size={12} /> 장소
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예: 서울 마포구 홍대 걷고싶은거리"
+                            <AddressSearchMap
                                 value={location}
-                                onChange={e => setLocation(e.target.value)}
-                                style={inputStyle(!!location)}
+                                onChange={({ address }) => setLocation(address)}
                             />
                         </div>
                     </div>
