@@ -39,7 +39,8 @@ const BANNERS = [
         title: '행사 개최\n전문가에게 맡기세요',
         sub: '관공서 · 기업 · 단체 등 모든 행사 개최 의뢰를 받습니다',
         cta: '개최 문의하기',
-        href: '/contact',
+        href: 'https://flitunion.vercel.app/',
+        external: true,
     },
 ];
 
@@ -77,7 +78,7 @@ export default function HeroBanner() {
             <div
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
-                onClick={() => router.push(b.href)}
+                onClick={() => b.external ? window.open(b.href, '_blank') : router.push(b.href)}
                 style={{
                     background: b.gradient, borderRadius: T.radiusXl,
                     padding: '20px 20px 16px', cursor: 'pointer',
