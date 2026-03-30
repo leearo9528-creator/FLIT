@@ -318,115 +318,263 @@ VALUES
 
 
 -- ── 6. posts (커뮤니티) ────────────────────────────────────────
+-- 고정 UUID 사용 (post_comments 참조를 위해)
 -- user_id = NULL (SQL Editor 실행 시 RLS 바이패스)
 INSERT INTO public.posts
-  (user_id, author, seller_type, category, title, content, location, is_anonymous, anonymous_name, likes, created_at)
+  (id, user_id, author, seller_type, category, title, content, location, is_anonymous, anonymous_name, likes, created_at)
 VALUES
 
-  -- 익명 게시판 (5개)
-  (NULL, NULL, NULL, '익명', '마켓 첫 참가 후기 솔직하게 써봄',
+  -- 익명 (5개)
+  ('aaaaaaaa-0000-0000-0000-000000000001',
+   NULL, NULL, NULL, '익명', '마켓 첫 참가 후기 솔직하게 써봄',
    '지난주 홍대 플리마켓 처음 나가봤는데 생각보다 손이 안 가더라고요. 날씨 탓인지 제 아이템 탓인지 모르겠어서 고민 중이에요. 혹시 처음에 다들 이런가요?',
-   NULL, true, NULL, 14,
-   NOW() - INTERVAL '3 hours'),
+   NULL, true, NULL, 14, NOW() - INTERVAL '3 hours'),
 
-  (NULL, NULL, NULL, '익명', '참가비 환불 됐나요? 갑자기 행사 취소됐는데',
+  ('aaaaaaaa-0000-0000-0000-000000000002',
+   NULL, NULL, NULL, '익명', '참가비 환불 됐나요? 갑자기 행사 취소됐는데',
    '공지도 없이 행사 당일 취소 연락 받았는데 참가비 환불 얘기가 없어서요. 주최사에 연락했더니 답이 없네요. 이런 경우 어떻게 하셨나요?',
-   NULL, true, NULL, 22,
-   NOW() - INTERVAL '6 hours'),
+   NULL, true, NULL, 22, NOW() - INTERVAL '6 hours'),
 
-  (NULL, NULL, NULL, '익명', '셀러 부업으로 월 얼마나 버세요?',
+  ('aaaaaaaa-0000-0000-0000-000000000003',
+   NULL, NULL, NULL, '익명', '셀러 부업으로 월 얼마나 버세요?',
    '본업 직장 다니면서 주말에 플리마켓 나가는 분들 계신가요? 현실적인 수입이 어느 정도인지 궁금해서요. 저는 지난달 3번 나가서 부스비 제외 45만원 남았어요.',
-   NULL, true, NULL, 38,
-   NOW() - INTERVAL '1 day'),
+   NULL, true, NULL, 38, NOW() - INTERVAL '1 day'),
 
-  (NULL, NULL, NULL, '익명', '주최사가 자리 배정을 이상하게 한 것 같아서',
+  ('aaaaaaaa-0000-0000-0000-000000000004',
+   NULL, NULL, NULL, '익명', '주최사가 자리 배정을 이상하게 한 것 같아서',
    '분명히 코너 자리로 신청했는데 막상 가보니까 한가운데 끼인 자리였어요. 다른 분들도 이런 경험 있으세요? 이런 거 따질 수 있는 건지 몰라서요.',
-   NULL, true, NULL, 9,
-   NOW() - INTERVAL '2 days'),
+   NULL, true, NULL, 9, NOW() - INTERVAL '2 days'),
 
-  (NULL, NULL, NULL, '익명', '푸드트럭 처음 시작하려는데 뭐부터 해야 하나요',
+  ('aaaaaaaa-0000-0000-0000-000000000005',
+   NULL, NULL, NULL, '익명', '푸드트럭 처음 시작하려는데 뭐부터 해야 하나요',
    '푸드트럭 영업 시작하려고 알아보는 중인데 허가 종류가 너무 많아서 헷갈려요. 식품위생법에 노점 허가에 구청마다 다르다고 하고... 경험자분들 조언 부탁드립니다.',
-   NULL, true, NULL, 51,
-   NOW() - INTERVAL '5 hours'),
+   NULL, true, NULL, 51, NOW() - INTERVAL '5 hours'),
 
   -- 실시간 행사 현황 (4개)
-  (NULL, '김마켓', 'seller', '실시간 행사 현황', '[현재 진행중] 성수 팝업마켓 오전 현황',
+  ('aaaaaaaa-0000-0000-0000-000000000006',
+   NULL, '김마켓', 'seller', '실시간 행사 현황', '[현재 진행중] 성수 팝업마켓 오전 현황',
    '오늘 성수 팝업마켓 오전 현황 공유해요. 10시 기준 방문객 꽤 있고 젊은 층 많아요. 액세서리·의류 부스 매출 좋은 편. 날씨 맑아서 오후에 더 붐빌 것 같아요!',
-   '서울 성동구', false, NULL, 27,
-   NOW() - INTERVAL '2 hours'),
+   '서울 성동구', false, NULL, 27, NOW() - INTERVAL '2 hours'),
 
-  (NULL, '한강푸드트럭A', 'foodtruck', '실시간 행사 현황', '[여의도 한강] 오늘 오후 3시 기준 혼잡도',
+  ('aaaaaaaa-0000-0000-0000-000000000007',
+   NULL, '한강푸드트럭A', 'foodtruck', '실시간 행사 현황', '[여의도 한강] 오늘 오후 3시 기준 혼잡도',
    '여의도 한강공원 푸드트럭존 지금 엄청 붐벼요. 대기줄 20분 정도 예상. 타코야키·버블티 계열 빠르게 소진 중. 오후 5시 이후 더 몰릴 것 같아요.',
-   '서울 영등포구', false, NULL, 18,
-   NOW() - INTERVAL '1 hour'),
+   '서울 영등포구', false, NULL, 18, NOW() - INTERVAL '1 hour'),
 
-  (NULL, '마켓매니아', 'seller', '실시간 행사 현황', '홍대 플리마켓 날씨 때문에 오늘 운영 여부 확인하세요',
+  ('aaaaaaaa-0000-0000-0000-000000000008',
+   NULL, '마켓매니아', 'seller', '실시간 행사 현황', '홍대 플리마켓 날씨 때문에 오늘 운영 여부 확인하세요',
    '오늘 홍대 플리마켓 주최사에서 방금 공지 올라왔어요. 오전 중 비 소식 있으면 오후 2시로 개장 연기 가능하다고. 참가 전 공식 SNS 확인 필수!',
-   '서울 마포구', false, NULL, 45,
-   NOW() - INTERVAL '30 minutes'),
+   '서울 마포구', false, NULL, 45, NOW() - INTERVAL '30 minutes'),
 
-  (NULL, '광화문셀러', 'seller', '실시간 행사 현황', '[광화문 벼룩시장] 오늘 참가 셀러 현황',
+  ('aaaaaaaa-0000-0000-0000-000000000009',
+   NULL, '광화문셀러', 'seller', '실시간 행사 현황', '[광화문 벼룩시장] 오늘 참가 셀러 현황',
    '광화문 벼룩시장 오늘 총 32팀 참가. 부스 배치도는 입구 오른쪽 안내소에서 받을 수 있어요. 관광객 많아서 영어 가격표 준비하시면 도움 될 것 같아요.',
-   '서울 종로구', false, NULL, 12,
-   NOW() - INTERVAL '4 hours'),
+   '서울 종로구', false, NULL, 12, NOW() - INTERVAL '4 hours'),
 
   -- 자유게시판 (4개)
-  (NULL, '핸드메이드작가', 'seller', '자유게시판', '포장 박스 도매로 구입하는 곳 추천 받아요',
+  ('aaaaaaaa-0000-0000-0000-000000000010',
+   NULL, '핸드메이드작가', 'seller', '자유게시판', '포장 박스 도매로 구입하는 곳 추천 받아요',
    '판매 물품 포장용 박스 도매로 사려고 하는데 주로 어디서 구입하시나요? 을지로 가보려고 하는데 거기 말고 온라인으로도 저렴하게 구입할 수 있는 곳 있으면 알려주세요.',
-   NULL, false, NULL, 8,
-   NOW() - INTERVAL '8 hours'),
+   NULL, false, NULL, 8, NOW() - INTERVAL '8 hours'),
 
-  (NULL, '빈티지큐레이터', 'seller', '자유게시판', '인스타그램 홍보 잘 하는 방법 공유해요',
+  ('aaaaaaaa-0000-0000-0000-000000000011',
+   NULL, '빈티지큐레이터', 'seller', '자유게시판', '인스타그램 홍보 잘 하는 방법 공유해요',
    '마켓 참가 전 인스타 홍보 3개월 꾸준히 했더니 단골 고객이 생기기 시작했어요. 릴스 위주로 제작 과정 + 판매 예정 아이템 미리 공개하는 방식이 효과적이었어요.',
-   NULL, false, NULL, 31,
-   NOW() - INTERVAL '1 day 2 hours'),
+   NULL, false, NULL, 31, NOW() - INTERVAL '1 day 2 hours'),
 
-  (NULL, '아이스크림트럭', 'foodtruck', '자유게시판', '여름 행사 대비 냉각 장비 뭐 쓰세요?',
+  ('aaaaaaaa-0000-0000-0000-000000000012',
+   NULL, '아이스크림트럭', 'foodtruck', '자유게시판', '여름 행사 대비 냉각 장비 뭐 쓰세요?',
    '올여름 야외 행사 대비해서 차량 냉각 장비 업그레이드하려고 하는데요. 컴프레서 방식 vs 인버터 에어컨 어느 쪽이 비용 대비 효율이 좋나요?',
-   NULL, false, NULL, 15,
-   NOW() - INTERVAL '3 days'),
+   NULL, false, NULL, 15, NOW() - INTERVAL '3 days'),
 
-  (NULL, '셀러신인', 'seller', '자유게시판', '첫 마켓 준비물 체크리스트 공유해드려요',
+  ('aaaaaaaa-0000-0000-0000-000000000013',
+   NULL, '셀러신인', 'seller', '자유게시판', '첫 마켓 준비물 체크리스트 공유해드려요',
    '처음 참가할 때 당황했던 것들 정리해봤어요. 1) 명함/QR코드 2) 현금 거스름돈 최소 5만원 3) 가격표(방수) 4) 접이식 의자 5) 핫팩/우산(날씨 대비) 6) 보조배터리. 혹시 추가할 거 있으면 댓글 달아주세요!',
-   NULL, false, NULL, 62,
-   NOW() - INTERVAL '2 days'),
+   NULL, false, NULL, 62, NOW() - INTERVAL '2 days'),
 
   -- 질문/답변 (4개)
-  (NULL, '초보셀러', 'seller', '질문/답변', '카드 결제 단말기 어느 거 쓰세요?',
+  ('aaaaaaaa-0000-0000-0000-000000000014',
+   NULL, '초보셀러', 'seller', '질문/답변', '카드 결제 단말기 어느 거 쓰세요?',
    '현금만 받다가 카드 결제 도입하려고 하는데 수수료 낮고 핸드폰 연결 잘 되는 단말기 추천 부탁드려요. izettle이랑 스퀘어 고민 중인데 플리마켓 환경에서 어떤지 궁금해요.',
-   NULL, false, NULL, 19,
-   NOW() - INTERVAL '5 hours'),
+   NULL, false, NULL, 19, NOW() - INTERVAL '5 hours'),
 
-  (NULL, '신입푸드트럭', 'foodtruck', '질문/답변', '푸드트럭 허가 없이 마켓 참가할 수 있나요?',
+  ('aaaaaaaa-0000-0000-0000-000000000015',
+   NULL, '신입푸드트럭', 'foodtruck', '질문/답변', '푸드트럭 허가 없이 마켓 참가할 수 있나요?',
    '아직 영업 허가 진행 중인데 임박한 행사 참가하고 싶어서요. 일부 마켓은 개인사업자 없이도 된다고 하던데 정확히 어떤 기준인지 아시는 분?',
-   NULL, false, NULL, 7,
-   NOW() - INTERVAL '12 hours'),
+   NULL, false, NULL, 7, NOW() - INTERVAL '12 hours'),
 
-  (NULL, '마켓경력3년', 'seller', '질문/답변', '마켓 전용 간이 테이블 추천이요',
+  ('aaaaaaaa-0000-0000-0000-000000000016',
+   NULL, '마켓경력3년', 'seller', '질문/답변', '마켓 전용 간이 테이블 추천이요',
    '지금 쓰는 테이블이 너무 무거워서 교체하려고 해요. 접이식이면서 60×120 사이즈 1인 들기 가능한 거 추천해주세요. 예산은 5만원 이내로요.',
-   NULL, false, NULL, 11,
-   NOW() - INTERVAL '4 hours'),
+   NULL, false, NULL, 11, NOW() - INTERVAL '4 hours'),
 
-  (NULL, '핸드메이드', 'seller', '질문/답변', '리뷰 요청 어떻게 하시나요?',
+  ('aaaaaaaa-0000-0000-0000-000000000017',
+   NULL, '핸드메이드', 'seller', '질문/답변', '리뷰 요청 어떻게 하시나요?',
    '구매 후 리뷰 써달라고 부탁하는 게 어색해서 못 하겠어요. 카드 같은 거 끼워서 자연스럽게 유도하는 방법 있나요? 아니면 그냥 안 하는 게 나을까요?',
-   NULL, false, NULL, 24,
-   NOW() - INTERVAL '6 hours'),
+   NULL, false, NULL, 24, NOW() - INTERVAL '6 hours'),
 
   -- 팁/정보 (3개)
-  (NULL, '마켓고수', 'seller', '팁/정보', '부스 진열 레이아웃 바꿨더니 매출 30% 올랐어요',
+  ('aaaaaaaa-0000-0000-0000-000000000018',
+   NULL, '마켓고수', 'seller', '팁/정보', '부스 진열 레이아웃 바꿨더니 매출 30% 올랐어요',
    '기존에 상품을 쭉 나열만 했는데 높낮이 차이를 줘서 입체적으로 배치했더니 확실히 멈추는 사람이 많아졌어요. 1단→2단→3단 높이 구성 추천합니다. 조명도 하나만 달았는데 분위기 완전 달라져요.',
-   NULL, false, NULL, 55,
-   NOW() - INTERVAL '1 day 5 hours'),
+   NULL, false, NULL, 55, NOW() - INTERVAL '1 day 5 hours'),
 
-  (NULL, '행사정보통', 'seller', '팁/정보', '2026년 4-5월 전국 플리마켓·마켓 일정 정리',
+  ('aaaaaaaa-0000-0000-0000-000000000019',
+   NULL, '행사정보통', 'seller', '팁/정보', '2026년 4-5월 전국 플리마켓·마켓 일정 정리',
    E'4월 일정 정리해봤어요.\n- 4/5~6 홍대 플리마켓 (마켓컬쳐)\n- 4/10~13 여의도 봄꽃 마켓\n- 4/12 광화문 벼룩시장\n- 4/19~20 성수 팝업마켓\n- 4/26~27 강남 스트리트 마켓\n5월은 한강 푸드트럭 페스티벌·인천 항구 마켓·전주 한옥마을 예정. 추가 정보 있으면 댓글로 공유해주세요!',
-   NULL, false, NULL, 88,
-   NOW() - INTERVAL '3 days'),
+   NULL, false, NULL, 88, NOW() - INTERVAL '3 days'),
 
-  (NULL, '날씨셀러', 'seller', '팁/정보', '비 오는 날 야외 마켓 대비법',
+  ('aaaaaaaa-0000-0000-0000-000000000020',
+   NULL, '날씨셀러', 'seller', '팁/정보', '비 오는 날 야외 마켓 대비법',
    E'갑작스런 비에 대비하는 꿀팁:\n1. 방수 가격표 미리 코팅\n2. 지퍼백 여분 넉넉히 준비\n3. 텐트 방수 스프레이 매 시즌 전 뿌리기\n4. 상품 하단에 팔레트 깔기 (침수 방지)\n5. 현금통은 방수 파우치에\n6. 철수 기준 미리 정해두기 (물이 고이면 즉시 정리)',
-   NULL, false, NULL, 73,
-   NOW() - INTERVAL '4 days');
+   NULL, false, NULL, 73, NOW() - INTERVAL '4 days');
+
+
+-- ── 7. post_comments ───────────────────────────────────────────
+INSERT INTO public.post_comments
+  (post_id, user_id, author, content, is_anonymous, anonymous_name, created_at)
+VALUES
+
+  -- 익명01: 마켓 첫 참가 후기
+  ('aaaaaaaa-0000-0000-0000-000000000001', NULL, NULL,
+   '저도 처음엔 그랬어요. 3번 정도 나가면서 자리도 익숙해지고 고객 반응도 파악이 되더라고요. 너무 낙담하지 마세요!',
+   true, NULL, NOW() - INTERVAL '2 hours 30 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', NULL, NULL,
+   '아이템보다 진열 방식이 더 중요한 것 같아요. 눈에 띄게 높낮이 주고 POP 가격표 달았더니 확 달라졌어요.',
+   true, NULL, NOW() - INTERVAL '1 hour 45 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', NULL, NULL,
+   '날씨 영향 진짜 크더라고요. 맑은 날 다시 한번 나가보세요. 분명히 달라질 거예요.',
+   true, NULL, NOW() - INTERVAL '50 minutes'),
+
+  -- 익명02: 참가비 환불
+  ('aaaaaaaa-0000-0000-0000-000000000002', NULL, NULL,
+   '저도 비슷한 경험 있어요. 주최사 인스타 DM으로 공개 문의하니까 빠르게 답장 왔어요. 공개 채널이 더 효과적인 것 같아요.',
+   true, NULL, NOW() - INTERVAL '5 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000002', NULL, NULL,
+   '참가비 선불이면 계약서나 안내문 확인해보세요. 취소 정책이 명시돼 있는 경우 그걸 근거로 요청할 수 있어요.',
+   true, NULL, NOW() - INTERVAL '4 hours'),
+
+  -- 익명03: 부업 수입
+  ('aaaaaaaa-0000-0000-0000-000000000003', NULL, NULL,
+   '저는 월 2~3회 나가서 부스비 빼고 30~60 사이예요. 아이템이랑 날씨에 따라 편차가 심한 게 함정이에요.',
+   true, NULL, NOW() - INTERVAL '22 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000003', NULL, NULL,
+   '핸드메이드 기준으로 재료비도 따져야 해요. 매출 45만원이면 원가 빼면 실수령이 많이 줄 수 있어요.',
+   true, NULL, NOW() - INTERVAL '20 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000003', NULL, NULL,
+   '행사 퀄리티가 정말 중요해요. 같은 아이템도 성수 팝업이랑 동네 마켓이랑 매출 차이가 2~3배 나요.',
+   true, NULL, NOW() - INTERVAL '18 hours'),
+
+  -- 익명05: 푸드트럭 허가
+  ('aaaaaaaa-0000-0000-0000-000000000005', NULL, NULL,
+   '구청마다 다르긴 한데 기본적으로 식품영업신고(즉석판매제조업)는 필수예요. 허가 없으면 단속 대상이에요.',
+   true, NULL, NOW() - INTERVAL '4 hours 30 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000005', NULL, NULL,
+   '저는 초기에 주최사가 단기 행사 허가 대행해주는 마켓 위주로 나갔어요. 그런 마켓 찾아보시는 것도 방법이에요.',
+   true, NULL, NOW() - INTERVAL '3 hours'),
+
+  -- 실시간06: 성수 팝업 오전 현황
+  ('aaaaaaaa-0000-0000-0000-000000000006', NULL, '성수단골', NULL,
+   '저도 지금 거기 있는데 오전 11시부터 확 몰렸어요. 먹거리 쪽 줄이 엄청나요.',
+   false, NULL, NOW() - INTERVAL '1 hour 40 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000006', NULL, '성수셀러B', NULL,
+   '액세서리 코너 대박이에요. 오전에만 목표 매출 달성했어요!',
+   false, NULL, NOW() - INTERVAL '1 hour'),
+
+  -- 실시간08: 홍대 날씨 공지
+  ('aaaaaaaa-0000-0000-0000-000000000008', NULL, '홍대참가자', NULL,
+   '방금 공식 인스타 확인했는데 오전 강수 없으면 정상 개장한다고 업데이트됐어요.',
+   false, NULL, NOW() - INTERVAL '20 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000008', NULL, '마켓매니아', NULL,
+   '현장 도착했는데 셀러들 정상 세팅 중이에요. 걱정 안 하셔도 될 것 같아요!',
+   false, NULL, NOW() - INTERVAL '10 minutes'),
+
+  -- 자유10: 포장 박스
+  ('aaaaaaaa-0000-0000-0000-000000000010', NULL, '패키징고수', NULL,
+   '알리익스프레스에서 직구하면 을지로보다 훨씬 저렴해요. 다만 배송이 2주 걸리니까 미리 주문하세요.',
+   false, NULL, NOW() - INTERVAL '7 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000010', NULL, '핸드메이드작가', NULL,
+   '저는 네이버쇼핑에서 "크래프트 박스 도매"로 검색해서 구입해요. 50개 단위로 살 수 있어서 편해요.',
+   false, NULL, NOW() - INTERVAL '6 hours'),
+
+  -- 자유11: 인스타 홍보
+  ('aaaaaaaa-0000-0000-0000-000000000011', NULL, '소셜마케터', NULL,
+   '릴스 올릴 때 해시태그를 #플리마켓 #핸드메이드마켓 #마켓셀러 이렇게 구체적으로 달면 타겟 노출이 훨씬 잘 돼요.',
+   false, NULL, NOW() - INTERVAL '23 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000011', NULL, '빈티지큐레이터', NULL,
+   '행사 다음날 후기 릴스도 꼭 올려보세요. 다음 행사 홍보로 이어져서 팔로워 유입이 꽤 있어요.',
+   false, NULL, NOW() - INTERVAL '22 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000011', NULL, '마켓초보', NULL,
+   '스토리 카운트다운 기능 써서 행사 D-day 올리는 것도 효과 있더라고요. 리마인드 기능이 자동으로 팔로워에게 알림 가요.',
+   false, NULL, NOW() - INTERVAL '20 hours'),
+
+  -- 자유13: 준비물 체크리스트
+  ('aaaaaaaa-0000-0000-0000-000000000013', NULL, '마켓베테랑', NULL,
+   '멀티탭 추가요! 핸드폰 충전 + 조명 + 카드단말기 동시에 써야 해서 꼭 챙기세요.',
+   false, NULL, NOW() - INTERVAL '1 day 20 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000013', NULL, '비오면어쩌나', NULL,
+   '비닐 커버 꼭 챙기세요. 갑자기 비 올 때 상품 덮어야 해서 없으면 진짜 당황해요.',
+   false, NULL, NOW() - INTERVAL '1 day 18 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000013', NULL, '셀러신인', NULL,
+   '다들 좋은 팁 감사해요! 멀티탭이랑 비닐 커버 추가할게요.',
+   false, NULL, NOW() - INTERVAL '1 day 17 hours'),
+
+  -- 질문14: 카드 단말기
+  ('aaaaaaaa-0000-0000-0000-000000000014', NULL, '단말기유저', NULL,
+   '저는 토스페이먼츠 단말기 쓰는데 수수료 1.4%에 앱 연동도 깔끔해요. 야외 환경에서 블루투스 연결도 안정적이고요.',
+   false, NULL, NOW() - INTERVAL '4 hours 30 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000014', NULL, '카드달인', NULL,
+   '스퀘어 리더기 써봤는데 해외 카드도 결제 되는 게 장점이에요. 외국인 손님 많은 마켓이면 추천해요.',
+   false, NULL, NOW() - INTERVAL '3 hours 30 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000014', NULL, '초보셀러', NULL,
+   '토스페이먼츠 바로 알아볼게요. 감사합니다!',
+   false, NULL, NOW() - INTERVAL '2 hours 30 minutes'),
+
+  -- 질문15: 푸드트럭 허가
+  ('aaaaaaaa-0000-0000-0000-000000000015', NULL, '푸드트럭선배', NULL,
+   '허가 없이는 불가해요. 단, 일부 사설 행사는 주최사 허가 범위 안에 포함되는 경우 있으니 주최사에 먼저 문의해보세요.',
+   false, NULL, NOW() - INTERVAL '11 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000015', NULL, '트럭업계5년', NULL,
+   '즉석판매제조업 신고증 있으면 대부분 해결돼요. 구청에서 1~2주면 나오니까 서두르세요.',
+   false, NULL, NOW() - INTERVAL '10 hours'),
+
+  -- 질문17: 리뷰 요청
+  ('aaaaaaaa-0000-0000-0000-000000000017', NULL, '리뷰달인', NULL,
+   '구매 포장에 손글씨 카드 끼워드리면 효과 있어요. "후기 남겨주시면 다음 구매 시 소정의 할인" 이런 문구 넣으면 자연스럽게 유도돼요.',
+   false, NULL, NOW() - INTERVAL '5 hours 30 minutes'),
+  ('aaaaaaaa-0000-0000-0000-000000000017', NULL, '마켓SNS', NULL,
+   '강요하는 느낌보다 QR코드로 인스타 페이지 연결해서 자연스럽게 팔로우·태그 유도하는 방식이 거부감이 덜해요.',
+   false, NULL, NOW() - INTERVAL '4 hours 30 minutes'),
+
+  -- 팁18: 진열 레이아웃
+  ('aaaaaaaa-0000-0000-0000-000000000018', NULL, '디스플레이전공', NULL,
+   '조명은 따뜻한 색온도(3000K) 추천해요. 제품이 훨씬 맛있어 보이고 사람 눈길이 오래 머물러요.',
+   false, NULL, NOW() - INTERVAL '1 day 4 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000018', NULL, '셀러3년차', NULL,
+   '저도 높낮이 바꾸고 나서 체감 매출이 달라졌어요. 앞쪽에 저가 아이템, 안쪽에 고가 아이템 배치하는 것도 팁이에요.',
+   false, NULL, NOW() - INTERVAL '1 day 3 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000018', NULL, '구경꾼아님', NULL,
+   '이 팁 진짜예요. 저는 박스 위에 올려만 놨는데 매출 차이가 확 나더라고요.',
+   false, NULL, NOW() - INTERVAL '1 day 2 hours'),
+
+  -- 팁19: 마켓 일정
+  ('aaaaaaaa-0000-0000-0000-000000000019', NULL, '일정공유자', NULL,
+   '경기도 쪽 일정도 추가해주실 수 있나요? 판교·수원 쪽 행사도 꽤 있던데요.',
+   false, NULL, NOW() - INTERVAL '2 days 20 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000019', NULL, '행사정보통', NULL,
+   '경기 쪽은 따로 정리해서 올릴게요. 정보 제공해주시면 같이 취합해서 올리겠습니다!',
+   false, NULL, NOW() - INTERVAL '2 days 18 hours'),
+
+  -- 팁20: 비 오는 날 대비법
+  ('aaaaaaaa-0000-0000-0000-000000000020', NULL, '우비셀러', NULL,
+   '철수 기준 진짜 중요해요. 저는 "물이 부스 안으로 들어오면 즉시 철수"로 정해놨는데 그 기준 없이 버티다가 재고 다 망친 적 있어요.',
+   false, NULL, NOW() - INTERVAL '3 days 20 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000020', NULL, '날씨앱빠', NULL,
+   '기상청 단기예보 앱 미리 깔아두세요. 시간대별 강수확률 보고 판단하면 돼요.',
+   false, NULL, NOW() - INTERVAL '3 days 18 hours'),
+  ('aaaaaaaa-0000-0000-0000-000000000020', NULL, '날씨셀러', NULL,
+   '다들 좋은 팁 감사해요. 철수 기준 미리 정하는 거 정말 중요한 것 같아요!',
+   false, NULL, NOW() - INTERVAL '3 days 16 hours');
 
 
 -- ── 7. 통계 수동 업데이트 ───────────────────────────────────────
