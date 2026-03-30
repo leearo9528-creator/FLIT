@@ -16,6 +16,23 @@ import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
 import ReviewCard from '@/components/ui/ReviewCard';
 
+/* ─── 통일 섹션 UI ────────────────────────────────────────── */
+function InfoSection({ emoji, title, children }) {
+    return (
+        <div style={{ background: T.white, borderRadius: T.radiusXl, border: `1.5px solid ${T.blue}40`, overflow: 'hidden' }}>
+            <div style={{
+                background: `linear-gradient(135deg, ${T.blue}15, ${T.blue}08)`,
+                padding: '14px 20px', borderBottom: `1px solid ${T.blue}20`,
+                display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+                <span style={{ fontSize: 18 }}>{emoji}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>{title}</span>
+            </div>
+            <div style={{ padding: '16px 20px' }}>{children}</div>
+        </div>
+    );
+}
+
 /* ─── helpers ──────────────────────────────────────────────── */
 function calcDDay(dateStr) {
     if (!dateStr) return null;
@@ -201,17 +218,12 @@ export default function RecruitmentDetailClient({ recruitment }) {
             )}
 
             {/* 공고 핵심 정보 */}
-            <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 20, border: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>공고 핵심 정보</div>
+            <InfoSection emoji="📌" title="공고 핵심 정보">
                 {[
                     { icon: <Calendar size={15} color={T.blue} />, label: '행사 일자', value: formatDate(instance.event_date) },
                     { icon: <Clock size={15} color={T.red} />, label: '모집 마감', value: formatDate(recruitment.end_date), valueColor: T.red },
                     { icon: <MapPin size={15} color={T.green} />, label: '장소', value: instance.location || '미정' },
-                    {
-                        icon: <Banknote size={15} color={T.yellow} />, label: '참가비',
-                        value: !recruitment.fee ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`,
-                        valueColor: T.blue,
-                    },
+                    { icon: <Banknote size={15} color={T.yellow} />, label: '참가비', value: !recruitment.fee ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`, valueColor: T.blue },
                 ].map((row, i, arr) => (
                     <div key={row.label} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -219,72 +231,54 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         marginBottom: i < arr.length - 1 ? 12 : 0,
                         borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.gray, fontSize: 14 }}>
-                            {row.icon}{row.label}
-                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: T.gray, fontSize: 14 }}>{row.icon}{row.label}</div>
                         <span style={{ fontSize: 14, fontWeight: 700, color: row.valueColor || T.text }}>{row.value}</span>
                     </div>
                 ))}
-            </div>
+            </InfoSection>
 
             {/* 상세 모집 요강 */}
-            <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 20, border: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>상세 모집 요강</div>
+            <InfoSection emoji="📝" title="상세 모집 요강">
                 <div style={{ fontSize: 14, color: T.text, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
                     {recruitment.content || '상세 내용이 없습니다.'}
                 </div>
-            </div>
+            </InfoSection>
 
             {/* 신청 방법 */}
-            <div style={{
-                background: T.white, borderRadius: T.radiusXl,
-                border: `1.5px solid ${T.blue}40`, overflow: 'hidden',
-            }}>
-                <div style={{
-                    background: `linear-gradient(135deg, ${T.blue}15, ${T.blue}08)`,
-                    padding: '14px 20px', borderBottom: `1px solid ${T.blue}20`,
-                    display: 'flex', alignItems: 'center', gap: 8,
-                }}>
-                    <span style={{ fontSize: 18 }}>📋</span>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>신청 방법</span>
-                </div>
-                <div style={{ padding: '16px 20px' }}>
-                    {recruitment.application_method ? (
-                        <div style={{ fontSize: 14, color: T.text, lineHeight: 2, whiteSpace: 'pre-wrap' }}>
-                            {recruitment.application_method}
-                        </div>
-                    ) : (
-                        <div style={{ fontSize: 14, color: T.gray, lineHeight: 1.7 }}>
-                            신청 방법이 아직 등록되지 않았습니다.{'\n'}주최사에게 직접 문의해주세요.
-                        </div>
-                    )}
-                </div>
-            </div>
+            <InfoSection emoji="📋" title="신청 방법">
+                {recruitment.application_method ? (
+                    <div style={{ fontSize: 14, color: T.text, lineHeight: 2, whiteSpace: 'pre-wrap' }}>
+                        {recruitment.application_method}
+                    </div>
+                ) : (
+                    <div style={{ fontSize: 14, color: T.gray, lineHeight: 1.7 }}>
+                        신청 방법이 아직 등록되지 않았습니다.{'\n'}주최사에게 직접 문의해주세요.
+                    </div>
+                )}
+            </InfoSection>
 
             {/* 주최사 정보 */}
             {organizer.id && (
-                <Link href={`/organizers/${organizer.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        background: T.white, borderRadius: T.radiusXl,
-                        padding: '14px 18px', border: `1px solid ${T.border}`,
-                        display: 'flex', alignItems: 'center', gap: 12,
-                    }}>
-                        <div style={{
-                            width: 44, height: 44, borderRadius: T.radiusMd,
-                            background: T.grayLt, flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                        }}>
-                            {organizer.logo_url
-                                ? <Image src={organizer.logo_url} alt="" fill style={{ borderRadius: T.radiusMd, objectFit: 'cover' }} sizes="48px" />
-                                : '🏢'}
+                <InfoSection emoji="🏢" title="주최사">
+                    <Link href={`/organizers/${organizer.id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{
+                                width: 44, height: 44, borderRadius: T.radiusMd,
+                                background: T.grayLt, flexShrink: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                            }}>
+                                {organizer.logo_url
+                                    ? <Image src={organizer.logo_url} alt="" fill style={{ borderRadius: T.radiusMd, objectFit: 'cover' }} sizes="48px" />
+                                    : '🏢'}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{organizer.name}</div>
+                                {organizer.description && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{organizer.description}</div>}
+                            </div>
+                            <ExternalLink size={16} color={T.gray} />
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>주최사</div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{organizer.name}</div>
-                        </div>
-                        <ExternalLink size={16} color={T.gray} />
-                    </div>
-                </Link>
+                    </Link>
+                </InfoSection>
             )}
         </div>
     );
