@@ -85,11 +85,11 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const [scrapLoading, setScrapLoading] = useState(false);
     const [bumpLoading, setBumpLoading] = useState(false);
 
-    const isOwnOrganizer = plan === 'organizer' && organizer.id === user?.id;
-
     const instance = recruitment.instance || {};
     const baseEvent = instance.base_event || {};
     const organizer = instance.organizer || {};
+
+    const isOwnOrganizer = plan === 'organizer' && organizer.id === user?.id;
 
     const dDay = calcDDay(recruitment.end_date);
     const totalEventReviews = baseEvent.total_reviews ?? 0;

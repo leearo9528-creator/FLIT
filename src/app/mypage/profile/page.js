@@ -92,23 +92,22 @@ export default function ProfilePage() {
             const isOrganizer = role === 'organizer';
             const currentPlan = plan;
 
-            // 프로필 업데이트
+            // 프로필 업데이트 — 양쪽 필드 모두 저장 (역할 전환해도 데이터 유지)
             const profileUpdate = {
                 name: name.trim(),
-                brand_name: isOrganizer ? null : brandName.trim() || null,
+                brand_name: brandName.trim() || null,
                 real_name: realName.trim() || null,
                 phone: phone.trim() || null,
-                products: isOrganizer ? null : products.trim() || null,
+                products: products.trim() || null,
                 promo_link: promoLink.trim() || null,
-                organizer_name: isOrganizer ? orgName.trim() : null,
-                organizer_desc: isOrganizer ? orgDesc.trim() || null : null,
+                organizer_name: orgName.trim() || null,
+                organizer_desc: orgDesc.trim() || null,
             };
 
-            // 역할 변경 처리
-            if (isOrganizer && currentPlan !== 'organizer' && currentPlan !== 'organizer_pending') {
-                profileUpdate.plan = 'organizer_pending';
-                profileUpdate.seller_type = null;
-            } else if (!isOrganizer && (currentPlan === 'organizer' || currentPlan === 'organizer_pending')) {
+            // 역할 변경 처리 (승인 없이 즉시 전환)
+            if (isOrganizer && currentPlan !== 'organizer') {
+                profileUpdate.plan = 'organizer';
+            } else if (!isOrganizer && currentPlan === 'organizer') {
                 profileUpdate.plan = 'free';
                 profileUpdate.seller_type = 'seller';
             }
@@ -185,13 +184,13 @@ export default function ProfilePage() {
                                 );
                             })}
                         </div>
-                        {isOrganizer && plan !== 'organizer' && plan !== 'organizer_pending' && (
+                        {isOrganizer && plan !== 'organizer' && (
                             <div style={{
-                                marginTop: 10, background: '#FFFBEB', border: '1px solid #FCD34D',
+                                marginTop: 10, background: T.blueLt, border: `1px solid ${T.blue}30`,
                                 borderRadius: T.radiusMd, padding: '10px 14px',
-                                fontSize: 12, color: '#92400E', lineHeight: 1.6,
+                                fontSize: 12, color: T.blue, lineHeight: 1.6,
                             }}>
-                                주최사 전환은 관리자 승인이 필요합니다. 승인 전까지 공고 등록이 제한됩니다.
+                                주최사로 전환하면 모집공고를 등록할 수 있어요.
                             </div>
                         )}
                     </Card>
