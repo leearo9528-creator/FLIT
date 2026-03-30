@@ -232,10 +232,14 @@ function ExcelUploader({ onComplete }) {
         <div style={{ padding: '0 16px' }}>
             <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>엑셀 파일 업로드</div>
-                <div style={{ fontSize: 12, color: T.gray, marginBottom: 16, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: T.gray, marginBottom: 12, lineHeight: 1.6 }}>
                     FLIT_데이터입력양식_v2.xlsx 파일을 선택하세요.<br/>
                     시트 순서: 1_주최사 → 2_행사 → 3_행사개최 → 4_모집공고
                 </div>
+                <a href="/data_template.xlsx" download="FLIT_데이터입력양식.xlsx"
+                    style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>
+                    📥 입력 양식 다운로드
+                </a>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleUpload} disabled={uploading}
                     style={{ display: 'block', marginBottom: 12 }} />
                 {status && (
@@ -448,21 +452,28 @@ function TextPasteParser({ onComplete }) {
             {/* 미리보기 */}
             {parsed && (
                 <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>파싱 결과 미리보기</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 6 }}>파싱 결과 수정</div>
+                    <div style={{ fontSize: 12, color: T.gray, marginBottom: 14 }}>자동 파싱된 값을 확인하고 필요시 직접 수정하세요.</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {PARSE_KEYS.map(k => {
-                            const val = parsed[k.key];
-                            if (!val) return null;
-                            return (
-                                <div key={k.key} style={{ display: 'flex', gap: 10, borderBottom: `1px solid ${T.border}`, paddingBottom: 8 }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, width: 90, flexShrink: 0 }}>{k.label}</span>
-                                    <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6, whiteSpace: 'pre-line', flex: 1 }}>{val}</span>
-                                </div>
-                            );
-                        })}
-                        {Object.keys(parsed).length === 0 && (
-                            <div style={{ color: T.red, fontSize: 13 }}>파싱된 데이터가 없습니다. ✅ 키워드가 포함된 텍스트인지 확인해주세요.</div>
-                        )}
+                        {PARSE_KEYS.map(k => (
+                            <div key={k.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, width: 90, flexShrink: 0, paddingTop: 8 }}>{k.label}</span>
+                                {(parsed[k.key] || '').includes('\n') || (parsed[k.key] || '').length > 60 ? (
+                                    <textarea
+                                        value={parsed[k.key] || ''}
+                                        onChange={e => setParsed({ ...parsed, [k.key]: e.target.value })}
+                                        rows={3}
+                                        style={{ flex: 1, padding: '8px 10px', fontSize: 13, color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, resize: 'vertical', lineHeight: 1.6, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                    />
+                                ) : (
+                                    <input
+                                        value={parsed[k.key] || ''}
+                                        onChange={e => setParsed({ ...parsed, [k.key]: e.target.value })}
+                                        style={{ flex: 1, padding: '8px 10px', fontSize: 13, color: T.text, border: `1px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, boxSizing: 'border-box' }}
+                                    />
+                                )}
+                            </div>
+                        ))}
                     </div>
 
                     {parsed.eventName && (
@@ -559,10 +570,16 @@ export default function AdminPage() {
 
     const handleDelete = (table) => async (id) => {
         if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
-        const sb = createClient();
-        const { error } = await sb.from(table).delete().eq('id', id);
-        if (error) alert(`삭제 실패: ${error.message}`);
-        else fetchAll();
+        try {
+            const sb = createClient();
+            const { error, count } = await sb.from(table).delete().eq('id', id);
+            if (error) throw error;
+            alert('삭제 완료');
+            fetchAll();
+        } catch (err) {
+            alert(`삭제 실패: ${err.message}\n\nRLS 정책이 적용되지 않았을 수 있습니다.\nSupabase SQL 에디터에서 add_admin_delete_policies.sql을 실행해주세요.`);
+            console.error('삭제 에러:', err);
+        }
     };
 
     if (authLoading || checkingAdmin || !isAdmin) return (

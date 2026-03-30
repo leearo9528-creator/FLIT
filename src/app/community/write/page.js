@@ -7,6 +7,7 @@ import { T } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
+import ImageUploader from '@/components/ui/ImageUploader';
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function CommunityWritePage() {
@@ -17,6 +18,7 @@ export default function CommunityWritePage() {
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [images, setImages] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -42,7 +44,7 @@ export default function CommunityWritePage() {
             const { data: { session } } = await sb.auth.getSession();
             if (!session?.user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
-            const { error } = await sb.from('posts').insert({
+            const payload = {
                 user_id: session.user.id,
                 author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
                 title: title.trim(),
@@ -50,7 +52,9 @@ export default function CommunityWritePage() {
                 category: isAnon ? '익명' : '일반',
                 is_anonymous: isAnon,
                 anonymous_name: null,
-            });
+            };
+            if (images.length > 0) payload.images = images;
+            const { error } = await sb.from('posts').insert(payload);
             if (error) throw error;
             router.push('/community');
         } catch (err) {
@@ -103,6 +107,13 @@ export default function CommunityWritePage() {
                                 </div>
                             </div>
                         </div>
+                    </Card>
+
+                    {/* ── 사진 ── */}
+                    <Card>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>사진 첨부</div>
+                        <ImageUploader images={images} onChange={setImages} folder="posts" max={5} />
+                        <div style={{ fontSize: 11, color: T.gray, marginTop: 8 }}>최대 5장, 장당 5MB 이하</div>
                     </Card>
 
                     {/* ── 제목 + 내용 ── */}
