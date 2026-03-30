@@ -7,6 +7,15 @@ import { T } from '@/lib/design-tokens';
 const BANNERS = [
     {
         id: 1,
+        gradient: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)',
+        tag: '📖 서비스 안내',
+        title: '플릿 처음이신가요?\n이용 가이드 확인하기',
+        sub: '행사 · 공고 · 리뷰 · 주최사 — 서비스 구조를 알려드려요',
+        cta: '가이드 보기',
+        href: '/notices/guide',
+    },
+    {
+        id: 2,
         gradient: `linear-gradient(135deg, ${T.blue} 0%, ${T.blueDark} 100%)`,
         tag: '📝 리뷰 열람권',
         title: '리뷰 1개 쓰면\n1주일간 전체 열람',
@@ -15,25 +24,7 @@ const BANNERS = [
         href: '/reviews/write',
     },
     {
-        id: 2,
-        gradient: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
-        tag: '📊 수익 데이터',
-        title: '수익성 높은 행사\n한눈에 비교하기',
-        sub: '셀러들의 실제 수익 데이터를 확인하세요',
-        cta: '행사 찾아보기',
-        href: '/search',
-    },
-    {
         id: 3,
-        gradient: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)',
-        tag: '📖 서비스 안내',
-        title: '플릿 처음이신가요?\n이용 가이드 확인하기',
-        sub: '행사 · 공고 · 리뷰 · 주최사 — 서비스 구조를 알려드려요',
-        cta: '가이드 보기',
-        href: '/notices',
-    },
-    {
-        id: 4,
         gradient: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
         tag: '🏢 행사 개최 문의',
         title: '행사 개최\n전문가에게 맡기세요',
