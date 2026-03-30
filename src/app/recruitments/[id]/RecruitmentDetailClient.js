@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
     ArrowLeft, Bookmark, MapPin, Calendar, Banknote,
-    Star, TrendingUp, Users, PenLine,
     Clock, ExternalLink,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
@@ -14,7 +13,7 @@ import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { timeAgo } from '@/lib/helpers';
-import ReviewCard from '@/components/ui/ReviewCard';
+// ReviewCard 제거 — 주최사 리뷰는 주최사 상세 페이지에서 확인
 
 /* ─── 통일 섹션 UI ────────────────────────────────────────── */
 function InfoSection({ emoji, title, children }) {
@@ -49,38 +48,13 @@ function formatDate(dateStr) {
     });
 }
 
-/* ─── Rating Progress Bar ──────────────────────────────────── */
-function RatingBar({ icon, label, value, color }) {
-    const pct = Math.round(((value || 0) / 5) * 100);
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, height: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: 72, flexShrink: 0 }}>
-                {icon}
-                <span style={{ fontSize: 12, color: T.textSub }}>{label}</span>
-            </div>
-            <div style={{ flex: 1, height: 7, background: T.border, borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{
-                    width: `${pct}%`, height: '100%', background: color,
-                    borderRadius: 4, transition: 'width 0.8s cubic-bezier(.4,0,.2,1)',
-                }} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 800, color, width: 28, textAlign: 'right' }}>
-                {(value || 0).toFixed(1)}
-            </span>
-        </div>
-    );
-}
-
-const TABS = ['상세요강', '주최사 리뷰'];
+// 탭 없이 상세요강만 표시
 
 /* ─── Main Component ───────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
     const router = useRouter();
     const { user, plan, canViewReviews } = useAuth();
 
-    const [activeTab, setActiveTab] = useState(0);
-    const [reviews, setReviews] = useState([]);
-    const [reviewsLoading, setReviewsLoading] = useState(false);
     const [scrapped, setScrapped] = useState(false);
     const [scrapLoading, setScrapLoading] = useState(false);
     const [bumpLoading, setBumpLoading] = useState(false);
@@ -92,21 +66,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const isOwnOrganizer = plan === 'organizer' && organizer.id === user?.id;
 
     const dDay = calcDDay(recruitment.end_date);
-    const totalEventReviews = baseEvent.total_reviews ?? 0;
-
-    function ratingAvg(key) {
-        const vals = reviews.map(r => r[key]).filter(v => v != null);
-        return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    }
-    const avgSupport = ratingAvg('rating_support');
-    const avgManners = ratingAvg('rating_manners');
-    const avgProfit  = ratingAvg('rating_profit');
-    const avgTraffic = ratingAvg('rating_traffic');
-    const overallAvg = reviews.length > 0
-        ? reviews.reduce((s, r) => {
-            const scores = [r.rating_profit, r.rating_traffic, r.rating_support, r.rating_manners, r.rating_promotion].filter(v => v != null);
-            return s + (scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0);
-        }, 0) / reviews.length : 0;
 
     // 스크랩 상태 초기 로드
     useEffect(() => {
@@ -168,32 +127,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
         }
     };
 
-    useEffect(() => {
-        if (activeTab !== 1 || !organizer.id || reviews.length > 0) return;
-        setReviewsLoading(true);
-        (async () => {
-            try {
-                const sb = createClient();
-                const { data: instances, error: instErr } = await sb
-                    .from('event_instances').select('id').eq('organizer_id', organizer.id);
-                if (instErr) throw instErr;
-                const instanceIds = (instances || []).map(i => i.id);
-                if (instanceIds.length === 0) { setReviewsLoading(false); return; }
-                const { data, error } = await sb
-                    .from('reviews').select('*, event_instance:event_instances(id, base_event:base_events(id, name))')
-                    .in('event_instance_id', instanceIds)
-                    .order('created_at', { ascending: false }).limit(30);
-                if (error) throw error;
-                if (data) setReviews(data);
-            } catch (err) {
-                console.error('주최사 리뷰 로드 실패:', err);
-            } finally {
-                setReviewsLoading(false);
-            }
-        })();
-    }, [activeTab, organizer.id]);
-
-    /* ── Tab 0: 상세요강 ────────────────────────────────────── */
+    /* ── 상세요강 ────────────────────────────────────────────── */
     const renderDetail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -274,98 +208,11 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{organizer.name}</div>
-                                {organizer.description && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{organizer.description}</div>}
+                                <div style={{ fontSize: 12, color: T.blue, marginTop: 3, fontWeight: 600 }}>주최사 리뷰 보러가기 →</div>
                             </div>
-                            <ExternalLink size={16} color={T.gray} />
                         </div>
                     </Link>
                 </InfoSection>
-            )}
-        </div>
-    );
-
-    /* ── Tab 1: 주최사 리뷰 ──────────────────────────────────── */
-    const renderReviews = () => (
-        <div>
-            {/* 주최사 평가 요약 */}
-            <div style={{
-                background: T.white, borderRadius: T.radiusXl,
-                padding: 20, border: `1px solid ${T.border}`, marginBottom: 16,
-            }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 12 }}>
-                    {organizer.name || '주최사'} 평가 요약
-                </div>
-                {!(user && canViewReviews) ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 0' }}>
-                        <div style={{ fontSize: 28 }}>🔒</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
-                            {user ? '리뷰 1개 작성하면 볼 수 있어요' : '로그인이 필요해요'}
-                        </div>
-                        <div style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
-                            {user ? '리뷰를 1개 이상 작성하면\n주최사 평점을 확인할 수 있어요' : '로그인 후 리뷰를 작성하면\n주최사 평가 요약을 볼 수 있어요'}
-                        </div>
-                        <Link href={user ? '/reviews/write' : '/login'} style={{
-                            fontSize: 12, fontWeight: 700, color: '#fff',
-                            background: T.blue, padding: '8px 20px', borderRadius: 99,
-                            textDecoration: 'none', marginTop: 4,
-                        }}>
-                            {user ? '리뷰 작성하기' : '로그인하기'}
-                        </Link>
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                        <div style={{ textAlign: 'center', minWidth: 72 }}>
-                            <div style={{ fontSize: 44, fontWeight: 900, color: T.text, lineHeight: 1 }}>
-                                {overallAvg.toFixed(1)}
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 6 }}>
-                                {[1, 2, 3, 4, 5].map(s => (
-                                    <Star key={s} size={13}
-                                        fill={s <= Math.round(overallAvg) ? '#FFB800' : T.border}
-                                        color={s <= Math.round(overallAvg) ? '#FFB800' : T.border} />
-                                ))}
-                            </div>
-                            <div style={{ fontSize: 11, color: T.gray, marginTop: 5 }}>리뷰 {reviews.length}개</div>
-                        </div>
-                        <div style={{ flex: 1, position: 'relative' }}>
-                            <RatingBar icon={<TrendingUp size={13} color={T.green} />} label="수익성" value={avgProfit} color={T.green} />
-                            <RatingBar icon={<Users size={13} color={T.blue} />} label="집객력" value={avgTraffic} color={T.blue} />
-                            <RatingBar icon={<Star size={13} color="#F59E0B" />} label="운영지원" value={avgSupport} color="#F59E0B" />
-                            <RatingBar icon={<Star size={13} color="#E91E63" />} label="매너" value={avgManners} color="#E91E63" />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {reviewsLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {Array(3).fill(0).map((_, i) => (
-                        <div key={i} style={{ height: 160, background: T.grayLt, borderRadius: T.radiusXl, animation: 'pulse 1.5s infinite' }} />
-                    ))}
-                </div>
-            ) : reviews.length === 0 ? (
-                <div style={{
-                    textAlign: 'center', padding: '40px 20px',
-                    background: T.white, borderRadius: T.radiusXl, border: `1px solid ${T.border}`,
-                }}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>📝</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 6 }}>아직 리뷰가 없어요</div>
-                    <div style={{ fontSize: 13, color: T.gray, marginBottom: 16 }}>첫 번째 리뷰를 작성해보세요!</div>
-                    <Link href="/reviews/write" style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        background: T.blue, color: '#fff',
-                        padding: '10px 20px', borderRadius: T.radiusFull,
-                        fontSize: 14, fontWeight: 700, textDecoration: 'none',
-                    }}>
-                        <PenLine size={14} />리뷰 작성하기
-                    </Link>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {reviews.map(r => (
-                        <ReviewCard key={r.id} review={r} canView={!!(user && canViewReviews)} isLoggedIn={!!user} />
-                    ))}
-                </div>
             )}
         </div>
     );
@@ -469,38 +316,9 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 </div>
             </div>
 
-            {/* ── Sticky Tab Bar ── */}
-            <div style={{
-                position: 'sticky', top: 0, zIndex: 15,
-                background: T.white, borderBottom: `1px solid ${T.border}`,
-                display: 'flex',
-            }}>
-                {TABS.map((label, i) => (
-                    <div
-                        key={i}
-                        onClick={() => setActiveTab(i)}
-                        style={{
-                            flex: 1, textAlign: 'center', padding: '14px 0',
-                            fontSize: 13, fontWeight: activeTab === i ? 800 : 500,
-                            color: activeTab === i ? T.blue : T.gray,
-                            cursor: 'pointer',
-                            borderBottom: activeTab === i ? `2.5px solid ${T.blue}` : '2.5px solid transparent',
-                            transition: 'all 0.2s',
-                        }}
-                    >
-                        {label}
-                    </div>
-                ))}
-            </div>
-
-            {/* ── Tab Content ── */}
+            {/* ── 콘텐츠 ── */}
             <div style={{ padding: '20px 16px 0' }}>
-                <div style={{ display: activeTab === 0 ? 'block' : 'none' }}>
-                    {renderDetail()}
-                </div>
-                <div style={{ display: activeTab === 1 ? 'block' : 'none' }}>
-                    {renderReviews()}
-                </div>
+                {renderDetail()}
             </div>
 
         </div>
