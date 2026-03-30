@@ -8,21 +8,11 @@ import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
 
-/* ─── Random anon name generator ────────────────────────────── */
-const ANON_ADJECTIVES = ['바쁜', '열정적인', '능숙한', '씩씩한', '수줍은', '활발한'];
-const ANON_NOUNS = ['타코야키 셀러', '액세서리 장인', '푸드트럭 요리사', '핸드메이드 작가', '빈티지 큐레이터', '향수 제조자'];
-function randomAnonName() {
-    const adj = ANON_ADJECTIVES[Math.floor(Math.random() * ANON_ADJECTIVES.length)];
-    const noun = ANON_NOUNS[Math.floor(Math.random() * ANON_NOUNS.length)];
-    return `${adj} ${noun}`;
-}
-
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function CommunityWritePage() {
     const router = useRouter();
 
     const [isAnon, setIsAnon] = useState(true);
-    const [anonName] = useState(randomAnonName());
     const [userNickname, setUserNickname] = useState('');
 
     const [title, setTitle] = useState('');
@@ -59,7 +49,7 @@ export default function CommunityWritePage() {
                 content: content.trim(),
                 category: isAnon ? '익명' : '일반',
                 is_anonymous: isAnon,
-                anonymous_name: isAnon ? anonName : null,
+                anonymous_name: null,
             });
             if (error) throw error;
             router.push('/community');
@@ -109,7 +99,7 @@ export default function CommunityWritePage() {
                                 <UserX size={20} color={isAnon ? T.blue : T.gray} />
                                 <div>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: isAnon ? T.blue : T.text }}>익명</div>
-                                    <div style={{ fontSize: 11, color: T.gray, marginTop: 1 }}>{anonName}</div>
+                                    <div style={{ fontSize: 11, color: T.gray, marginTop: 1 }}>익명으로 표시됩니다</div>
                                 </div>
                             </div>
                         </div>

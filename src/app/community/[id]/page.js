@@ -10,13 +10,6 @@ import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
 import { SellerBadge } from '@/components/ui/SellerBadge';
 
-/* ─── Random anon name ──────────────────────────────────────── */
-const ANON_ADJ = ['바쁜', '열정적인', '능숙한', '씩씩한', '수줍은', '활발한'];
-const ANON_NOUN = ['타코야키 셀러', '액세서리 장인', '푸드트럭 요리사', '핸드메이드 작가', '빈티지 큐레이터', '향수 제조자'];
-function randomAnonName() {
-    return `${ANON_ADJ[Math.floor(Math.random() * ANON_ADJ.length)]} ${ANON_NOUN[Math.floor(Math.random() * ANON_NOUN.length)]}`;
-}
-
 /* ─── Avatar ────────────────────────────────────────────────── */
 function Avatar({ name, size = 36 }) {
     const initial = (name || '?')[0].toUpperCase();
@@ -125,13 +118,12 @@ export default function PostDetailPage() {
         setIsSubmittingComment(true);
         const sb = createClient();
         const isAnon = post?.category === '익명' || post?.is_anonymous === true;
-        const myAnonName = randomAnonName();
         const myRealName = user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러';
         const { data, error } = await sb.from('post_comments').insert({
             post_id: id,
             user_id: user.id,
             author: isAnon ? null : myRealName,
-            anonymous_name: isAnon ? myAnonName : null,
+            anonymous_name: null,
             content: commentText.trim(),
             is_anonymous: isAnon,
         }).select().single();
@@ -214,7 +206,7 @@ export default function PostDetailPage() {
     );
 
     const isOwner = user?.id === post.user_id;
-    const postAuthor = post.is_anonymous ? (post.anonymous_name || '익명 셀러') : (post.author || '셀러');
+    const postAuthor = post.is_anonymous ? '익명' : (post.author || '셀러');
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 120 }}>
@@ -421,9 +413,7 @@ export default function PostDetailPage() {
                     ) : (
                         <div>
                             {comments.map((comment, i) => {
-                                const commentAuthor = comment.is_anonymous
-                                    ? (comment.anonymous_name || '익명')
-                                    : (comment.author || '셀러');
+                                const commentAuthor = comment.is_anonymous ? '익명' : (comment.author || '셀러');
                                 return (
                                     <div key={comment.id} style={{
                                         padding: '14px 18px',
