@@ -15,11 +15,14 @@ export default function CommunityWritePage() {
 
     const [isAnon, setIsAnon] = useState(true);
     const [userNickname, setUserNickname] = useState('');
+    const [category, setCategory] = useState('자유게시판');
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [images, setImages] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const WRITE_CATEGORIES = ['자유게시판', '실시간 행사 현황', '행사 양도/양수'];
 
     useEffect(() => {
         (async () => {
@@ -49,7 +52,7 @@ export default function CommunityWritePage() {
                 author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
                 title: title.trim(),
                 content: content.trim(),
-                category: isAnon ? '익명' : '일반',
+                category: isAnon ? '익명' : category,
                 is_anonymous: isAnon,
                 anonymous_name: null,
             };
@@ -108,6 +111,25 @@ export default function CommunityWritePage() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* ── 카테고리 (실명 글일 때) ── */}
+                    {!isAnon && (
+                        <Card>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 12 }}>카테고리</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {WRITE_CATEGORIES.map(c => (
+                                    <div key={c} onClick={() => setCategory(c)} style={{
+                                        padding: '8px 16px', borderRadius: T.radiusFull, cursor: 'pointer',
+                                        fontSize: 13, fontWeight: 600,
+                                        background: category === c ? T.text : T.white,
+                                        color: category === c ? '#fff' : T.gray,
+                                        border: `1.5px solid ${category === c ? T.text : T.border}`,
+                                        transition: 'all 0.15s',
+                                    }}>{c}</div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
 
                     {/* ── 사진 ── */}
                     <Card>
