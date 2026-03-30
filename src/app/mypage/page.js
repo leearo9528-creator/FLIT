@@ -145,13 +145,9 @@ export default function MyPage() {
 
             <SectionGap />
 
-            {/* ── 내가 쓴 글 ── */}
+            {/* ── 내 활동 ── */}
             <div style={{ background: T.white }}>
-                <MenuItem icon={Star} label="내가 쓴 리뷰" href="/mypage/reviews" />
-                <Divider />
-                <MenuItem icon={MessageSquare} label="내가 쓴 글" href="/mypage/posts" />
-                <Divider />
-                <MenuItem icon={CommentIcon} label="내가 쓴 댓글" href="/mypage/comments" />
+                <MenuItem icon={Star} label="내 활동" sub="리뷰 · 글 · 댓글 관리" href="/mypage/activity" />
                 {isOrganizer && (
                     <>
                         <Divider />
