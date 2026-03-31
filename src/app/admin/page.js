@@ -116,6 +116,7 @@ function ExcelUploader({ onComplete }) {
     const [status, setStatus] = useState('');
     const [log, setLog] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [isMock, setIsMock] = useState(false);
 
     const addLog = (msg) => setLog(prev => [...prev, `${new Date().toLocaleTimeString()} ${msg}`]);
 
@@ -204,7 +205,7 @@ function ExcelUploader({ onComplete }) {
             const res = await fetch('/api/admin/excel-import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: 'flit2026!', data: payload }),
+                body: JSON.stringify({ password: 'flit2026!', data: payload, isMock }),
             });
             const result = await res.json();
             if (!res.ok) {
@@ -236,6 +237,8 @@ function ExcelUploader({ onComplete }) {
                     style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>
                     📥 입력 양식 다운로드
                 </a>
+                <MockToggle value={isMock} onChange={setIsMock} />
+                <div style={{ marginTop: 12 }} />
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleUpload} disabled={uploading}
                     style={{ display: 'block', marginBottom: 12 }} />
                 {status && (
@@ -600,10 +603,23 @@ const labelStyle = { fontSize: 12, fontWeight: 700, color: T.gray, marginBottom:
 const EVENT_CATEGORIES = ['플리마켓', '나이트마켓', '푸드트럭페스티벌', '문화행사', '팝업스토어', '기타'];
 const SIDO_LIST = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
 
+/* ─── 목데이터 토글 ─── */
+function MockToggle({ value, onChange }) {
+    return (
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '10px 12px', background: value ? '#FEF3C7' : T.bg, borderRadius: T.radiusMd, border: `1.5px solid ${value ? '#F59E0B' : T.border}` }}>
+            <input type="checkbox" checked={value} onChange={e => onChange(e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+            <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: value ? '#B45309' : T.gray }}>목데이터로 등록</div>
+                <div style={{ fontSize: 11, color: T.gray }}>나중에 한꺼번에 삭제 가능</div>
+            </div>
+        </label>
+    );
+}
+
 /* ─── 주최사 추가 폼 ─── */
 function OrganizerForm({ onComplete }) {
     const [open, setOpen] = useState(false);
-    const [form, setForm] = useState({ name: '', description: '', logo_url: '' });
+    const [form, setForm] = useState({ name: '', description: '', logo_url: '', is_mock: false });
     const [saving, setSaving] = useState(false);
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -615,10 +631,11 @@ function OrganizerForm({ onComplete }) {
             name: form.name.trim(),
             description: form.description.trim() || null,
             logo_url: form.logo_url.trim() || null,
+            is_mock: form.is_mock,
         });
         setSaving(false);
         if (error) return alert(`저장 실패: ${error.message}`);
-        setForm({ name: '', description: '', logo_url: '' });
+        setForm({ name: '', description: '', logo_url: '', is_mock: false });
         setOpen(false);
         onComplete?.();
     };
@@ -635,6 +652,7 @@ function OrganizerForm({ onComplete }) {
                         <div><div style={labelStyle}>주최사명 *</div><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="예) 한강마켓 조합" style={inputStyle}/></div>
                         <div><div style={labelStyle}>설명</div><input value={form.description} onChange={e => set('description', e.target.value)} placeholder="간단한 소개" style={inputStyle}/></div>
                         <div><div style={labelStyle}>로고 URL</div><input value={form.logo_url} onChange={e => set('logo_url', e.target.value)} placeholder="https://..." style={inputStyle}/></div>
+                        <MockToggle value={form.is_mock} onChange={v => set('is_mock', v)} />
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                         <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>
@@ -649,7 +667,7 @@ function OrganizerForm({ onComplete }) {
 /* ─── 행사 추가 폼 ─── */
 function EventForm({ orgList, onComplete }) {
     const [open, setOpen] = useState(false);
-    const [form, setForm] = useState({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '' });
+    const [form, setForm] = useState({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '', is_mock: false });
     const [saving, setSaving] = useState(false);
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -664,6 +682,7 @@ function EventForm({ orgList, onComplete }) {
             category: form.category,
             description: form.description.trim() || null,
             image_url: form.image_url.trim() || null,
+            is_mock: form.is_mock,
         }).select('id').single();
         if (evtErr) { setSaving(false); return alert(`행사 저장 실패: ${evtErr.message}`); }
 
@@ -675,12 +694,13 @@ function EventForm({ orgList, onComplete }) {
                 location_sido: form.location_sido || null,
                 event_date: form.event_date,
                 event_date_end: form.event_date_end || form.event_date,
+                is_mock: form.is_mock,
             });
             if (instErr) alert(`행사 개최 저장 실패: ${instErr.message}`);
         }
 
         setSaving(false);
-        setForm({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '' });
+        setForm({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '', is_mock: false });
         setOpen(false);
         onComplete?.();
     };
@@ -730,6 +750,7 @@ function EventForm({ orgList, onComplete }) {
                             <div><div style={labelStyle}>시작날짜</div><input type="date" value={form.event_date} onChange={e => set('event_date', e.target.value)} style={inputStyle}/></div>
                             <div><div style={labelStyle}>종료날짜</div><input type="date" value={form.event_date_end} onChange={e => set('event_date_end', e.target.value)} style={inputStyle}/></div>
                         </div>
+                        <MockToggle value={form.is_mock} onChange={v => set('is_mock', v)} />
                     </div>
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
@@ -746,7 +767,7 @@ function EventForm({ orgList, onComplete }) {
 function RecruitmentForm({ onComplete }) {
     const [open, setOpen] = useState(false);
     const [instances, setInstances] = useState([]);
-    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN' });
+    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
     const [saving, setSaving] = useState(false);
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -778,10 +799,11 @@ function RecruitmentForm({ onComplete }) {
             start_date: form.start_date || null,
             end_date: form.end_date,
             status: form.status,
+            is_mock: form.is_mock,
         });
         setSaving(false);
         if (error) return alert(`저장 실패: ${error.message}`);
-        setForm({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN' });
+        setForm({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
         setOpen(false);
         onComplete?.();
     };
@@ -827,6 +849,7 @@ function RecruitmentForm({ onComplete }) {
                             <div><div style={labelStyle}>모집 시작일</div><input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} style={inputStyle}/></div>
                             <div><div style={labelStyle}>모집 마감일 *</div><input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputStyle}/></div>
                         </div>
+                        <MockToggle value={form.is_mock} onChange={v => set('is_mock', v)} />
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                         <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>

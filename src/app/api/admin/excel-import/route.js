@@ -11,7 +11,7 @@ function getAdminClient() {
 }
 
 export async function POST(request) {
-    const { password, data } = await request.json();
+    const { password, data, isMock = false } = await request.json();
 
     if (password !== ADMIN_PASSWORD) {
         return NextResponse.json({ error: '인증 실패' }, { status: 401 });
@@ -33,7 +33,7 @@ export async function POST(request) {
                 else addLog(`주최사 "${r.name}" OK (업데이트)`);
             } else {
                 const { error } = await sb.from('organizers')
-                    .insert({ name: r.name, description: r.description, logo_url: r.logoUrl });
+                    .insert({ name: r.name, description: r.description, logo_url: r.logoUrl, is_mock: isMock });
                 if (error) addLog(`주최사 "${r.name}" 실패: ${error.message}`);
                 else addLog(`주최사 "${r.name}" OK`);
             }
@@ -52,7 +52,7 @@ export async function POST(request) {
                 else addLog(`행사 "${r.name}" OK (업데이트)`);
             } else {
                 const { error } = await sb.from('base_events')
-                    .insert({ name: r.name, category: r.category, description: r.description, image_url: r.imageUrl });
+                    .insert({ name: r.name, category: r.category, description: r.description, image_url: r.imageUrl, is_mock: isMock });
                 if (error) addLog(`행사 "${r.name}" 실패: ${error.message}`);
                 else addLog(`행사 "${r.name}" OK`);
             }
@@ -87,6 +87,7 @@ export async function POST(request) {
                 location_sido: r.locationSido || null,
                 event_date: r.startDate,
                 event_date_end: r.endDate || r.startDate,
+                is_mock: isMock,
             });
             if (error) addLog(`개최 "${r.eventName} ${r.startDate}" 실패: ${error.message}`);
             else addLog(`개최 "${r.eventName} ${r.startDate}" OK`);
@@ -128,6 +129,7 @@ export async function POST(request) {
                 start_date: r.startDate || null,
                 end_date: r.endDate || null,
                 status: r.status || 'OPEN',
+                is_mock: isMock,
             });
             if (error) addLog(`공고 "${r.title}" 실패: ${error.message}`);
             else addLog(`공고 "${r.title}" OK`);
