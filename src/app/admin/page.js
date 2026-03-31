@@ -592,6 +592,252 @@ function TextPasteParser({ onComplete }) {
     );
 }
 
+/* ─── 공통 인풋 스타일 ─── */
+const inputStyle = { width: '100%', padding: '9px 12px', fontSize: 13, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' };
+const selectStyle = { ...inputStyle, cursor: 'pointer' };
+const labelStyle = { fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 4 };
+
+const EVENT_CATEGORIES = ['플리마켓', '나이트마켓', '푸드트럭페스티벌', '문화행사', '팝업스토어', '기타'];
+const SIDO_LIST = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
+
+/* ─── 주최사 추가 폼 ─── */
+function OrganizerForm({ onComplete }) {
+    const [open, setOpen] = useState(false);
+    const [form, setForm] = useState({ name: '', description: '', logo_url: '' });
+    const [saving, setSaving] = useState(false);
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleSave = async () => {
+        if (!form.name.trim()) return alert('주최사명을 입력하세요.');
+        setSaving(true);
+        const sb = createClient();
+        const { error } = await sb.from('organizers').insert({
+            name: form.name.trim(),
+            description: form.description.trim() || null,
+            logo_url: form.logo_url.trim() || null,
+        });
+        setSaving(false);
+        if (error) return alert(`저장 실패: ${error.message}`);
+        setForm({ name: '', description: '', logo_url: '' });
+        setOpen(false);
+        onComplete?.();
+    };
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <button onClick={() => setOpen(o => !o)} style={{ ...btnPrimary, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                <Plus size={14}/> 주최사 추가
+            </button>
+            {open && (
+                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginTop: 10 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>새 주최사 등록</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div><div style={labelStyle}>주최사명 *</div><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="예) 한강마켓 조합" style={inputStyle}/></div>
+                        <div><div style={labelStyle}>설명</div><input value={form.description} onChange={e => set('description', e.target.value)} placeholder="간단한 소개" style={inputStyle}/></div>
+                        <div><div style={labelStyle}>로고 URL</div><input value={form.logo_url} onChange={e => set('logo_url', e.target.value)} placeholder="https://..." style={inputStyle}/></div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                        <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>
+                        <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? '저장 중...' : '저장'}</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─── 행사 추가 폼 ─── */
+function EventForm({ orgList, onComplete }) {
+    const [open, setOpen] = useState(false);
+    const [form, setForm] = useState({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '' });
+    const [saving, setSaving] = useState(false);
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleSave = async () => {
+        if (!form.name.trim()) return alert('행사명을 입력하세요.');
+        if (!form.category) return alert('카테고리를 선택하세요.');
+        if (form.location.trim() && !form.event_date) return alert('장소를 입력했다면 시작날짜도 입력하세요.');
+        setSaving(true);
+        const sb = createClient();
+        const { data: evt, error: evtErr } = await sb.from('base_events').insert({
+            name: form.name.trim(),
+            category: form.category,
+            description: form.description.trim() || null,
+            image_url: form.image_url.trim() || null,
+        }).select('id').single();
+        if (evtErr) { setSaving(false); return alert(`행사 저장 실패: ${evtErr.message}`); }
+
+        if (form.location.trim() && form.event_date) {
+            const { error: instErr } = await sb.from('event_instances').insert({
+                base_event_id: evt.id,
+                organizer_id: form.organizer_id || null,
+                location: form.location.trim(),
+                location_sido: form.location_sido || null,
+                event_date: form.event_date,
+                event_date_end: form.event_date_end || form.event_date,
+            });
+            if (instErr) alert(`행사 개최 저장 실패: ${instErr.message}`);
+        }
+
+        setSaving(false);
+        setForm({ name: '', category: '', description: '', image_url: '', organizer_id: '', location: '', location_sido: '', event_date: '', event_date_end: '' });
+        setOpen(false);
+        onComplete?.();
+    };
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <button onClick={() => setOpen(o => !o)} style={{ ...btnPrimary, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                <Plus size={14}/> 행사 추가
+            </button>
+            {open && (
+                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginTop: 10 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>새 행사 등록</div>
+                    <div style={{ fontSize: 12, color: T.gray, marginBottom: 14 }}>행사 기본 정보 + 첫 개최 일정을 함께 입력할 수 있어요.</div>
+
+                    <div style={{ fontSize: 13, fontWeight: 800, color: T.blue, marginBottom: 10 }}>행사 기본 정보</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                        <div><div style={labelStyle}>행사명 *</div><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="예) 한강 플리마켓" style={inputStyle}/></div>
+                        <div>
+                            <div style={labelStyle}>카테고리 *</div>
+                            <select value={form.category} onChange={e => set('category', e.target.value)} style={selectStyle}>
+                                <option value="">선택하세요</option>
+                                {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div><div style={labelStyle}>설명</div><input value={form.description} onChange={e => set('description', e.target.value)} placeholder="행사 소개" style={inputStyle}/></div>
+                        <div><div style={labelStyle}>이미지 URL</div><input value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="https://..." style={inputStyle}/></div>
+                    </div>
+
+                    <div style={{ fontSize: 13, fontWeight: 800, color: T.blue, marginBottom: 10 }}>개최 일정 (선택)</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                            <div style={labelStyle}>주최사</div>
+                            <select value={form.organizer_id} onChange={e => set('organizer_id', e.target.value)} style={selectStyle}>
+                                <option value="">선택 안 함</option>
+                                {orgList.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                            </select>
+                        </div>
+                        <div><div style={labelStyle}>장소</div><input value={form.location} onChange={e => set('location', e.target.value)} placeholder="예) 서울 한강공원" style={inputStyle}/></div>
+                        <div>
+                            <div style={labelStyle}>시/도</div>
+                            <select value={form.location_sido} onChange={e => set('location_sido', e.target.value)} style={selectStyle}>
+                                <option value="">선택 안 함</option>
+                                {SIDO_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div><div style={labelStyle}>시작날짜</div><input type="date" value={form.event_date} onChange={e => set('event_date', e.target.value)} style={inputStyle}/></div>
+                            <div><div style={labelStyle}>종료날짜</div><input type="date" value={form.event_date_end} onChange={e => set('event_date_end', e.target.value)} style={inputStyle}/></div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>
+                        <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? '저장 중...' : '저장'}</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ─── 공고 추가 폼 ─── */
+function RecruitmentForm({ onComplete }) {
+    const [open, setOpen] = useState(false);
+    const [instances, setInstances] = useState([]);
+    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN' });
+    const [saving, setSaving] = useState(false);
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    useEffect(() => {
+        if (!open || instances.length > 0) return;
+        (async () => {
+            const sb = createClient();
+            const { data } = await sb.from('event_instances')
+                .select('id, event_date, base_event:base_events(name)')
+                .order('event_date', { ascending: false })
+                .limit(300);
+            setInstances(data || []);
+        })();
+    }, [open]);
+
+    const handleSave = async () => {
+        if (!form.event_instance_id) return alert('행사 개최를 선택하세요.');
+        if (!form.title.trim()) return alert('공고 제목을 입력하세요.');
+        if (!form.end_date) return alert('모집 마감일을 입력하세요.');
+        setSaving(true);
+        const sb = createClient();
+        const fee = form.fee !== '' ? Number(form.fee) : null;
+        const { error } = await sb.from('recruitments').insert({
+            event_instance_id: form.event_instance_id,
+            title: form.title.trim(),
+            content: form.content.trim() || null,
+            fee: (fee === null || isNaN(fee)) ? null : fee,
+            application_method: form.application_method.trim() || null,
+            start_date: form.start_date || null,
+            end_date: form.end_date,
+            status: form.status,
+        });
+        setSaving(false);
+        if (error) return alert(`저장 실패: ${error.message}`);
+        setForm({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN' });
+        setOpen(false);
+        onComplete?.();
+    };
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <button onClick={() => setOpen(o => !o)} style={{ ...btnPrimary, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                <Plus size={14}/> 공고 추가
+            </button>
+            {open && (
+                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginTop: 10 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>새 모집공고 등록</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                            <div style={labelStyle}>행사 개최 *</div>
+                            <select value={form.event_instance_id} onChange={e => set('event_instance_id', e.target.value)} style={selectStyle}>
+                                <option value="">행사를 선택하세요</option>
+                                {instances.map(i => (
+                                    <option key={i.id} value={i.id}>
+                                        {i.base_event?.name || '(이름 없음)'} {i.event_date ? `— ${i.event_date.slice(0, 10)}` : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div><div style={labelStyle}>공고 제목 *</div><input value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 5월 한강 플리마켓 셀러 모집" style={inputStyle}/></div>
+                        <div>
+                            <div style={labelStyle}>공고 내용</div>
+                            <textarea value={form.content} onChange={e => set('content', e.target.value)} placeholder="모집 조건, 혜택 등 상세 내용" rows={4}
+                                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7, fontFamily: 'inherit' }}/>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div><div style={labelStyle}>참가비 (원)</div><input type="number" value={form.fee} onChange={e => set('fee', e.target.value)} placeholder="0" style={inputStyle}/></div>
+                            <div>
+                                <div style={labelStyle}>상태</div>
+                                <select value={form.status} onChange={e => set('status', e.target.value)} style={selectStyle}>
+                                    <option value="OPEN">모집중</option>
+                                    <option value="CLOSED">마감</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div><div style={labelStyle}>신청 방법</div><input value={form.application_method} onChange={e => set('application_method', e.target.value)} placeholder="예) 카카오톡 채널 문의" style={inputStyle}/></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div><div style={labelStyle}>모집 시작일</div><input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} style={inputStyle}/></div>
+                            <div><div style={labelStyle}>모집 마감일 *</div><input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputStyle}/></div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>
+                        <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? '저장 중...' : '저장'}</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 /* ─── 비밀번호 게이트 ─── */
 function PasswordGate({ onPass }) {
     const [pw, setPw] = useState('');
@@ -752,11 +998,20 @@ export default function AdminPage() {
                 ) : tab === 'notices' ? (
                     <NoticeManager />
                 ) : tab === 'events' ? (
-                    <div style={{ padding: '0 16px' }}><DataTable columns={evtCols} rows={events} onDelete={handleDelete('base_events')} emptyMsg="등록된 행사가 없어요." /></div>
+                    <div style={{ padding: '0 16px' }}>
+                        <EventForm orgList={orgList} onComplete={fetchAll} />
+                        <DataTable columns={evtCols} rows={events} onDelete={handleDelete('base_events')} emptyMsg="등록된 행사가 없어요." />
+                    </div>
                 ) : tab === 'recruitments' ? (
-                    <div style={{ padding: '0 16px' }}><DataTable columns={recCols} rows={recruitments} onDelete={handleDelete('recruitments')} emptyMsg="등록된 공고가 없어요." /></div>
+                    <div style={{ padding: '0 16px' }}>
+                        <RecruitmentForm onComplete={fetchAll} />
+                        <DataTable columns={recCols} rows={recruitments} onDelete={handleDelete('recruitments')} emptyMsg="등록된 공고가 없어요." />
+                    </div>
                 ) : tab === 'organizers' ? (
-                    <div style={{ padding: '0 16px' }}><DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." /></div>
+                    <div style={{ padding: '0 16px' }}>
+                        <OrganizerForm onComplete={fetchAll} />
+                        <DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." />
+                    </div>
                 ) : tab === 'users' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." /></div>
                 ) : tab === 'upload' ? (
