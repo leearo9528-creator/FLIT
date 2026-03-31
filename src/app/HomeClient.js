@@ -15,7 +15,7 @@ import CommunitySection from '@/components/home/CommunitySection';
 const NotificationDrawer = dynamic(() => import('@/components/ui/NotificationDrawer'), { ssr: false });
 
 export default function HomeClient({ initialRecruitments, initialReviews, initialPosts }) {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const [notifOpen, setNotifOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -83,7 +83,7 @@ export default function HomeClient({ initialRecruitments, initialReviews, initia
                             </div>
                         )}
 
-                        {!user && (
+                        {!loading && !user && (
                             <Link
                                 href="/login"
                                 style={{

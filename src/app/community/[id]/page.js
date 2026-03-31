@@ -134,12 +134,15 @@ export default function PostDetailPage() {
 
     /* 댓글 삭제 */
     const handleCommentDelete = useCallback(async (commentId) => {
+        if (!user) return;
+        const target = comments.find(c => c.id === commentId);
+        if (target?.user_id !== user.id) return;
         if (!window.confirm('댓글을 삭제할까요?')) return;
         const sb = createClient();
         const { error } = await sb.from('post_comments').delete().eq('id', commentId);
         if (error) { console.error('댓글 삭제 실패:', error); return; }
         setComments(prev => prev.filter(c => c.id !== commentId));
-    }, []);
+    }, [user, comments]);
 
     /* 댓글 수정 */
     const handleCommentEditSave = useCallback(async (commentId) => {

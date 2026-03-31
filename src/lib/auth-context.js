@@ -42,24 +42,23 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const sb = createClient();
-        let realtimeChannel = null;
 
-        sb.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
-            if (session?.user) fetchPlan(session.user.id);
-        });
-
+        // onAuthStateChange가 INITIAL_SESSION 이벤트로 초기 세션을 처리하므로
+        // getSession() 중복 호출 제거 → 경쟁 조건 방지
         const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
-            if (session?.user) fetchPlan(session.user.id);
-            else setPlan('free');
+            if (session?.user) {
+                fetchPlan(session.user.id);
+            } else {
+                setPlan('free');
+                setReviewCount(0);
+                setCanViewReviews(false);
+            }
             setLoading(false);
         });
 
         return () => {
             subscription.unsubscribe();
-            if (realtimeChannel) realtimeChannel.unsubscribe();
         };
     }, []);
 

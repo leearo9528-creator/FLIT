@@ -149,7 +149,7 @@ function MultiChips({ options, values, onChange }) {
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function ReviewWritePage() {
     const router = useRouter();
-    const { refreshPlan } = useAuth();
+    const { user, loading: authLoading, refreshPlan } = useAuth();
 
     const [instances, setInstances] = useState([]);
     const [reviewCount, setReviewCount] = useState(0);
@@ -188,22 +188,21 @@ export default function ReviewWritePage() {
     const instRef = useRef(null);
 
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) { router.replace('/login'); return; }
         (async () => {
             const sb = createClient();
-            const { data: { session } } = await sb.auth.getSession();
-            const [instRes] = await Promise.all([
+            const [instRes, profileRes] = await Promise.all([
                 sb.from('event_instances')
                     .select('id, event_date, event_date_end, location, base_event:base_events(id, name), organizer:organizers(id, name)')
                     .order('event_date', { ascending: false })
                     .limit(200),
+                sb.from('profiles').select('review_count').eq('id', user.id).single(),
             ]);
             if (instRes.data) setInstances(instRes.data);
-            if (session?.user) {
-                const { data: p } = await sb.from('profiles').select('review_count').eq('id', session.user.id).single();
-                if (p) setReviewCount(p.review_count ?? 0);
-            }
+            if (profileRes.data) setReviewCount(profileRes.data.review_count ?? 0);
         })();
-    }, []);
+    }, [user, authLoading, router]);
 
     useEffect(() => {
         const handler = e => {
@@ -265,15 +264,14 @@ export default function ReviewWritePage() {
         if (!pros.trim()) return alert('장점을 입력해주세요.');
         if (!cons.trim()) return alert('단점을 입력해주세요.');
 
+        if (!user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session?.user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
             const payload = {
                 event_instance_id: selectedInstance.id,
-                user_id: session.user.id,
+                user_id: user.id,
                 seller_type: sellerType,
                 rating_profit: rProfit,
                 rating_traffic: rTraffic,
@@ -293,10 +291,11 @@ export default function ReviewWritePage() {
             if (error) throw error;
 
             // 리뷰 카운트 갱신 + 열람 권한 타이머 시작
-            await sb.from('profiles').update({
+            const { error: profileErr } = await sb.from('profiles').update({
                 review_count: reviewCount + 1,
                 last_review_at: new Date().toISOString(),
-            }).eq('id', session.user.id);
+            }).eq('id', user.id);
+            if (profileErr) console.error('프로필 업데이트 실패:', profileErr);
 
             await refreshPlan();
             router.push('/mypage');

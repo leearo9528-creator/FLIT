@@ -69,8 +69,8 @@ export default function OnboardingPage() {
                 instagram_handle: instagram.replace('@', '').trim() || null,
                 business_number: bizNumber.trim() || null,
                 ...(isOrganizer
-                    ? { plan: 'organizer_pending' }
-                    : { seller_type: selected }),
+                    ? { plan: 'organizer', organizer_name: name.trim() }
+                    : { seller_type: selected, plan: 'free' }),
             };
             const { error: profileErr } = await sb
                 .from('profiles')

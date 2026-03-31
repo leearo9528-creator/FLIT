@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera } from 'lucide-react';
+import { Camera, UserX } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
@@ -58,6 +58,7 @@ export default function ProfilePage() {
     const avatarRef = useRef(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -159,7 +160,7 @@ export default function ProfilePage() {
 
             // 주최사 선택 시 organizers 테이블 동기화
             if (isOrganizer) {
-                await sb.from('organizers').upsert({
+                const { error: orgErr } = await sb.from('organizers').upsert({
                     id: user.id,
                     name: orgName.trim() || name.trim(),
                     description: orgDesc.trim() || null,
@@ -167,6 +168,7 @@ export default function ProfilePage() {
                     promo_link: promoLink.trim() || null,
                     contact_name: realName.trim() || null,
                 }, { onConflict: 'id' });
+                if (orgErr) console.error('organizers 동기화 실패:', orgErr);
             }
 
             await refreshPlan();
@@ -177,6 +179,24 @@ export default function ProfilePage() {
             console.error(err);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleWithdraw = async () => {
+        if (!confirm('정말 탈퇴하시겠습니까?\n\n작성한 리뷰·게시글은 삭제되지 않습니다.\n이 작업은 되돌릴 수 없습니다.')) return;
+        if (!confirm('마지막 확인입니다. 정말 탈퇴하시겠습니까?')) return;
+        setIsWithdrawing(true);
+        try {
+            const sb = createClient();
+            await sb.from('profiles').delete().eq('id', user.id);
+            await sb.auth.signOut();
+            alert('탈퇴가 완료되었습니다.');
+            router.replace('/');
+        } catch (err) {
+            alert('탈퇴 처리 중 오류가 발생했습니다.');
+            console.error(err);
+        } finally {
+            setIsWithdrawing(false);
         }
     };
 
@@ -304,6 +324,29 @@ export default function ProfilePage() {
                     >
                         {isSubmitting ? '저장 중...' : '저장하기'}
                     </button>
+
+                    {/* ── 회원 탈퇴 ── */}
+                    <div style={{
+                        borderTop: `1px solid ${T.border}`, paddingTop: 20,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    }}>
+                        <button
+                            onClick={isWithdrawing ? undefined : handleWithdraw}
+                            disabled={isWithdrawing}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: 'none', border: 'none',
+                                color: T.gray, fontSize: 13, fontWeight: 600,
+                                cursor: isWithdrawing ? 'default' : 'pointer', padding: '8px 0',
+                            }}
+                        >
+                            <UserX size={14} />
+                            {isWithdrawing ? '처리 중...' : '회원 탈퇴'}
+                        </button>
+                        <div style={{ fontSize: 11, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
+                            탈퇴 시 계정 정보가 삭제되며 복구할 수 없습니다.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

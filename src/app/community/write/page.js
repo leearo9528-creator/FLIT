@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserCheck, UserX } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
+import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
 import Card from '@/components/ui/Card';
@@ -12,9 +13,9 @@ import ImageUploader from '@/components/ui/ImageUploader';
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function CommunityWritePage() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
 
     const [isAnon, setIsAnon] = useState(true);
-    const [userNickname, setUserNickname] = useState('');
     const [category, setCategory] = useState('자유게시판');
 
     const [title, setTitle] = useState('');
@@ -25,31 +26,23 @@ export default function CommunityWritePage() {
     const WRITE_CATEGORIES = ['자유게시판', '실시간 행사 현황', '행사 양도/양수'];
 
     useEffect(() => {
-        (async () => {
-            const sb = createClient();
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session?.user) {
-                router.replace('/login');
-                return;
-            }
-            const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러';
-            setUserNickname(name);
-        })();
-    }, [router]);
+        if (!authLoading && !user) router.replace('/login');
+    }, [user, authLoading, router]);
+
+    const userNickname = user?.user_metadata?.full_name || user?.user_metadata?.name || '셀러';
 
     const handleSubmit = async () => {
         if (!title.trim()) return alert('제목을 입력해주세요.');
         if (!content.trim()) return alert('내용을 입력해주세요.');
+        if (!user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session?.user) { alert('로그인이 필요합니다.'); router.push('/login'); return; }
 
             const payload = {
-                user_id: session.user.id,
-                author: isAnon ? null : (session.user.user_metadata?.full_name || session.user.user_metadata?.name || '셀러'),
+                user_id: user.id,
+                author: isAnon ? null : (user.user_metadata?.full_name || user.user_metadata?.name || '셀러'),
                 title: title.trim(),
                 content: content.trim(),
                 category: isAnon ? '익명' : category,
