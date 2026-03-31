@@ -69,6 +69,7 @@ export default function MyPage() {
     const { user, loading, plan, signOut } = useAuth();
     const router = useRouter();
     const [profileName, setProfileName] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [counts, setCounts] = useState({ recruitments: 0 });
 
     useEffect(() => {
@@ -82,7 +83,7 @@ export default function MyPage() {
                 const sb = createClient();
                 const isOrganizer = plan === 'organizer';
                 const [profile, rc] = await Promise.all([
-                    sb.from('profiles').select('name').eq('id', user.id).maybeSingle(),
+                    sb.from('profiles').select('name, avatar_url').eq('id', user.id).maybeSingle(),
                     isOrganizer
                         ? sb.from('recruitments').select('id', { count: 'exact', head: true })
                             .in('event_instance_id',
@@ -92,6 +93,7 @@ export default function MyPage() {
                 ]);
                 setCounts({ recruitments: rc.count || 0 });
                 if (profile.data?.name) setProfileName(profile.data.name);
+                if (profile.data?.avatar_url) setAvatarUrl(profile.data.avatar_url);
             } catch (err) {
                 console.error('마이페이지 로드 실패:', err);
             }
@@ -115,14 +117,22 @@ export default function MyPage() {
             {/* ── 프로필 ── */}
             <div style={{ background: T.white, padding: '24px 20px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                        width: 56, height: 56, borderRadius: '50%',
-                        background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 24, color: '#fff', fontWeight: 800, flexShrink: 0,
-                    }}>
-                        {initial}
-                    </div>
+                    {avatarUrl ? (
+                        <img
+                            src={avatarUrl}
+                            alt="프로필"
+                            style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: `1px solid ${T.border}`, flexShrink: 0 }}
+                        />
+                    ) : (
+                        <div style={{
+                            width: 56, height: 56, borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 24, color: '#fff', fontWeight: 800, flexShrink: 0,
+                        }}>
+                            {initial}
+                        </div>
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                             <span style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{displayName}</span>
