@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Camera } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
@@ -52,6 +53,10 @@ export default function ProfilePage() {
     const [orgName, setOrgName] = useState('');
     const [orgDesc, setOrgDesc] = useState('');
 
+    const [avatarUrl, setAvatarUrl] = useState('');
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const avatarRef = useRef(null);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loaded, setLoaded] = useState(false);
 
@@ -65,10 +70,11 @@ export default function ProfilePage() {
         (async () => {
             const sb = createClient();
             const { data } = await sb.from('profiles')
-                .select('name, plan, seller_type, brand_name, real_name, phone, products, promo_link, organizer_name, organizer_desc')
+                .select('name, plan, seller_type, brand_name, real_name, phone, products, promo_link, organizer_name, organizer_desc, avatar_url')
                 .eq('id', user.id).maybeSingle();
             if (data) {
                 setName(data.name || user.user_metadata?.full_name || user.user_metadata?.name || '');
+                setAvatarUrl(data.avatar_url || '');
                 setRole(data.plan === 'organizer' || data.plan === 'organizer_pending' ? 'organizer' : 'seller');
                 setBrandName(data.brand_name || '');
                 setRealName(data.real_name || '');
@@ -81,6 +87,29 @@ export default function ProfilePage() {
             setLoaded(true);
         })();
     }, [user]);
+
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) return alert('5MB 이하 이미지만 업로드할 수 있어요.');
+        if (!file.type.startsWith('image/')) return alert('이미지 파일만 업로드할 수 있어요.');
+
+        setAvatarUploading(true);
+        try {
+            const sb = createClient();
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${user.id}_${Date.now()}.${ext}`;
+            const { error } = await sb.storage.from('images').upload(path, file, { upsert: true, cacheControl: '3600' });
+            if (error) throw error;
+            const { data: { publicUrl } } = sb.storage.from('images').getPublicUrl(path);
+            setAvatarUrl(publicUrl);
+        } catch (err) {
+            alert('이미지 업로드 실패: ' + err.message);
+        } finally {
+            setAvatarUploading(false);
+            if (avatarRef.current) avatarRef.current.value = '';
+        }
+    };
 
     const handleSave = async () => {
         if (!name.trim()) return alert('이름(닉네임)을 입력해주세요.');
@@ -95,6 +124,7 @@ export default function ProfilePage() {
             // 프로필 업데이트 — 양쪽 필드 모두 저장 (역할 전환해도 데이터 유지)
             const profileUpdate = {
                 name: name.trim(),
+                avatar_url: avatarUrl || null,
                 brand_name: brandName.trim() || null,
                 real_name: realName.trim() || null,
                 phone: phone.trim() || null,
@@ -164,14 +194,45 @@ export default function ProfilePage() {
                     {/* ── 기본 정보 ── */}
                     <Card>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, paddingBottom: 8 }}>
-                            <div style={{
-                                width: 72, height: 72, borderRadius: '50%',
-                                background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 30, color: '#fff', fontWeight: 800,
-                            }}>
-                                {(name?.[0] || '?').toUpperCase()}
+                            <div
+                                style={{ position: 'relative', cursor: 'pointer' }}
+                                onClick={() => !avatarUploading && avatarRef.current?.click()}
+                            >
+                                {avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt="프로필 사진"
+                                        style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${T.border}` }}
+                                    />
+                                ) : (
+                                    <div style={{
+                                        width: 72, height: 72, borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${T.blue}, ${T.blueDark})`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 30, color: '#fff', fontWeight: 800,
+                                    }}>
+                                        {(name?.[0] || '?').toUpperCase()}
+                                    </div>
+                                )}
+                                <div style={{
+                                    position: 'absolute', bottom: 0, right: 0,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: T.blue, border: `2px solid ${T.white}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <Camera size={12} color="#fff" />
+                                </div>
                             </div>
+                            <div style={{ fontSize: 12, color: T.gray }}>
+                                {avatarUploading ? '업로드 중...' : '사진 변경'}
+                            </div>
+                            <input
+                                ref={avatarRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAvatarChange}
+                                style={{ display: 'none' }}
+                            />
                         </div>
                         <FieldInput label="계정 (변경 불가)" value={user.email} disabled />
                         <FieldInput label="이름 / 닉네임" value={name} onChange={setName} placeholder="사용하실 닉네임" />
