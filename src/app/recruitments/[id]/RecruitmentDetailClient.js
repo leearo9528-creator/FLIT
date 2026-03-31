@@ -103,26 +103,28 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const renderDetail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* 모집 중인 행사 정보 */}
-            {baseEvent.id && (
-                <InfoSection emoji="📅" title="행사 기본 정보">
+            {/* 공고 핵심 정보 */}
+            <InfoSection emoji="📌" title="공고 핵심 정보">
+                {/* 행사 정보 링크 행 */}
+                {baseEvent.id && (
                     <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>
-                                    {baseEvent.name}
-                                </div>
-                                <div style={{ fontSize: 13, color: T.blue, fontWeight: 600 }}>
-                                    행사 상세 리뷰 확인하기 {baseEvent.total_reviews > 0 ? `(${baseEvent.total_reviews}개)` : ''} →
+                        <div style={{
+                            display: 'flex', alignItems: 'flex-start', gap: 12,
+                            paddingBottom: 12, marginBottom: 12,
+                            borderBottom: `1px solid ${T.border}`,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: T.gray, fontSize: 13, width: 80, flexShrink: 0, paddingTop: 1 }}>
+                                <span style={{ fontSize: 15 }}>🎪</span>행사
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, lineHeight: 1.5 }}>{baseEvent.name}</div>
+                                <div style={{ fontSize: 12, color: T.blue, fontWeight: 600, marginTop: 2 }}>
+                                    리뷰 {baseEvent.total_reviews > 0 ? `${baseEvent.total_reviews}개` : '보러가기'} →
                                 </div>
                             </div>
                         </div>
                     </Link>
-                </InfoSection>
-            )}
-
-            {/* 공고 핵심 정보 */}
-            <InfoSection emoji="📌" title="공고 핵심 정보">
+                )}
                 {[
                     { icon: <Calendar size={15} color={T.blue} />, label: '행사 일자', value: formatDate(instance.event_date) },
                     { icon: <Clock size={15} color={T.red} />, label: '모집 마감', value: formatDate(recruitment.end_date), valueColor: T.red },
@@ -162,8 +164,8 @@ export default function RecruitmentDetailClient({ recruitment }) {
             </InfoSection>
 
             {/* 사진 */}
-            {recruitment.images?.length > 0 && (
-                <InfoSection emoji="📷" title="사진">
+            <InfoSection emoji="📷" title="사진">
+                {recruitment.images?.length > 0 ? (
                     <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
                         {recruitment.images.map((url, i) => (
                             <div key={i} style={{ position: 'relative', width: 160, height: 120, borderRadius: T.radiusMd, overflow: 'hidden', flexShrink: 0 }}>
@@ -171,8 +173,19 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             </div>
                         ))}
                     </div>
-                </InfoSection>
-            )}
+                ) : (
+                    <div style={{
+                        height: 100, borderRadius: T.radiusMd,
+                        border: `2px dashed ${T.border}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexDirection: 'column', gap: 6,
+                        color: T.gray, fontSize: 13,
+                    }}>
+                        <span style={{ fontSize: 28 }}>📷</span>
+                        등록된 사진이 없습니다
+                    </div>
+                )}
+            </InfoSection>
 
             {/* 주최사 정보 */}
             {organizer.id && (
@@ -213,7 +226,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
                 <div style={{ position: 'absolute', bottom: -60, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-                {/* 상단 네비: 뒤로가기 + 페이지 레이블 + 스크랩 */}
+                {/* 상단 네비: 뒤로가기 + 스크랩 */}
                 <div style={{
                     padding: '16px 16px 0', position: 'relative', zIndex: 2,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -226,15 +239,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     }}>
                         <ArrowLeft size={18} color="#fff" />
                     </button>
-
-                    <div style={{
-                        fontSize: 13, fontWeight: 800, color: '#fff',
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '6px 14px', borderRadius: T.radiusFull,
-                        letterSpacing: 0.3,
-                    }}>
-                        📋 셀러 모집 공고
-                    </div>
 
                     <button
                         onClick={handleScrap}
@@ -252,6 +256,13 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             color={scrapped ? T.green : '#fff'}
                         />
                     </button>
+                </div>
+
+                {/* 페이지 레이블 */}
+                <div style={{ textAlign: 'center', padding: '12px 20px 0', position: 'relative', zIndex: 2 }}>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.3 }}>
+                        셀러 모집공고
+                    </div>
                 </div>
 
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
@@ -277,22 +288,8 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         )}
                     </div>
 
-                    {baseEvent.name && (
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            🎪 {baseEvent.name}
-                        </div>
-                    )}
-
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 8 }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35 }}>
                         {recruitment.title}
-                    </div>
-
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <Calendar size={13} />
-                        행사일 {formatDate(instance.event_date)}
-                        {instance.event_date_end && instance.event_date_end !== instance.event_date && (
-                            <> ~ {formatDate(instance.event_date_end)}</>
-                        )}
                     </div>
                 </div>
             </div>
