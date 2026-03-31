@@ -124,106 +124,87 @@ function ExcelUploader({ onComplete }) {
         if (!file) return;
         setUploading(true); setLog([]); setStatus('파싱 중...');
 
+        // 엑셀 날짜 숫자(시리얼) → YYYY-MM-DD 문자열 변환
+        const toDateStr = (val) => {
+            if (val == null || val === '') return null;
+            if (typeof val === 'number') {
+                const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                return d.toISOString().slice(0, 10);
+            }
+            if (val instanceof Date) return val.toISOString().slice(0, 10);
+            return String(val).trim().replace(/\./g, '-').slice(0, 10);
+        };
+
         try {
             const XLSX = await import('xlsx');
-            const data = await file.arrayBuffer();
-            const wb = XLSX.read(data);
-            const sb = createClient();
+            const buffer = await file.arrayBuffer();
+            const wb = XLSX.read(buffer, { cellDates: true });
+
+            const payload = { organizers: [], baseEvents: [], instances: [], recruitments: [] };
 
             // 1. 주최사
             const orgSheet = wb.Sheets['1_주최사'];
             if (orgSheet) {
-                const orgRows = XLSX.utils.sheet_to_json(orgSheet).filter(r => r['주최사명 *']);
-                if (orgRows.length > 0) {
-                    setStatus(`주최사 ${orgRows.length}건 입력 중...`);
-                    for (const r of orgRows) {
-                        const { error } = await sb.from('organizers').upsert({ name: r['주최사명 *'], description: r['소개 (선택)'] || null, logo_url: r['로고 URL (선택)'] || null }, { onConflict: 'name', ignoreDuplicates: true });
-                        if (error) addLog(`주최사 "${r['주최사명 *']}" 실패: ${error.message}`);
-                        else addLog(`주최사 "${r['주최사명 *']}" OK`);
-                    }
-                }
+                payload.organizers = XLSX.utils.sheet_to_json(orgSheet)
+                    .filter(r => r['주최사명 *'])
+                    .map(r => ({ name: r['주최사명 *'], description: r['소개 (선택)'] || null, logoUrl: r['로고 URL (선택)'] || null }));
             }
 
             // 2. 행사
             const evtSheet = wb.Sheets['2_행사'];
             if (evtSheet) {
-                const evtRows = XLSX.utils.sheet_to_json(evtSheet).filter(r => r['행사명 *']);
-                if (evtRows.length > 0) {
-                    setStatus(`행사 ${evtRows.length}건 입력 중...`);
-                    for (const r of evtRows) {
-                        const { error } = await sb.from('base_events').upsert({ name: r['행사명 *'], category: r['카테고리 *'] || null, description: r['소개 (선택)'] || null, image_url: r['이미지 URL (선택)'] || null }, { onConflict: 'name', ignoreDuplicates: false });
-                        if (error) addLog(`행사 "${r['행사명 *']}" 실패: ${error.message}`);
-                        else addLog(`행사 "${r['행사명 *']}" OK`);
-                    }
-                }
+                payload.baseEvents = XLSX.utils.sheet_to_json(evtSheet)
+                    .filter(r => r['행사명 *'])
+                    .map(r => ({ name: r['행사명 *'], category: r['카테고리 *'] || null, description: r['소개 (선택)'] || null, imageUrl: r['이미지 URL (선택)'] || null }));
             }
 
             // 3. 행사 개최
             const instSheet = wb.Sheets['3_행사개최'];
             if (instSheet) {
-                const instRows = XLSX.utils.sheet_to_json(instSheet).filter(r => r['행사명 *'] && r['장소 *']);
-                if (instRows.length > 0) {
-                    setStatus(`행사 개최 ${instRows.length}건 입력 중...`);
-                    // base_event / organizer 이름 → id 매핑
-                    const { data: allEvents } = await sb.from('base_events').select('id, name');
-                    const { data: allOrgs } = await sb.from('organizers').select('id, name');
-                    const evtMap = Object.fromEntries((allEvents || []).map(e => [e.name, e.id]));
-                    const orgMap = Object.fromEntries((allOrgs || []).map(o => [o.name, o.id]));
-
-                    for (const r of instRows) {
-                        const baseId = evtMap[r['행사명 *']];
-                        const orgId = orgMap[r['주최사명 *']];
-                        if (!baseId) { addLog(`개최 "${r['행사명 *']}" 실패: 행사를 찾을 수 없음`); continue; }
-                        const startDate = r['시작일 *'];
-                        const endDate = r['종료일'] || startDate;
-                        const { error } = await sb.from('event_instances').insert({
-                            base_event_id: baseId, organizer_id: orgId || null,
-                            location: r['장소 *'], location_sido: r['시/도 *'] || null,
-                            event_date: startDate, event_date_end: endDate,
-                        });
-                        if (error) addLog(`개최 "${r['행사명 *']} ${startDate}" 실패: ${error.message}`);
-                        else addLog(`개최 "${r['행사명 *']} ${startDate}" OK`);
-                    }
-                }
+                payload.instances = XLSX.utils.sheet_to_json(instSheet)
+                    .filter(r => r['행사명 *'] && r['장소 *'])
+                    .map(r => ({
+                        eventName: r['행사명 *'],
+                        organizerName: r['주최사명 *'] || null,
+                        location: r['장소 *'],
+                        locationSido: r['시/도'] || r['시도'] || null,
+                        startDate: toDateStr(r['시작일 *']),
+                        endDate: toDateStr(r['종료일']) || null,
+                    }));
             }
 
             // 4. 모집공고
             const recSheet = wb.Sheets['4_모집공고'];
             if (recSheet) {
-                const recRows = XLSX.utils.sheet_to_json(recSheet).filter(r => r['공고 제목 *']);
-                if (recRows.length > 0) {
-                    setStatus(`모집공고 ${recRows.length}건 입력 중...`);
-                    // event_instance 찾기: base_event name → 가장 최근 instance
-                    const { data: allInst } = await sb.from('event_instances').select('id, base_event:base_events(name)').order('event_date', { ascending: false });
-                    const instMap = {};
-                    (allInst || []).forEach(i => {
-                        const name = i.base_event?.name;
-                        if (name && !instMap[name]) instMap[name] = i.id;
-                    });
-
-                    for (const r of recRows) {
-                        const instId = instMap[r['행사명 *']];
-                        if (!instId) { addLog(`공고 "${r['공고 제목 *']}" 실패: 행사 개최를 찾을 수 없음`); continue; }
-                        const fee = r['참가비(원)'] != null ? Number(r['참가비(원)']) : null;
-                        const { error } = await sb.from('recruitments').insert({
-                            event_instance_id: instId,
-                            title: r['공고 제목 *'],
-                            content: (r['공고 내용 *'] || '').replace(/\\n/g, '\n'),
-                            fee: isNaN(fee) ? null : fee,
-                            application_method: r['신청 방법'] || null,
-                            start_date: r['모집 시작일'] || null,
-                            end_date: r['모집 마감일 *'] || null,
-                            status: r['상태'] || 'OPEN',
-                        });
-                        if (error) addLog(`공고 "${r['공고 제목 *']}" 실패: ${error.message}`);
-                        else addLog(`공고 "${r['공고 제목 *']}" OK`);
-                    }
-                }
+                payload.recruitments = XLSX.utils.sheet_to_json(recSheet)
+                    .filter(r => r['공고 제목 *'])
+                    .map(r => ({
+                        eventName: r['행사명 *'] || null,
+                        title: r['공고 제목 *'],
+                        content: r['공고 내용 *'] || null,
+                        fee: r['참가비(원)'] ?? null,
+                        applicationMethod: r['신청 방법'] || null,
+                        startDate: toDateStr(r['모집 시작일']) || null,
+                        endDate: toDateStr(r['모집 마감일 *']) || null,
+                        status: r['상태'] || 'OPEN',
+                    }));
             }
 
-            setStatus('완료!');
-            addLog('--- 업로드 완료 ---');
-            onComplete?.();
+            setStatus('서버에 전송 중...');
+            const res = await fetch('/api/admin/excel-import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: 'flit2026!', data: payload }),
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                addLog(`서버 오류: ${result.error || res.statusText}`);
+                setStatus('오류 발생');
+            } else {
+                (result.logs || []).forEach(l => setLog(prev => [...prev, l]));
+                setStatus('완료!');
+                onComplete?.();
+            }
         } catch (err) {
             setStatus('오류 발생');
             addLog(`치명적 오류: ${err.message}`);
