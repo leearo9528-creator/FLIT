@@ -5,25 +5,26 @@ import { useRouter } from 'next/navigation';
 import {
     ChevronRight, LogOut, UserX,
     Star, Bookmark, MessageSquare, MessageCircle as CommentIcon, Megaphone,
-    Bell, FileText, HelpCircle, MessageCircle, Settings,
+    Bell, FileText, HelpCircle, MessageCircle, Settings, Shield,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 
-function MenuItem({ icon: Icon, label, href, badge, danger, sub, onPress }) {
+function MenuItem({ icon: Icon, label, href, badge, danger, accent, sub, onPress }) {
     const router = useRouter();
     const handleClick = () => {
         if (onPress) { onPress(); return; }
         if (href) router.push(href);
     };
+    const iconColor = danger ? T.red : accent ? T.blue : T.gray;
     return (
         <div onClick={handleClick} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 20px', cursor: 'pointer',
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <Icon size={20} color={danger ? T.red : T.gray} strokeWidth={1.8} />
+                <Icon size={20} color={iconColor} strokeWidth={1.8} />
                 <div>
                     <span style={{ fontSize: 15, fontWeight: 600, color: danger ? T.red : T.text }}>{label}</span>
                     {sub && <div style={{ fontSize: 12, color: T.gray, marginTop: 1 }}>{sub}</div>}
@@ -71,6 +72,7 @@ export default function MyPage() {
     const [profileName, setProfileName] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
     const [counts, setCounts] = useState({ recruitments: 0 });
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) router.replace('/login');
@@ -83,9 +85,10 @@ export default function MyPage() {
                 const sb = createClient();
                 const isOrganizer = plan === 'organizer';
 
-                const profileRes = await sb.from('profiles').select('name, avatar_url').eq('id', user.id).maybeSingle();
+                const profileRes = await sb.from('profiles').select('name, avatar_url, is_admin').eq('id', user.id).maybeSingle();
                 if (profileRes.data?.name) setProfileName(profileRes.data.name);
                 if (profileRes.data?.avatar_url) setAvatarUrl(profileRes.data.avatar_url);
+                if (profileRes.data?.is_admin) setIsAdmin(true);
 
                 if (isOrganizer) {
                     const instRes = await sb.from('event_instances').select('id').eq('organizer_id', user.id);
@@ -191,6 +194,22 @@ export default function MyPage() {
                 <Divider />
                 <MenuItem icon={FileText} label="약관 및 정책" href="/terms" />
             </div>
+
+            {/* ── 관리자 ── */}
+            {isAdmin && (
+                <>
+                    <SectionGap />
+                    <div style={{ background: T.white }}>
+                        <MenuItem
+                            icon={Shield}
+                            label="관리자 페이지"
+                            sub="데이터 관리 · 회원 · 공지"
+                            href="/admin"
+                            accent
+                        />
+                    </div>
+                </>
+            )}
 
             <SectionGap />
 
