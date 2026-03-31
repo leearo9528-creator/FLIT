@@ -96,16 +96,27 @@ export async function POST(request) {
     // 4. 모집공고
     if (data.recruitments?.length) {
         const { data: allInst } = await sb.from('event_instances')
-            .select('id, base_event:base_events(name)')
+            .select('id, event_date, base_event:base_events(name)')
             .order('event_date', { ascending: false });
+        // 이름만으로 찾는 기본 맵 (첫 번째)
         const instMap = {};
+        // 이름+날짜로 찾는 맵
+        const instMapByDate = {};
         (allInst || []).forEach(i => {
             const name = i.base_event?.name;
-            if (name && !instMap[name]) instMap[name] = i.id;
+            if (!name) return;
+            if (!instMap[name]) instMap[name] = i.id;
+            if (i.event_date) {
+                const dateKey = `${name}__${i.event_date.slice(0, 10)}`;
+                if (!instMapByDate[dateKey]) instMapByDate[dateKey] = i.id;
+            }
         });
 
         for (const r of data.recruitments) {
-            const instId = instMap[r.eventName];
+            // 행사 날짜가 있으면 정확하게 매칭, 없으면 이름만으로 매칭
+            const instId = r.eventDate
+                ? (instMapByDate[`${r.eventName}__${r.eventDate}`] || instMap[r.eventName])
+                : instMap[r.eventName];
             if (!instId) { addLog(`공고 "${r.title}" 실패: 행사 개최를 찾을 수 없음`); continue; }
             const fee = r.fee != null ? Number(r.fee) : null;
             const { error } = await sb.from('recruitments').insert({

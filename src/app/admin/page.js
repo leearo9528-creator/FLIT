@@ -147,7 +147,11 @@ function ExcelUploader({ onComplete }) {
             if (orgSheet) {
                 payload.organizers = XLSX.utils.sheet_to_json(orgSheet)
                     .filter(r => r['주최사명 *'])
-                    .map(r => ({ name: r['주최사명 *'], description: r['소개 (선택)'] || null, logoUrl: r['로고 URL (선택)'] || null }));
+                    .map(r => ({
+                        name: r['주최사명 *'],
+                        description: r['설명 (선택)'] || r['소개 (선택)'] || null,
+                        logoUrl: r['로고 URL (선택)'] || null,
+                    }));
             }
 
             // 2. 행사
@@ -155,21 +159,26 @@ function ExcelUploader({ onComplete }) {
             if (evtSheet) {
                 payload.baseEvents = XLSX.utils.sheet_to_json(evtSheet)
                     .filter(r => r['행사명 *'])
-                    .map(r => ({ name: r['행사명 *'], category: r['카테고리 *'] || null, description: r['소개 (선택)'] || null, imageUrl: r['이미지 URL (선택)'] || null }));
+                    .map(r => ({
+                        name: r['행사명 *'],
+                        category: r['카테고리 *'] || null,
+                        description: r['설명 (선택)'] || r['소개 (선택)'] || null,
+                        imageUrl: r['이미지 URL (선택)'] || null,
+                    }));
             }
 
             // 3. 행사 개최
             const instSheet = wb.Sheets['3_행사개최'];
             if (instSheet) {
                 payload.instances = XLSX.utils.sheet_to_json(instSheet)
-                    .filter(r => r['행사명 *'] && r['장소 *'])
+                    .filter(r => r['행사명 *'] && (r['위치 *'] || r['장소 *']))
                     .map(r => ({
                         eventName: r['행사명 *'],
                         organizerName: r['주최사명 *'] || null,
-                        location: r['장소 *'],
-                        locationSido: r['시/도'] || r['시도'] || null,
-                        startDate: toDateStr(r['시작일 *']),
-                        endDate: toDateStr(r['종료일']) || null,
+                        location: r['위치 *'] || r['장소 *'],
+                        locationSido: r['시/도 *'] || r['시/도'] || r['시도'] || null,
+                        startDate: toDateStr(r['시작날짜 *'] || r['시작일 *']),
+                        endDate: toDateStr(r['종료날짜'] || r['종료일']) || null,
                     }));
             }
 
@@ -177,15 +186,16 @@ function ExcelUploader({ onComplete }) {
             const recSheet = wb.Sheets['4_모집공고'];
             if (recSheet) {
                 payload.recruitments = XLSX.utils.sheet_to_json(recSheet)
-                    .filter(r => r['공고 제목 *'])
+                    .filter(r => r['모집 제목 *'] || r['공고 제목 *'])
                     .map(r => ({
                         eventName: r['행사명 *'] || null,
-                        title: r['공고 제목 *'],
+                        eventDate: toDateStr(r['행사 날짜 *']) || null,
+                        title: r['모집 제목 *'] || r['공고 제목 *'],
                         content: r['공고 내용 *'] || null,
-                        fee: r['참가비(원)'] ?? null,
+                        fee: r['모집금액(원)'] ?? r['참가비(원)'] ?? null,
                         applicationMethod: r['신청 방법'] || null,
                         startDate: toDateStr(r['모집 시작일']) || null,
-                        endDate: toDateStr(r['모집 마감일 *']) || null,
+                        endDate: toDateStr(r['모집 종료일 *'] || r['모집 마감일 *']) || null,
                         status: r['상태'] || 'OPEN',
                     }));
             }
@@ -644,7 +654,7 @@ export default function AdminPage() {
                 sb.from('base_events').select('id, name, category, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('recruitments').select('id, title, status, fee, end_date, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
                 sb.from('organizers').select('id, name, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('profiles').select('id, name, email, plan, seller_type, review_count, created_at').order('created_at', { ascending: false }).limit(100),
+                sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
             ]);
             setEvents(eRes.data || []);
             setRecruitments(rRes.data || []);
@@ -655,6 +665,22 @@ export default function AdminPage() {
     }, [isAdmin]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    const handleApprove = async (id) => {
+        if (!confirm('주최사로 승인하시겠습니까?')) return;
+        const sb = createClient();
+        const { error } = await sb.from('profiles').update({ plan: 'organizer' }).eq('id', id);
+        if (error) alert(`승인 실패: ${error.message}`);
+        else { alert('승인 완료'); fetchAll(); }
+    };
+
+    const handleReject = async (id) => {
+        if (!confirm('신청을 거절하시겠습니까? 플랜이 free로 변경됩니다.')) return;
+        const sb = createClient();
+        const { error } = await sb.from('profiles').update({ plan: 'free' }).eq('id', id);
+        if (error) alert(`거절 실패: ${error.message}`);
+        else { alert('거절 완료'); fetchAll(); }
+    };
 
     const handleDelete = (table) => async (id) => {
         if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
@@ -748,7 +774,19 @@ export default function AdminPage() {
                 ) : tab === 'organizers' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." /></div>
                 ) : tab === 'users' ? (
-                    <div style={{ padding: '0 16px' }}><DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." /></div>
+                    <div style={{ padding: '0 16px' }}>
+                        {userList.filter(u => u.plan === 'organizer_pending').length > 0 && (
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Clock size={14} color={T.blue}/> 주최사 승인 대기 ({userList.filter(u => u.plan === 'organizer_pending').length}명)
+                                </div>
+                                {userList.filter(u => u.plan === 'organizer_pending').map(u => (
+                                    <UserCard key={u.id} profile={u} onApprove={handleApprove} onReject={handleReject} />
+                                ))}
+                            </div>
+                        )}
+                        <DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." />
+                    </div>
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
                 ) : tab === 'paste' ? (
