@@ -82,18 +82,19 @@ export default function MyPage() {
             try {
                 const sb = createClient();
                 const isOrganizer = plan === 'organizer';
-                const [profile, rc] = await Promise.all([
-                    sb.from('profiles').select('name, avatar_url').eq('id', user.id).maybeSingle(),
-                    isOrganizer
-                        ? sb.from('recruitments').select('id', { count: 'exact', head: true })
-                            .in('event_instance_id',
-                                (await sb.from('event_instances').select('id').eq('organizer_id', user.id)).data?.map(e => e.id) || []
-                            )
-                        : Promise.resolve({ count: 0 }),
-                ]);
-                setCounts({ recruitments: rc.count || 0 });
-                if (profile.data?.name) setProfileName(profile.data.name);
-                if (profile.data?.avatar_url) setAvatarUrl(profile.data.avatar_url);
+
+                const profileRes = await sb.from('profiles').select('name, avatar_url').eq('id', user.id).maybeSingle();
+                if (profileRes.data?.name) setProfileName(profileRes.data.name);
+                if (profileRes.data?.avatar_url) setAvatarUrl(profileRes.data.avatar_url);
+
+                if (isOrganizer) {
+                    const instRes = await sb.from('event_instances').select('id').eq('organizer_id', user.id);
+                    const ids = instRes.data?.map(e => e.id) || [];
+                    if (ids.length > 0) {
+                        const rc = await sb.from('recruitments').select('id', { count: 'exact', head: true }).in('event_instance_id', ids);
+                        setCounts({ recruitments: rc.count || 0 });
+                    }
+                }
             } catch (err) {
                 console.error('마이페이지 로드 실패:', err);
             }

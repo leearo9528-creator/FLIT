@@ -287,6 +287,7 @@ const PARSE_KEYS = [
 ];
 
 function parsePostText(raw) {
+    if (!raw) return {};
     const lines = raw.split('\n');
     const result = {};
     let currentKey = null;

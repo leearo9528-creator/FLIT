@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
             // 주최사 선택 시 organizers 테이블 동기화
             if (isOrganizer) {
-                await sb.from('organizers').upsert({
+                const { error: orgErr } = await sb.from('organizers').upsert({
                     id: user.id,
                     name: orgName.trim() || name.trim(),
                     description: orgDesc.trim() || null,
@@ -168,6 +168,7 @@ export default function ProfilePage() {
                     promo_link: promoLink.trim() || null,
                     contact_name: realName.trim() || null,
                 }, { onConflict: 'id' });
+                if (orgErr) console.error('organizers 동기화 실패:', orgErr);
             }
 
             await refreshPlan();

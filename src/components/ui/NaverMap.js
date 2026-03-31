@@ -12,6 +12,7 @@ function loadNaverMapScript() {
             const check = setInterval(() => {
                 if (window.naver?.maps) { clearInterval(check); resolve(); }
             }, 100);
+            setTimeout(() => { clearInterval(check); reject(new Error('네이버 지도 로드 타임아웃')); }, 10000);
             return;
         }
         const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
@@ -24,6 +25,7 @@ function loadNaverMapScript() {
             const check = setInterval(() => {
                 if (window.naver?.maps) { clearInterval(check); resolve(); }
             }, 100);
+            setTimeout(() => { clearInterval(check); reject(new Error('네이버 지도 로드 타임아웃')); }, 10000);
         };
         script.onerror = () => reject(new Error('네이버 지도 스크립트 로드 실패'));
         document.head.appendChild(script);
