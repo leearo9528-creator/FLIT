@@ -105,7 +105,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
             {/* 모집 중인 행사 정보 */}
             {baseEvent.id && (
-                <InfoSection emoji="🎪" title="모집 중인 행사 정보">
+                <InfoSection emoji="📅" title="행사 기본 정보">
                     <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
