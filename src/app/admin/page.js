@@ -86,26 +86,124 @@ function UserCard({ profile, onApprove, onReject }) {
     );
 }
 
-/* ─── 데이터 테이블 ─── */
-function DataTable({ columns, rows, onDelete, emptyMsg }) {
-    if (rows.length === 0) return <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>{emptyMsg}</div>;
+/* ─── 수정 모달 ─── */
+function EditModal({ item, fields, tableName, onSave, onClose }) {
+    const [form, setForm] = useState(() => {
+        const init = {};
+        fields.forEach(f => { init[f.key] = item[f.key] ?? ''; });
+        return init;
+    });
+    const [saving, setSaving] = useState(false);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const sb = createClient();
+            const payload = {};
+            fields.forEach(f => {
+                const v = form[f.key];
+                payload[f.key] = f.type === 'number' ? (v === '' ? null : Number(v)) : (v === '' ? null : v);
+            });
+            const { error } = await sb.from(tableName).update(payload).eq('id', item.id);
+            if (error) throw error;
+            onSave();
+        } catch (err) {
+            alert(`수정 실패: ${err.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
-        <div style={{ overflowX: 'auto', background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}` }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                    <tr>{columns.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}<th style={thStyle}></th></tr>
-                </thead>
-                <tbody>
-                    {rows.map(row => (
-                        <tr key={row.id}>
-                            {columns.map(c => <td key={c.key} style={cellStyle}>{c.render ? c.render(row) : (row[c.key] ?? '-')}</td>)}
-                            <td style={{ ...cellStyle, textAlign: 'center' }}>
-                                <Trash2 size={14} color={T.red} style={{ cursor: 'pointer' }} onClick={() => onDelete(row.id)} />
-                            </td>
-                        </tr>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div style={{ background: T.white, borderRadius: T.radiusXl, padding: 20, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', boxShadow: T.shadowLg }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>✏️ 내용 수정</span>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: T.gray }}>✕</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {fields.map(f => (
+                        <div key={f.key}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, marginBottom: 4 }}>{f.label}</div>
+                            {f.type === 'select' ? (
+                                <select value={form[f.key] ?? ''} onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                                    style={{ width: '100%', padding: '8px 12px', borderRadius: T.radiusMd, border: `1.5px solid ${T.border}`, fontSize: 13, background: T.bg }}>
+                                    {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                            ) : f.type === 'textarea' ? (
+                                <textarea value={form[f.key] ?? ''} onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                                    rows={4} style={{ width: '100%', padding: '8px 12px', borderRadius: T.radiusMd, border: `1.5px solid ${T.border}`, fontSize: 13, resize: 'vertical', background: T.bg, boxSizing: 'border-box' }} />
+                            ) : (
+                                <input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                                    value={form[f.key] ?? ''} onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                                    style={{ width: '100%', padding: '8px 12px', borderRadius: T.radiusMd, border: `1.5px solid ${T.border}`, fontSize: 13, background: T.bg, boxSizing: 'border-box' }} />
+                            )}
+                        </div>
                     ))}
-                </tbody>
-            </table>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+                    <button onClick={onClose} style={{ ...btnOutline, flex: 1 }}>취소</button>
+                    <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 2 }}>{saving ? '저장 중...' : '저장'}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ─── 데이터 테이블 ─── */
+function DataTable({ columns, rows, onDelete, onDeleteSelected, onEdit, emptyMsg }) {
+    const [selected, setSelected] = useState(new Set());
+
+    const allChecked = rows.length > 0 && selected.size === rows.length;
+    const toggleAll = () => setSelected(allChecked ? new Set() : new Set(rows.map(r => r.id)));
+    const toggleOne = (id) => {
+        const next = new Set(selected);
+        next.has(id) ? next.delete(id) : next.add(id);
+        setSelected(next);
+    };
+
+    if (rows.length === 0) return <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>{emptyMsg}</div>;
+
+    return (
+        <div>
+            {selected.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#FEF2F2', borderRadius: T.radiusMd, marginBottom: 8, border: `1px solid ${T.red}30` }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.red }}>{selected.size}개 선택됨</span>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => setSelected(new Set())} style={{ ...btnOutline, padding: '5px 12px', fontSize: 12 }}>선택 해제</button>
+                        <button onClick={() => { onDeleteSelected([...selected]); setSelected(new Set()); }} style={{ ...btnDanger, padding: '5px 12px', fontSize: 12 }}>🗑 선택 삭제</button>
+                    </div>
+                </div>
+            )}
+            <div style={{ overflowX: 'auto', background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}` }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr>
+                            <th style={{ ...thStyle, width: 36, textAlign: 'center' }}>
+                                <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+                            </th>
+                            {columns.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}
+                            <th style={{ ...thStyle, width: 60 }}></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map(row => (
+                            <tr key={row.id} style={{ background: selected.has(row.id) ? '#FFF5F5' : 'transparent' }}>
+                                <td style={{ ...cellStyle, textAlign: 'center', width: 36 }}>
+                                    <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleOne(row.id)} style={{ cursor: 'pointer' }} />
+                                </td>
+                                {columns.map(c => <td key={c.key} style={cellStyle}>{c.render ? c.render(row) : (row[c.key] ?? '-')}</td>)}
+                                <td style={{ ...cellStyle, textAlign: 'center', width: 60 }}>
+                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                        {onEdit && <Edit3 size={13} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => onEdit(row)} />}
+                                        <Trash2 size={13} color={T.red} style={{ cursor: 'pointer' }} onClick={() => onDelete(row.id)} />
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
@@ -829,6 +927,7 @@ export default function AdminPage() {
     const [orgList, setOrgList] = useState([]);
     const [userList, setUserList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editItem, setEditItem] = useState(null); // { item, tableName, fields }
 
     useEffect(() => {
         if (authLoading) return;
@@ -850,9 +949,9 @@ export default function AdminPage() {
         try {
             const sb = createClient();
             const [eRes, rRes, oRes, uRes] = await Promise.all([
-                sb.from('base_events').select('id, name, category, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('recruitments').select('id, title, status, fee, end_date, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
-                sb.from('organizers').select('id, name, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
+                sb.from('base_events').select('id, name, category, description, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
+                sb.from('recruitments').select('id, title, status, fee, end_date, start_date, content, application_method, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
+                sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
             ]);
             setEvents(eRes.data || []);
@@ -869,13 +968,23 @@ export default function AdminPage() {
         if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
         try {
             const sb = createClient();
-            const { error, count } = await sb.from(table).delete().eq('id', id);
+            const { error } = await sb.from(table).delete().eq('id', id);
             if (error) throw error;
-            alert('삭제 완료');
             fetchAll();
         } catch (err) {
-            alert(`삭제 실패: ${err.message}\n\nRLS 정책이 적용되지 않았을 수 있습니다.\nSupabase SQL 에디터에서 add_admin_delete_policies.sql을 실행해주세요.`);
-            console.error('삭제 에러:', err);
+            alert(`삭제 실패: ${err.message}`);
+        }
+    };
+
+    const handleBulkDelete = (table) => async (ids) => {
+        if (!confirm(`${ids.length}개를 삭제하시겠습니까? 되돌릴 수 없습니다.`)) return;
+        try {
+            const sb = createClient();
+            const { error } = await sb.from(table).delete().in('id', ids);
+            if (error) throw error;
+            fetchAll();
+        } catch (err) {
+            alert(`삭제 실패: ${err.message}`);
         }
     };
 
@@ -893,12 +1002,30 @@ export default function AdminPage() {
         { key: 'total_instances', label: '개최' },
         { key: 'total_reviews', label: '리뷰' },
     ];
+    const evtFields = [
+        { key: 'name', label: '행사명', type: 'text' },
+        { key: 'category', label: '카테고리', type: 'select', options: [
+            { value: '', label: '선택' },
+            { value: '플리마켓', label: '플리마켓' },
+            { value: '푸드트럭', label: '푸드트럭' },
+            { value: '플리+푸드 전체', label: '플리+푸드 전체' },
+            { value: '팝업스토어', label: '팝업스토어' },
+        ]},
+        { key: 'description', label: '설명', type: 'textarea' },
+    ];
+
     const orgCols = [
         { key: 'name', label: '주최사명' },
         { key: 'total_instances', label: '행사' },
         { key: 'total_reviews', label: '리뷰' },
         { key: 'created_at', label: '등록일', render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
     ];
+    const orgFields = [
+        { key: 'name', label: '주최사명', type: 'text' },
+        { key: 'description', label: '소개', type: 'textarea' },
+        { key: 'logo_url', label: '로고 URL', type: 'text' },
+    ];
+
     const recCols = [
         { key: 'title', label: '제목' },
         { key: 'event', label: '행사', render: r => r.event_instance?.base_event?.name || '-' },
@@ -906,6 +1033,16 @@ export default function AdminPage() {
         { key: 'status', label: '상태', render: r => r.status === 'OPEN' ? '모집중' : '마감' },
         { key: 'end_date', label: '마감일', render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
     ];
+    const recFields = [
+        { key: 'title', label: '공고 제목', type: 'text' },
+        { key: 'status', label: '상태', type: 'select', options: [{ value: 'OPEN', label: '모집중' }, { value: 'CLOSED', label: '마감' }] },
+        { key: 'fee', label: '참가비(원)', type: 'number' },
+        { key: 'end_date', label: '모집 마감일', type: 'date' },
+        { key: 'start_date', label: '모집 시작일', type: 'date' },
+        { key: 'application_method', label: '신청 방법', type: 'textarea' },
+        { key: 'content', label: '공고 내용', type: 'textarea' },
+    ];
+
     const userCols = [
         { key: 'name', label: '이름' },
         { key: 'email', label: '이메일' },
@@ -913,10 +1050,23 @@ export default function AdminPage() {
         { key: 'review_count', label: '리뷰' },
         { key: 'created_at', label: '가입일', render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
     ];
+    const userFields = [
+        { key: 'name', label: '이름', type: 'text' },
+        { key: 'plan', label: '역할', type: 'select', options: [{ value: 'free', label: '셀러' }, { value: 'organizer', label: '주최사' }] },
+    ];
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 40 }}>
             <TopBar title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={18}/> 관리자</span>} back />
+            {editItem && (
+                <EditModal
+                    item={editItem.item}
+                    fields={editItem.fields}
+                    tableName={editItem.tableName}
+                    onSave={() => { setEditItem(null); fetchAll(); }}
+                    onClose={() => setEditItem(null)}
+                />
+            )}
 
             {/* 통계 */}
             <div style={{ padding: '16px 16px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -953,20 +1103,38 @@ export default function AdminPage() {
                 ) : tab === 'events' ? (
                     <div style={{ padding: '0 16px' }}>
                         <EventForm orgList={orgList} onComplete={fetchAll} />
-                        <DataTable columns={evtCols} rows={events} onDelete={handleDelete('base_events')} emptyMsg="등록된 행사가 없어요." />
+                        <DataTable columns={evtCols} rows={events}
+                            onDelete={handleDelete('base_events')}
+                            onDeleteSelected={handleBulkDelete('base_events')}
+                            onEdit={row => setEditItem({ item: row, tableName: 'base_events', fields: evtFields })}
+                            emptyMsg="등록된 행사가 없어요." />
                     </div>
                 ) : tab === 'recruitments' ? (
                     <div style={{ padding: '0 16px' }}>
                         <RecruitmentForm onComplete={fetchAll} />
-                        <DataTable columns={recCols} rows={recruitments} onDelete={handleDelete('recruitments')} emptyMsg="등록된 공고가 없어요." />
+                        <DataTable columns={recCols} rows={recruitments}
+                            onDelete={handleDelete('recruitments')}
+                            onDeleteSelected={handleBulkDelete('recruitments')}
+                            onEdit={row => setEditItem({ item: row, tableName: 'recruitments', fields: recFields })}
+                            emptyMsg="등록된 공고가 없어요." />
                     </div>
                 ) : tab === 'organizers' ? (
                     <div style={{ padding: '0 16px' }}>
                         <OrganizerForm onComplete={fetchAll} />
-                        <DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." />
+                        <DataTable columns={orgCols} rows={orgList}
+                            onDelete={handleDelete('organizers')}
+                            onDeleteSelected={handleBulkDelete('organizers')}
+                            onEdit={row => setEditItem({ item: row, tableName: 'organizers', fields: orgFields })}
+                            emptyMsg="등록된 주최사가 없어요." />
                     </div>
                 ) : tab === 'users' ? (
-                    <div style={{ padding: '0 16px' }}><DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." /></div>
+                    <div style={{ padding: '0 16px' }}>
+                        <DataTable columns={userCols} rows={userList}
+                            onDelete={handleDelete('profiles')}
+                            onDeleteSelected={handleBulkDelete('profiles')}
+                            onEdit={row => setEditItem({ item: row, tableName: 'profiles', fields: userFields })}
+                            emptyMsg="가입된 회원이 없어요." />
+                    </div>
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
                 ) : tab === 'paste' ? (
