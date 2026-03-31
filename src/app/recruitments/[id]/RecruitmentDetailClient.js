@@ -213,7 +213,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
                 <div style={{ position: 'absolute', bottom: -60, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-                {/* 상단 바: 뒤로가기 + 스크랩 */}
+                {/* 상단 네비: 뒤로가기 + 페이지 레이블 + 스크랩 */}
                 <div style={{
                     padding: '16px 16px 0', position: 'relative', zIndex: 2,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -222,39 +222,39 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         background: 'rgba(255,255,255,0.15)', border: 'none',
                         borderRadius: T.radiusFull, width: 36, height: 36,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        flexShrink: 0,
                     }}>
                         <ArrowLeft size={18} color="#fff" />
                     </button>
 
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <button
-                            onClick={handleScrap}
-                            style={{
-                                background: scrapped ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
-                                border: 'none', borderRadius: T.radiusFull,
-                                width: 36, height: 36,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <Bookmark
-                                size={18}
-                                fill={scrapped ? T.green : 'none'}
-                                color={scrapped ? T.green : '#fff'}
-                            />
-                        </button>
-                    </div>
-                </div>
-
-                <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
-                    {/* 페이지 성격 레이블 */}
                     <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                        background: 'rgba(255,255,255,0.2)', color: '#fff', marginBottom: 12,
+                        fontSize: 13, fontWeight: 800, color: '#fff',
+                        background: 'rgba(255,255,255,0.2)',
+                        padding: '6px 14px', borderRadius: T.radiusFull,
+                        letterSpacing: 0.3,
                     }}>
                         📋 셀러 모집 공고
                     </div>
+
+                    <button
+                        onClick={handleScrap}
+                        style={{
+                            background: scrapped ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
+                            border: 'none', borderRadius: T.radiusFull,
+                            width: 36, height: 36,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', flexShrink: 0,
+                        }}
+                    >
+                        <Bookmark
+                            size={18}
+                            fill={scrapped ? T.green : 'none'}
+                            color={scrapped ? T.green : '#fff'}
+                        />
+                    </button>
+                </div>
+
+                <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
 
                     {/* 상태 + D-Day */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
