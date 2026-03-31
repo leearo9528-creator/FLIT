@@ -11,7 +11,6 @@
 TRUNCATE TABLE
     post_comments,
     posts,
-    event_scraps,
     scraps,
     reviews,
     recruitments,
