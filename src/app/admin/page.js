@@ -666,22 +666,6 @@ export default function AdminPage() {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    const handleApprove = async (id) => {
-        if (!confirm('주최사로 승인하시겠습니까?')) return;
-        const sb = createClient();
-        const { error } = await sb.from('profiles').update({ plan: 'organizer' }).eq('id', id);
-        if (error) alert(`승인 실패: ${error.message}`);
-        else { alert('승인 완료'); fetchAll(); }
-    };
-
-    const handleReject = async (id) => {
-        if (!confirm('신청을 거절하시겠습니까? 플랜이 free로 변경됩니다.')) return;
-        const sb = createClient();
-        const { error } = await sb.from('profiles').update({ plan: 'free' }).eq('id', id);
-        if (error) alert(`거절 실패: ${error.message}`);
-        else { alert('거절 완료'); fetchAll(); }
-    };
-
     const handleDelete = (table) => async (id) => {
         if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
         try {
@@ -774,19 +758,7 @@ export default function AdminPage() {
                 ) : tab === 'organizers' ? (
                     <div style={{ padding: '0 16px' }}><DataTable columns={orgCols} rows={orgList} onDelete={handleDelete('organizers')} emptyMsg="등록된 주최사가 없어요." /></div>
                 ) : tab === 'users' ? (
-                    <div style={{ padding: '0 16px' }}>
-                        {userList.filter(u => u.plan === 'organizer_pending').length > 0 && (
-                            <div style={{ marginBottom: 20 }}>
-                                <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Clock size={14} color={T.blue}/> 주최사 승인 대기 ({userList.filter(u => u.plan === 'organizer_pending').length}명)
-                                </div>
-                                {userList.filter(u => u.plan === 'organizer_pending').map(u => (
-                                    <UserCard key={u.id} profile={u} onApprove={handleApprove} onReject={handleReject} />
-                                ))}
-                            </div>
-                        )}
-                        <DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." />
-                    </div>
+                    <div style={{ padding: '0 16px' }}><DataTable columns={userCols} rows={userList} onDelete={handleDelete('profiles')} emptyMsg="가입된 회원이 없어요." /></div>
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
                 ) : tab === 'paste' ? (
