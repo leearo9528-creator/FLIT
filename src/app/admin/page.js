@@ -123,89 +123,18 @@ function ExcelUploader({ onComplete }) {
     const handleUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setUploading(true); setLog([]); setStatus('파싱 중...');
-
-        // 엑셀 날짜 숫자(시리얼) → YYYY-MM-DD 문자열 변환
-        const toDateStr = (val) => {
-            if (val == null || val === '') return null;
-            if (typeof val === 'number') {
-                const d = new Date(Math.round((val - 25569) * 86400 * 1000));
-                return d.toISOString().slice(0, 10);
-            }
-            if (val instanceof Date) return val.toISOString().slice(0, 10);
-            return String(val).trim().replace(/\./g, '-').slice(0, 10);
-        };
+        setUploading(true); setLog([]); setStatus('업로드 중...');
 
         try {
-            const XLSX = await import('xlsx');
-            const buffer = await file.arrayBuffer();
-            const wb = XLSX.read(buffer, { cellDates: true });
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('password', 'flit2026!');
+            formData.append('isMock', String(isMock));
 
-            const payload = { organizers: [], baseEvents: [], instances: [], recruitments: [] };
-
-            // 1. 주최사
-            const orgSheet = wb.Sheets['1_주최사'];
-            if (orgSheet) {
-                payload.organizers = XLSX.utils.sheet_to_json(orgSheet)
-                    .filter(r => r['주최사명 *'])
-                    .map(r => ({
-                        name: r['주최사명 *'],
-                        description: r['설명 (선택)'] || r['소개 (선택)'] || null,
-                        logoUrl: r['로고 URL (선택)'] || null,
-                    }));
-            }
-
-            // 2. 행사
-            const evtSheet = wb.Sheets['2_행사'];
-            if (evtSheet) {
-                payload.baseEvents = XLSX.utils.sheet_to_json(evtSheet)
-                    .filter(r => r['행사명 *'])
-                    .map(r => ({
-                        name: r['행사명 *'],
-                        category: r['카테고리 *'] || null,
-                        description: r['설명 (선택)'] || r['소개 (선택)'] || null,
-                        imageUrl: r['이미지 URL (선택)'] || null,
-                    }));
-            }
-
-            // 3. 행사 개최
-            const instSheet = wb.Sheets['3_행사개최'];
-            if (instSheet) {
-                payload.instances = XLSX.utils.sheet_to_json(instSheet)
-                    .filter(r => r['행사명 *'] && (r['위치 *'] || r['장소 *']))
-                    .map(r => ({
-                        eventName: r['행사명 *'],
-                        organizerName: r['주최사명 *'] || null,
-                        location: r['위치 *'] || r['장소 *'],
-                        locationSido: r['시/도 *'] || r['시/도'] || r['시도'] || null,
-                        startDate: toDateStr(r['시작날짜 *'] || r['시작일 *']),
-                        endDate: toDateStr(r['종료날짜'] || r['종료일']) || null,
-                    }));
-            }
-
-            // 4. 모집공고
-            const recSheet = wb.Sheets['4_모집공고'];
-            if (recSheet) {
-                payload.recruitments = XLSX.utils.sheet_to_json(recSheet)
-                    .filter(r => r['모집 제목 *'] || r['공고 제목 *'])
-                    .map(r => ({
-                        eventName: r['행사명 *'] || null,
-                        eventDate: toDateStr(r['행사 날짜 *']) || null,
-                        title: r['모집 제목 *'] || r['공고 제목 *'],
-                        content: r['공고 내용 *'] || null,
-                        fee: r['모집금액(원)'] ?? r['참가비(원)'] ?? null,
-                        applicationMethod: r['신청 방법'] || null,
-                        startDate: toDateStr(r['모집 시작일']) || null,
-                        endDate: toDateStr(r['모집 종료일 *'] || r['모집 마감일 *']) || null,
-                        status: r['상태'] || 'OPEN',
-                    }));
-            }
-
-            setStatus('서버에 전송 중...');
+            setStatus('서버에서 처리 중...');
             const res = await fetch('/api/admin/excel-import', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: 'flit2026!', data: payload, isMock }),
+                body: formData,
             });
             const result = await res.json();
             if (!res.ok) {
@@ -218,7 +147,7 @@ function ExcelUploader({ onComplete }) {
             }
         } catch (err) {
             setStatus('오류 발생');
-            addLog(`치명적 오류: ${err.message}`);
+            addLog(`오류: ${err.message}`);
         } finally {
             setUploading(false);
             if (fileRef.current) fileRef.current.value = '';
@@ -230,8 +159,9 @@ function ExcelUploader({ onComplete }) {
             <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>엑셀 파일 업로드</div>
                 <div style={{ fontSize: 12, color: T.gray, marginBottom: 12, lineHeight: 1.6 }}>
-                    FLIT_데이터입력양식_v2.xlsx 파일을 선택하세요.<br/>
-                    시트 순서: 1_주최사 → 2_행사 → 3_행사개최 → 4_모집공고
+                    엑셀 파일을 선택하면 자동으로 업로드됩니다.<br/>
+                    <b>단일 시트</b> 형식: 한 행에 공고 하나씩 입력<br/>
+                    <span style={{ color: T.blue }}>행사명* | 공고제목* | 모집마감일* | 주최사명 | 카테고리 | 장소 | 행사시작일 | 참가비(원) | 신청방법 | 공고내용 | 상태</span>
                 </div>
                 <a href="/data_template.xlsx" download="FLIT_데이터입력양식.xlsx"
                     style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>

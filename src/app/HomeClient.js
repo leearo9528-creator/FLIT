@@ -11,6 +11,7 @@ import HeroBanner from '@/components/home/HeroBanner';
 import HotRecruitmentSection from '@/components/home/HotRecruitmentSection';
 import RecentReviewsSection from '@/components/home/RecentReviewsSection';
 import CommunitySection from '@/components/home/CommunitySection';
+import HomeCalendarSection from '@/components/home/HomeCalendarSection';
 
 const NotificationDrawer = dynamic(() => import('@/components/ui/NotificationDrawer'), { ssr: false });
 
@@ -102,6 +103,7 @@ export default function HomeClient({ initialRecruitments, initialReviews, initia
             {/* page content */}
             <div style={{ paddingTop: 16 }}>
                 <HeroBanner />
+                <HomeCalendarSection />
                 <HotRecruitmentSection recruitments={initialRecruitments} />
                 <RecentReviewsSection reviews={initialReviews} />
                 <CommunitySection posts={initialPosts} />

@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 const tabs = [
     { key: 'home', label: '홈', icon: '🏠', href: '/' },
     { key: 'search', label: '행사 찾기', icon: '🔍', href: '/search' },
+    { key: 'calendar', label: '달력', icon: '📅', href: '/calendar' },
     { key: 'community', label: '커뮤니티', icon: '💬', href: '/community' },
     { key: 'my', label: '마이', icon: '👤', href: '/mypage' },
 ];
@@ -43,7 +44,7 @@ export default function BottomTab() {
         router.push(href);
     };
 
-    const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname === '/community';
+    const showFAB = pathname === '/' || pathname.startsWith('/search') || pathname === '/community' || pathname.startsWith('/calendar');
     const showPromo = showFAB && !isOrganizer && !canViewReviews;
 
     const handleWriteClick = (path) => {

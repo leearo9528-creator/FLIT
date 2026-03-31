@@ -10,132 +10,155 @@ function getAdminClient() {
     );
 }
 
+function toDateStr(val) {
+    if (val == null || val === '') return null;
+    if (typeof val === 'number') {
+        const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+        return d.toISOString().slice(0, 10);
+    }
+    if (val instanceof Date) return val.toISOString().slice(0, 10);
+    return String(val).trim().replace(/\./g, '-').slice(0, 10) || null;
+}
+
 export async function POST(request) {
-    const { password, data, isMock = false } = await request.json();
+    try {
+        const formData = await request.formData();
+        const password = formData.get('password');
+        const isMock = formData.get('isMock') === 'true';
+        const file = formData.get('file');
 
-    if (password !== ADMIN_PASSWORD) {
-        return NextResponse.json({ error: '인증 실패' }, { status: 401 });
-    }
-
-    const sb = getAdminClient();
-    const logs = [];
-    const addLog = (msg) => logs.push(`${new Date().toLocaleTimeString()} ${msg}`);
-
-    // 1. 주최사
-    if (data.organizers?.length) {
-        for (const r of data.organizers) {
-            const { data: existing } = await sb.from('organizers').select('id').eq('name', r.name).maybeSingle();
-            if (existing) {
-                const { error } = await sb.from('organizers')
-                    .update({ description: r.description, logo_url: r.logoUrl })
-                    .eq('id', existing.id);
-                if (error) addLog(`주최사 "${r.name}" 실패: ${error.message}`);
-                else addLog(`주최사 "${r.name}" OK (업데이트)`);
-            } else {
-                const { error } = await sb.from('organizers')
-                    .insert({ name: r.name, description: r.description, logo_url: r.logoUrl, is_mock: isMock });
-                if (error) addLog(`주최사 "${r.name}" 실패: ${error.message}`);
-                else addLog(`주최사 "${r.name}" OK`);
-            }
+        if (password !== ADMIN_PASSWORD) {
+            return NextResponse.json({ error: '인증 실패' }, { status: 401 });
         }
-    }
-
-    // 2. 행사
-    if (data.baseEvents?.length) {
-        for (const r of data.baseEvents) {
-            const { data: existing } = await sb.from('base_events').select('id').eq('name', r.name).maybeSingle();
-            if (existing) {
-                const { error } = await sb.from('base_events')
-                    .update({ category: r.category, description: r.description, image_url: r.imageUrl })
-                    .eq('id', existing.id);
-                if (error) addLog(`행사 "${r.name}" 실패: ${error.message}`);
-                else addLog(`행사 "${r.name}" OK (업데이트)`);
-            } else {
-                const { error } = await sb.from('base_events')
-                    .insert({ name: r.name, category: r.category, description: r.description, image_url: r.imageUrl, is_mock: isMock });
-                if (error) addLog(`행사 "${r.name}" 실패: ${error.message}`);
-                else addLog(`행사 "${r.name}" OK`);
-            }
+        if (!file) {
+            return NextResponse.json({ error: '파일이 없습니다' }, { status: 400 });
         }
-    }
 
-    // 3. 행사 개최
-    if (data.instances?.length) {
-        const { data: allEvents } = await sb.from('base_events').select('id, name');
-        const { data: allOrgs } = await sb.from('organizers').select('id, name');
-        const evtMap = Object.fromEntries((allEvents || []).map(e => [e.name, e.id]));
-        const orgMap = Object.fromEntries((allOrgs || []).map(o => [o.name, o.id]));
+        const XLSX = await import('xlsx');
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const wb = XLSX.read(buffer, { cellDates: false });
 
-        for (const r of data.instances) {
-            const baseId = evtMap[r.eventName];
-            if (!baseId) { addLog(`개최 "${r.eventName}" 실패: 행사를 찾을 수 없음`); continue; }
-            const orgId = orgMap[r.organizerName] || null;
+        const sb = getAdminClient();
+        const logs = [];
+        const addLog = (msg) => logs.push(`${new Date().toLocaleTimeString()} ${msg}`);
 
-            // 중복 체크 (같은 행사 + 시작일 + 장소)
-            const { data: dup } = await sb.from('event_instances')
-                .select('id')
-                .eq('base_event_id', baseId)
-                .eq('event_date', r.startDate)
-                .eq('location', r.location)
-                .maybeSingle();
-            if (dup) { addLog(`개최 "${r.eventName} ${r.startDate}" 건너뜀 (중복)`); continue; }
-
-            const { error } = await sb.from('event_instances').insert({
-                base_event_id: baseId,
-                organizer_id: orgId,
-                location: r.location,
-                location_sido: r.locationSido || null,
-                event_date: r.startDate,
-                event_date_end: r.endDate || r.startDate,
-                is_mock: isMock,
-            });
-            if (error) addLog(`개최 "${r.eventName} ${r.startDate}" 실패: ${error.message}`);
-            else addLog(`개최 "${r.eventName} ${r.startDate}" OK`);
+        // 시트 이름 자동 감지 (단일 시트 우선, 없으면 첫 번째 시트)
+        const sheetName = wb.SheetNames.find(n => n.includes('데이터') || n.includes('공고')) || wb.SheetNames[0];
+        const sheet = wb.Sheets[sheetName];
+        if (!sheet) {
+            return NextResponse.json({ error: '시트를 찾을 수 없습니다' }, { status: 400 });
         }
-    }
 
-    // 4. 모집공고
-    if (data.recruitments?.length) {
-        const { data: allInst } = await sb.from('event_instances')
-            .select('id, event_date, base_event:base_events(name)')
-            .order('event_date', { ascending: false });
-        // 이름만으로 찾는 기본 맵 (첫 번째)
-        const instMap = {};
-        // 이름+날짜로 찾는 맵
-        const instMapByDate = {};
-        (allInst || []).forEach(i => {
-            const name = i.base_event?.name;
-            if (!name) return;
-            if (!instMap[name]) instMap[name] = i.id;
-            if (i.event_date) {
-                const dateKey = `${name}__${i.event_date.slice(0, 10)}`;
-                if (!instMapByDate[dateKey]) instMapByDate[dateKey] = i.id;
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        addLog(`시트 "${sheetName}" 에서 ${rows.length}행 읽음`);
+
+        // 캐시
+        const orgCache = {};
+        const eventCache = {};
+        const instCache = {};
+
+        for (const r of rows) {
+            const 행사명 = (r['행사명 *'] || r['행사명'] || '').trim();
+            const 공고제목 = (r['공고제목 *'] || r['공고 제목 *'] || r['공고제목'] || '').trim();
+            if (!행사명 || !공고제목) { addLog(`건너뜀: 행사명 또는 공고제목 없음`); continue; }
+
+            const 주최사명 = (r['주최사명'] || '').trim();
+            const 카테고리 = (r['카테고리'] || '').trim();
+            const 장소 = (r['장소 *'] || r['장소'] || '').trim();
+            const 시도 = (r['시/도'] || r['시도'] || '').trim();
+            const 행사시작일 = toDateStr(r['행사시작일 *'] || r['행사시작일'] || r['행사 시작일']);
+            const 행사종료일 = toDateStr(r['행사종료일'] || r['행사 종료일']) || 행사시작일;
+            const 공고내용 = (r['공고내용'] || r['공고 내용'] || '').replace(/\\n/g, '\n');
+            const 참가비 = r['참가비(원)'] ?? r['참가비'] ?? null;
+            const 신청방법 = (r['신청방법'] || r['신청 방법'] || '').trim() || null;
+            const 모집시작일 = toDateStr(r['모집시작일'] || r['모집 시작일']);
+            const 모집마감일 = toDateStr(r['모집마감일 *'] || r['모집마감일'] || r['모집 마감일']);
+            const 상태 = (r['상태'] || 'OPEN').trim().toUpperCase();
+
+            // 1. 주최사
+            let orgId = null;
+            if (주최사명) {
+                if (orgCache[주최사명]) {
+                    orgId = orgCache[주최사명];
+                } else {
+                    const { data: existing } = await sb.from('organizers').select('id').eq('name', 주최사명).maybeSingle();
+                    if (existing) {
+                        orgId = existing.id;
+                    } else {
+                        const { data: inserted, error } = await sb.from('organizers')
+                            .insert({ name: 주최사명, is_mock: isMock }).select('id').single();
+                        if (error) { addLog(`주최사 "${주최사명}" 생성 실패: ${error.message}`); }
+                        else { orgId = inserted.id; addLog(`주최사 "${주최사명}" 생성`); }
+                    }
+                    if (orgId) orgCache[주최사명] = orgId;
+                }
             }
-        });
 
-        for (const r of data.recruitments) {
-            // 행사 날짜가 있으면 정확하게 매칭, 없으면 이름만으로 매칭
-            const instId = r.eventDate
-                ? (instMapByDate[`${r.eventName}__${r.eventDate}`] || instMap[r.eventName])
-                : instMap[r.eventName];
-            if (!instId) { addLog(`공고 "${r.title}" 실패: 행사 개최를 찾을 수 없음`); continue; }
-            const fee = r.fee != null ? Number(r.fee) : null;
+            // 2. 행사
+            let baseEventId = eventCache[행사명];
+            if (!baseEventId) {
+                const { data: existing } = await sb.from('base_events').select('id').eq('name', 행사명).maybeSingle();
+                if (existing) {
+                    baseEventId = existing.id;
+                } else {
+                    const { data: inserted, error } = await sb.from('base_events')
+                        .insert({ name: 행사명, category: 카테고리 || null, is_mock: isMock }).select('id').single();
+                    if (error) { addLog(`행사 "${행사명}" 생성 실패: ${error.message}`); continue; }
+                    baseEventId = inserted.id;
+                    addLog(`행사 "${행사명}" 생성`);
+                }
+                eventCache[행사명] = baseEventId;
+            }
+
+            // 3. 개최 회차
+            const instKey = `${행사명}__${행사시작일}__${장소}`;
+            let instId = instCache[instKey];
+            if (!instId) {
+                const query = sb.from('event_instances').select('id').eq('base_event_id', baseEventId);
+                if (행사시작일) query.eq('event_date', 행사시작일);
+                if (장소) query.eq('location', 장소);
+                const { data: existing } = await query.maybeSingle();
+                if (existing) {
+                    instId = existing.id;
+                } else {
+                    const { data: inserted, error } = await sb.from('event_instances').insert({
+                        base_event_id: baseEventId,
+                        organizer_id: orgId,
+                        location: 장소 || null,
+                        location_sido: 시도 || null,
+                        event_date: 행사시작일 || null,
+                        event_date_end: 행사종료일 || null,
+                        is_mock: isMock,
+                    }).select('id').single();
+                    if (error) { addLog(`개최 "${행사명} ${행사시작일}" 생성 실패: ${error.message}`); continue; }
+                    instId = inserted.id;
+                    addLog(`개최 "${행사명} ${행사시작일}" 생성`);
+                }
+                instCache[instKey] = instId;
+            }
+
+            // 4. 모집공고
+            const fee = 참가비 != null && 참가비 !== '' ? Number(참가비) : null;
             const { error } = await sb.from('recruitments').insert({
                 event_instance_id: instId,
-                title: r.title,
-                content: (r.content || '').replace(/\\n/g, '\n'),
+                title: 공고제목,
+                content: 공고내용 || null,
                 fee: isNaN(fee) ? null : fee,
-                application_method: r.applicationMethod || null,
-                start_date: r.startDate || null,
-                end_date: r.endDate || null,
-                status: r.status || 'OPEN',
+                application_method: 신청방법,
+                start_date: 모집시작일 || null,
+                end_date: 모집마감일 || null,
+                status: 상태,
                 is_mock: isMock,
             });
-            if (error) addLog(`공고 "${r.title}" 실패: ${error.message}`);
-            else addLog(`공고 "${r.title}" OK`);
+            if (error) addLog(`공고 "${공고제목}" 실패: ${error.message}`);
+            else addLog(`공고 "${공고제목}" 생성 완료`);
         }
-    }
 
-    addLog('--- 업로드 완료 ---');
-    return NextResponse.json({ logs });
+        addLog('--- 업로드 완료 ---');
+        return NextResponse.json({ logs });
+
+    } catch (err) {
+        console.error('excel-import error:', err);
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
 }
