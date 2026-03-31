@@ -201,11 +201,13 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
     /* ─── Render ─────────────────────────────────────────────── */
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 80 }}>
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: recruitment.status === 'OPEN' && recruitment.application_method ? 100 : 80 }}>
 
             {/* ── Hero Header ── */}
             <div style={{
-                background: 'linear-gradient(160deg, #1A2A4A 0%, #1B64DA 100%)',
+                background: recruitment.status === 'OPEN'
+                    ? 'linear-gradient(160deg, #064E3B 0%, #059669 100%)'
+                    : 'linear-gradient(160deg, #1F2937 0%, #4B5563 100%)',
                 position: 'relative', overflow: 'hidden',
             }}>
                 <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
@@ -237,26 +239,38 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         >
                             <Bookmark
                                 size={18}
-                                fill={scrapped ? T.blue : 'none'}
-                                color={scrapped ? T.blue : '#fff'}
+                                fill={scrapped ? T.green : 'none'}
+                                color={scrapped ? T.green : '#fff'}
                             />
                         </button>
                     </div>
                 </div>
 
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
+                    {/* 페이지 성격 레이블 */}
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        background: 'rgba(255,255,255,0.2)', color: '#fff', marginBottom: 12,
+                    }}>
+                        📋 셀러 모집 공고
+                    </div>
+
                     {/* 상태 + D-Day */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <div style={{
-                            padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                            background: recruitment.status === 'OPEN' ? T.green : T.gray, color: '#fff',
+                            padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800,
+                            background: recruitment.status === 'OPEN' ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)',
+                            color: '#fff', border: '1.5px solid rgba(255,255,255,0.4)',
                         }}>
-                            {recruitment.status === 'OPEN' ? '모집중' : '마감됨'}
+                            {recruitment.status === 'OPEN' ? '🟢 신청 가능' : '⚫ 마감됨'}
                         </div>
                         {dDay && (
                             <div style={{
-                                padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 800,
-                                background: 'rgba(255,255,255,0.25)', color: '#fff',
+                                padding: '5px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800,
+                                background: dDay.label === 'D-Day' || dDay.label.startsWith('D-') && parseInt(dDay.label.slice(2)) <= 3
+                                    ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.15)',
+                                color: '#fff',
                             }}>
                                 {dDay.label}
                             </div>
@@ -264,18 +278,18 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     </div>
 
                     {baseEvent.name && (
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>
-                            {baseEvent.name}
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            🎪 {baseEvent.name}
                         </div>
                     )}
 
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 6 }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 8 }}>
                         {recruitment.title}
                     </div>
 
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <Calendar size={13} />
-                        {formatDate(instance.event_date)}
+                        행사일 {formatDate(instance.event_date)}
                         {instance.event_date_end && instance.event_date_end !== instance.event_date && (
                             <> ~ {formatDate(instance.event_date_end)}</>
                         )}
@@ -287,6 +301,34 @@ export default function RecruitmentDetailClient({ recruitment }) {
             <div style={{ padding: '20px 16px 0' }}>
                 {renderDetail()}
             </div>
+
+            {/* ── 신청하기 고정 CTA ── */}
+            {recruitment.status === 'OPEN' && recruitment.application_method && (
+                <div style={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+                    padding: '12px 16px 24px',
+                    background: 'rgba(255,255,255,0.97)', backdropFilter: 'blur(16px)',
+                    borderTop: `1px solid ${T.border}`,
+                }}>
+                    <button
+                        onClick={() => {
+                            navigator.clipboard.writeText(recruitment.application_method).then(() => {
+                                alert('신청 방법이 복사됐어요!\n\n' + recruitment.application_method);
+                            }).catch(() => {
+                                alert('신청 방법:\n\n' + recruitment.application_method);
+                            });
+                        }}
+                        style={{
+                            width: '100%', padding: '15px 0', borderRadius: T.radiusLg,
+                            background: 'linear-gradient(135deg, #059669, #047857)',
+                            color: '#fff', border: 'none', fontSize: 16, fontWeight: 800,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        }}
+                    >
+                        📋 신청 방법 확인하기
+                    </button>
+                </div>
+            )}
 
         </div>
     );

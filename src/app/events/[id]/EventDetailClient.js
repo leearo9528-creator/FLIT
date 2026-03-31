@@ -104,14 +104,21 @@ function RecruitCard({ rec }) {
             {/* 상태 + D-day */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{
-                    padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                    background: rec.status === 'OPEN' ? T.greenLt : T.grayLt,
-                    color: rec.status === 'OPEN' ? T.green : T.gray,
+                    padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 800,
+                    background: rec.status === 'OPEN' ? '#ECFDF5' : T.grayLt,
+                    color: rec.status === 'OPEN' ? '#059669' : T.gray,
+                    border: `1.5px solid ${rec.status === 'OPEN' ? '#6EE7B7' : T.border}`,
                 }}>
-                    {rec.status === 'OPEN' ? '🟢 모집중' : '⚫ 마감됨'}
+                    {rec.status === 'OPEN' ? '🟢 신청 가능' : '⚫ 마감됨'}
                 </div>
                 {daysLeft !== null && daysLeft >= 0 && (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
+                    <span style={{
+                        fontSize: 13, fontWeight: 800,
+                        color: daysLeft <= 3 ? '#fff' : T.gray,
+                        background: daysLeft <= 3 ? T.red : 'transparent',
+                        padding: daysLeft <= 3 ? '3px 8px' : '0',
+                        borderRadius: daysLeft <= 3 ? 6 : 0,
+                    }}>
                         {daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}
                     </span>
                 )}
@@ -177,8 +184,8 @@ export default function EventDetailClient({ event, instances, initialReviews, in
 
     const TABS = [
         { key: 'reviews', label: '리뷰', count: initialReviews.length },
-        { key: 'recruit', label: '모집공고', count: initialRecruitments.length },
-        { key: 'history', label: '개최이력', count: instances.length },
+        { key: 'recruit', label: '셀러 모집', count: initialRecruitments.length },
+        { key: 'history', label: '개최 회차', count: instances.length },
     ];
     const revenueOrder = ['0~20만','20~40만','40~60만','60~80만','80~100만','100~150만','150~200만','200만 이상','0~30만','30~70만','70~100만','200~300만','300~400만','400~500만','500만 이상'];
     const ratingFields = ['rating_profit', 'rating_traffic', 'rating_promotion', 'rating_support', 'rating_manners'];
@@ -250,11 +257,19 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                 </div>
 
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
+                    {/* 페이지 성격 레이블 */}
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        background: 'rgba(255,255,255,0.2)', color: '#fff', marginBottom: 10,
+                    }}>
+                        🎪 행사 정보
+                    </div>
                     {event.category && (
                         <div style={{
                             display: 'inline-block', padding: '4px 10px', borderRadius: 6,
                             fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.25)', color: '#fff',
-                            marginBottom: 10,
+                            marginBottom: 10, marginLeft: 6,
                         }}>
                             {event.category}
                         </div>
@@ -311,7 +326,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
             {/* ── 탭 콘텐츠 ── */}
             <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                {/* ── 모집공고 탭 ── */}
+                {/* ── 셀러 모집 탭 ── */}
                 {activeTab === 'recruit' && (
                     initialRecruitments.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
@@ -319,18 +334,36 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                         </div>
                     ) : (
                         <>
+                            {/* 신청 가능 배너 */}
+                            {openRecruits.length > 0 && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)',
+                                    border: `1.5px solid #6EE7B7`,
+                                    borderRadius: T.radiusLg, padding: '14px 16px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: '#065F46' }}>🟢 지금 신청 가능!</div>
+                                        <div style={{ fontSize: 12, color: '#047857', marginTop: 2 }}>
+                                            {openRecruits.length}개 모집공고가 진행 중이에요
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 28, fontWeight: 900, color: '#059669' }}>{openRecruits.length}</div>
+                                </div>
+                            )}
+
                             {openRecruits.length > 0 && (
                                 <>
                                     <div style={{ fontSize: 12, fontWeight: 700, color: T.green, paddingLeft: 2 }}>
-                                        🟢 모집 중 ({openRecruits.length})
+                                        🟢 신청 가능 ({openRecruits.length})
                                     </div>
                                     {openRecruits.map(r => <RecruitCard key={r.id} rec={r} />)}
                                 </>
                             )}
                             {closedRecruits.length > 0 && (
                                 <>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, paddingLeft: 2, marginTop: 4 }}>
-                                        지난 공고
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: T.gray, paddingLeft: 2, marginTop: openRecruits.length > 0 ? 4 : 0 }}>
+                                        ⚫ 지난 공고
                                     </div>
                                     {closedRecruits.map(r => <RecruitCard key={r.id} rec={r} />)}
                                 </>
