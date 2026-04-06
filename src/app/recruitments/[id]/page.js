@@ -15,7 +15,7 @@ export async function generateMetadata({ params }) {
             )
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
     if (!rec) return { title: '공고를 찾을 수 없습니다 - 플릿(FLIT)' };
 
@@ -43,7 +43,7 @@ export default async function RecruitmentPage({ params }) {
             )
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
     if (!recruitment) return notFound();
 

@@ -9,7 +9,7 @@ export async function generateMetadata({ params }) {
         .from('base_events')
         .select('name')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
     if (!event) return { title: '행사를 찾을 수 없습니다 - 플릿(FLIT)' };
 
@@ -28,7 +28,7 @@ export default async function EventPage({ params }) {
         .from('base_events')
         .select('id, name, category, image_url, total_instances, total_reviews, avg_event_rating')
         .eq('id', id)
-        .single();
+        .maybeSingle();
     if (!event) return notFound();
 
     // 개최 이력 (instances)

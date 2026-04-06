@@ -158,6 +158,8 @@ export default function RecruitmentWritePage() {
     const handleSubmit = async () => {
         if (!selectedBaseEvent) return alert('행사를 선택해주세요.');
         if (!eventDate) return alert('행사 일자를 입력해주세요.');
+        if (eventDateEnd && eventDateEnd < eventDate) return alert('행사 종료일은 시작일보다 빠를 수 없습니다.');
+        if (endDate && endDate > eventDate) return alert('모집 마감일은 행사 시작일보다 늦을 수 없습니다.');
         if (!location.trim()) return alert('장소를 입력해주세요.');
         if (!title.trim()) return alert('공고 제목을 입력해주세요.');
         if (!content.trim()) return alert('모집 요강을 입력해주세요.');
