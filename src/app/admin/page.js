@@ -260,7 +260,7 @@ function ExcelUploader({ onComplete }) {
                     엑셀 파일을 선택하면 자동으로 업로드됩니다.<br/>
                     <b>단일 시트</b> 형식: 한 행에 공고 하나씩 입력<br/>
                     <span style={{ color: T.blue }}>행사명* | 공고제목* | 주최사명 | 카테고리 | 장소 | 시/도 | 행사시작일 | 행사종료일 | 모집마감일 | 참가비(원) | 참가비유형 | 푸드트럭참가비(원) | 추가비용 | 신청방법 | 공고내용 | 상태</span><br/>
-                    <span style={{ color: T.gray }}>참가비유형: fixed(정액)/rate(정률)/free(무료) · 추가비용: "대여비:50000,오더비:30000" 형식</span>
+                    <span style={{ color: T.gray }}>참가비유형: fixed(정액)/rate(정률)/free(무료) · 추가비용: &quot;대여비:50000,오더비:30000&quot; 형식</span>
                 </div>
                 <a href="/data_template.xlsx" download="FLIT_데이터입력양식.xlsx"
                     style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>
