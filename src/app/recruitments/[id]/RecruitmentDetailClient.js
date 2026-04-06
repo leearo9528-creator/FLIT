@@ -54,6 +54,14 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+function formatDateRange(start, end) {
+    if (!start) return '미정';
+    const s = formatDate(start);
+    if (!end || end === start) return s;
+    const eDate = new Date(end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+    return `${s} ~ ${eDate}`;
+}
+
 /* ─── Main ─────────────────────────────────────────────────── */
 export default function RecruitmentDetailClient({ recruitment }) {
     const router = useRouter();
@@ -207,8 +215,8 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             </div>
                         </Link>
                     )}
-                    <InfoRow icon={<Calendar size={13} color={T.blue} />} label="행사 일자" value={formatDate(instance.event_date)} />
-                    <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={formatDate(recruitment.end_date)} valueColor={T.red} />
+                    <InfoRow icon={<Calendar size={13} color={T.blue} />} label="행사 기간" value={formatDateRange(instance.event_date, instance.event_date_end)} />
+                    <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={recruitment.end_date ? formatDate(recruitment.end_date) : '없음'} valueColor={recruitment.end_date ? T.red : T.gray} />
                     <InfoRow icon={<MapPin size={13} color={T.green} />} label="장소" value={instance.location || '미정'} />
                     <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={!recruitment.fee ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`} valueColor={!recruitment.fee ? '#059669' : T.text} last />
                 </Section>
