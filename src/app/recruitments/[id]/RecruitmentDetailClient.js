@@ -98,7 +98,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#F3F4F6', paddingBottom: isOpen && recruitment.application_method ? 100 : 60 }}>
+        <div style={{ minHeight: '100vh', background: '#F3F4F6', paddingBottom: 60 }}>
 
             {/* ── Hero ── */}
             <div style={{
@@ -280,31 +280,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
             </div>
 
-            {/* ── 신청 CTA ── */}
-            {isOpen && recruitment.application_method && (
-                <div style={{
-                    position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-                    padding: '10px 16px 28px',
-                    background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(16px)',
-                    borderTop: `1px solid ${T.border}`,
-                }}>
-                    <button
-                        onClick={() => {
-                            navigator.clipboard.writeText(recruitment.application_method)
-                                .then(() => alert('신청 방법이 복사됐어요!\n\n' + recruitment.application_method))
-                                .catch(() => alert('신청 방법:\n\n' + recruitment.application_method));
-                        }}
-                        style={{
-                            width: '100%', padding: '14px 0', borderRadius: 12,
-                            background: 'linear-gradient(135deg, #059669, #047857)',
-                            color: '#fff', border: 'none', fontSize: 15, fontWeight: 800,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        }}
-                    >
-                        📋 신청 방법 확인하기
-                    </button>
-                </div>
-            )}
 
         </div>
     );
