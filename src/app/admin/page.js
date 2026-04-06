@@ -314,10 +314,7 @@ const DERIVED_KEYS = [
     { key: 'eventDate', label: '행사 시작일 (YYYY-MM-DD)' },
     { key: 'eventDateEnd', label: '행사 종료일 (YYYY-MM-DD)' },
     { key: 'endDate', label: '모집 마감일 (YYYY-MM-DD, 없으면 빈칸)' },
-    { key: 'feeType', label: '참가비 유형 (free/fixed/rate)' },
-    { key: 'feeAmount', label: '참가비 금액 (원 또는 %)' },
-    { key: 'feeFoodtruck', label: '푸드트럭 참가비 (원, 없으면 빈칸)' },
-    { key: 'extraCostsText', label: '추가비용 (형식: 대여비:50000,오더비:30000)' },
+    { key: 'feeDescription', label: '참가비 (텍스트 그대로)' },
 ];
 
 // 날짜 텍스트에서 YYYY-MM-DD 추출
@@ -400,35 +397,9 @@ function parsePostText(raw) {
         if (d) result.endDate = d;
     }
 
-    // 참가비 파싱: fee_type, feeAmount, feeFoodtruck, extraCostsText
+    // 참가비: 원문 그대로 저장
     if (result.fee) {
-        const feeText = result.fee;
-        if (/무료|없음|0원/i.test(feeText)) {
-            result.feeType = 'free';
-            result.feeAmount = '0';
-        } else if (/%/.test(feeText)) {
-            result.feeType = 'rate';
-            const m = feeText.match(/(\d+)\s*%/);
-            if (m) result.feeAmount = m[1];
-        } else {
-            result.feeType = 'fixed';
-            // 첫 번째 금액 추출
-            const nums = feeText.match(/(\d[\d,]*)\s*원/g);
-            if (nums && nums.length > 0) {
-                result.feeAmount = nums[0].replace(/[^\d]/g, '');
-                // 푸드트럭 별도 금액이 있으면 두 번째 금액
-                if (nums.length > 1 && /푸드트럭|food/i.test(feeText)) {
-                    result.feeFoodtruck = nums[1].replace(/[^\d]/g, '');
-                }
-            }
-        }
-        // 추가비용 감지: 대여비, 오더비, 전기료 등
-        const extraMatches = [...feeText.matchAll(/([가-힣]{2,6}(?:비|료|금))\s*:?\s*(\d[\d,]*)\s*원/g)];
-        if (extraMatches.length > 0) {
-            result.extraCostsText = extraMatches
-                .map(m => `${m[1]}:${m[2].replace(/,/g, '')}`)
-                .join(',');
-        }
+        result.feeDescription = result.fee.trim();
     }
 
     return result;
@@ -587,30 +558,7 @@ function TextPasteParser({ onComplete }) {
             if (instErr) throw new Error(`행사 개최 생성 실패: ${instErr.message}`);
             if (!inst?.id) throw new Error('event_instance ID를 가져오지 못했습니다.');
 
-            // 4. 참가비 처리
-            const feeType = parsed.feeType || 'fixed';
-            let feeNum = null;
-            if (feeType === 'free') {
-                feeNum = 0;
-            } else if (parsed.feeAmount) {
-                feeNum = parseInt(String(parsed.feeAmount).replace(/,/g, ''), 10) || null;
-            }
-            const feeFoodtruckNum = (feeType !== 'free' && parsed.feeFoodtruck)
-                ? parseInt(String(parsed.feeFoodtruck).replace(/,/g, ''), 10) || null
-                : null;
-
-            // extra_costs 파싱: "대여비:50000,오더비:30000" → [{name, amount}]
-            let extraCosts = null;
-            if (parsed.extraCostsText && parsed.extraCostsText.trim()) {
-                const pairs = parsed.extraCostsText.split(',').map(s => s.trim()).filter(Boolean);
-                const arr = pairs.map(p => {
-                    const [name, amt] = p.split(':');
-                    return { name: (name || '').trim(), amount: parseInt((amt || '0').replace(/,/g, ''), 10) || 0 };
-                }).filter(c => c.name);
-                if (arr.length > 0) extraCosts = arr;
-            }
-
-            // 5. 공고 내용 조합
+            // 4. 공고 내용 조합
             const contentParts = [];
             if (parsed.conditions) contentParts.push(`■ 모집조건\n${parsed.conditions}`);
             if (parsed.scale) contentParts.push(`■ 모집규모\n${parsed.scale}`);
@@ -630,10 +578,7 @@ function TextPasteParser({ onComplete }) {
                 event_instance_id: inst.id,
                 title,
                 content,
-                fee: feeNum,
-                fee_type: feeType,
-                fee_foodtruck: feeFoodtruckNum,
-                extra_costs: extraCosts,
+                fee_description: parsed.feeDescription || null,
                 end_date: parsed.endDate || null,
                 application_method: appMethod,
                 status: 'OPEN',
@@ -727,9 +672,7 @@ function TextPasteParser({ onComplete }) {
                                 <b>장소:</b> {parsed.location || '미정'}<br/>
                                 <b>행사일:</b> {parsed.eventDate || '미입력'}{parsed.eventDateEnd && parsed.eventDateEnd !== parsed.eventDate ? ` ~ ${parsed.eventDateEnd}` : ''}<br/>
                                 <b>모집마감:</b> {parsed.endDate || '없음'}<br/>
-                                <b>참가비:</b> {parsed.feeType === 'free' ? '무료' : parsed.feeType === 'rate' ? `${parsed.feeAmount}%` : `${Number(parsed.feeAmount||0).toLocaleString()}원`}
-                                {parsed.feeFoodtruck ? ` / 푸드트럭 ${Number(parsed.feeFoodtruck).toLocaleString()}원` : ''}<br/>
-                                {parsed.extraCostsText ? <><b>추가비용:</b> {parsed.extraCostsText}<br/></> : null}
+                                <b>참가비:</b> {parsed.feeDescription || '(없음)'}<br/>
                                 <b>모집공고:</b> {parsed.eventName} 셀러 모집
                             </div>
                         </div>
@@ -923,7 +866,7 @@ function EventForm({ orgList, onComplete }) {
 function RecruitmentForm({ onComplete }) {
     const [open, setOpen] = useState(false);
     const [instances, setInstances] = useState([]);
-    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
+    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee_description: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
     const [saving, setSaving] = useState(false);
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -945,12 +888,11 @@ function RecruitmentForm({ onComplete }) {
         if (!form.end_date) return alert('모집 마감일을 입력하세요.');
         setSaving(true);
         const sb = createClient();
-        const fee = form.fee !== '' ? Number(form.fee) : null;
         const { error } = await sb.from('recruitments').insert({
             event_instance_id: form.event_instance_id,
             title: form.title.trim(),
             content: form.content.trim() || null,
-            fee: (fee === null || isNaN(fee)) ? null : fee,
+            fee_description: form.fee_description.trim() || null,
             application_method: form.application_method.trim() || null,
             start_date: form.start_date || null,
             end_date: form.end_date,
@@ -959,7 +901,7 @@ function RecruitmentForm({ onComplete }) {
         });
         setSaving(false);
         if (error) return alert(`저장 실패: ${error.message}`);
-        setForm({ event_instance_id: '', title: '', content: '', fee: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
+        setForm({ event_instance_id: '', title: '', content: '', fee_description: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
         setOpen(false);
         onComplete?.();
     };
@@ -991,7 +933,7 @@ function RecruitmentForm({ onComplete }) {
                                 style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7, fontFamily: 'inherit' }}/>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                            <div><div style={labelStyle}>참가비 (원)</div><input type="number" value={form.fee} onChange={e => set('fee', e.target.value)} placeholder="0" style={inputStyle}/></div>
+                            <div><div style={labelStyle}>참가비</div><input value={form.fee_description} onChange={e => set('fee_description', e.target.value)} placeholder="예) 무료 / 1일 80,000원" style={inputStyle}/></div>
                             <div>
                                 <div style={labelStyle}>상태</div>
                                 <select value={form.status} onChange={e => set('status', e.target.value)} style={selectStyle}>
@@ -1078,7 +1020,7 @@ export default function AdminPage() {
             const sb = createClient();
             const [eRes, rRes, oRes, uRes] = await Promise.all([
                 sb.from('base_events').select('id, name, category, description, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('recruitments').select('id, title, status, fee, end_date, start_date, content, application_method, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
+                sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
                 sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
             ]);
@@ -1157,14 +1099,14 @@ export default function AdminPage() {
     const recCols = [
         { key: 'title', label: '제목' },
         { key: 'event', label: '행사', render: r => r.event_instance?.base_event?.name || '-' },
-        { key: 'fee', label: '참가비', render: r => r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원` },
+        { key: 'fee_description', label: '참가비', render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
         { key: 'status', label: '상태', render: r => r.status === 'OPEN' ? '모집중' : '마감' },
         { key: 'end_date', label: '마감일', render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
     ];
     const recFields = [
         { key: 'title', label: '공고 제목', type: 'text' },
         { key: 'status', label: '상태', type: 'select', options: [{ value: 'OPEN', label: '모집중' }, { value: 'CLOSED', label: '마감' }] },
-        { key: 'fee', label: '참가비(원)', type: 'number' },
+        { key: 'fee_description', label: '참가비', type: 'text' },
         { key: 'end_date', label: '모집 마감일', type: 'date' },
         { key: 'start_date', label: '모집 시작일', type: 'date' },
         { key: 'application_method', label: '신청 방법', type: 'textarea' },
