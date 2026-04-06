@@ -245,10 +245,54 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
                 {/* 공고 핵심 정보 */}
                 <Section title="📌 공고 핵심 정보">
-                    <InfoRow icon={<Calendar size={13} color={T.blue} />} label="행사 기간" value={formatDateRange(instance.event_date, instance.event_date_end)} />
-                    <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={recruitment.end_date ? formatDate(recruitment.end_date) : '없음'} valueColor={recruitment.end_date ? T.red : T.gray} />
-                    <InfoRow icon={<MapPin size={13} color={T.green} />} label="장소" value={instance.location || '미정'} />
-                    <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={!recruitment.fee ? '무료' : `${Number(recruitment.fee).toLocaleString()}원`} valueColor={!recruitment.fee ? '#059669' : T.text} last />
+                    {(() => {
+                        const days = (() => {
+                            if (!instance.event_date) return null;
+                            if (!instance.event_date_end || instance.event_date_end === instance.event_date) return 1;
+                            return Math.round((new Date(instance.event_date_end) - new Date(instance.event_date)) / 86400000) + 1;
+                        })();
+                        const feeType = recruitment.fee_type || 'fixed';
+                        const feeDisplay = feeType === 'free' || !recruitment.fee
+                            ? '무료'
+                            : feeType === 'rate'
+                            ? `${recruitment.fee}%`
+                            : `${Number(recruitment.fee).toLocaleString()}원`;
+                        const feeColor = feeType === 'free' || !recruitment.fee ? '#059669' : T.text;
+                        const hasFoodtruckFee = recruitment.fee_foodtruck != null && recruitment.fee_foodtruck !== recruitment.fee;
+                        return (
+                            <>
+                                <InfoRow icon={<Calendar size={13} color={T.blue} />} label="행사 기간" value={formatDateRange(instance.event_date, instance.event_date_end)} />
+                                {days && <InfoRow icon={<span style={{ fontSize: 12 }}>📅</span>} label="행사일수" value={`${days}일`} />}
+                                <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={recruitment.end_date ? formatDate(recruitment.end_date) : '없음'} valueColor={recruitment.end_date ? T.red : T.gray} />
+                                <InfoRow icon={<MapPin size={13} color={T.green} />} label="장소" value={instance.location || '미정'} />
+                                {hasFoodtruckFee ? (
+                                    <>
+                                        <InfoRow icon={<Banknote size={13} color="#D97706" />} label="💎 참가비" value={feeDisplay} valueColor={feeColor} />
+                                        <InfoRow icon={<Banknote size={13} color="#D97706" />} label="🚚 참가비"
+                                            value={feeType === 'rate' ? `${recruitment.fee_foodtruck}%` : `${Number(recruitment.fee_foodtruck).toLocaleString()}원`}
+                                            valueColor={T.text}
+                                            last={!recruitment.extra_costs?.length}
+                                        />
+                                    </>
+                                ) : (
+                                    <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={feeDisplay} valueColor={feeColor} last={!recruitment.extra_costs?.length} />
+                                )}
+                                {recruitment.extra_costs?.length > 0 && (
+                                    <>
+                                        {recruitment.extra_costs.map((c, i) => (
+                                            <InfoRow
+                                                key={i}
+                                                icon={<span style={{ fontSize: 12 }}>💸</span>}
+                                                label={c.name}
+                                                value={c.amount ? `${Number(String(c.amount).replace(/,/g, '')).toLocaleString()}원` : '별도 문의'}
+                                                last={i === recruitment.extra_costs.length - 1}
+                                            />
+                                        ))}
+                                    </>
+                                )}
+                            </>
+                        );
+                    })()}
                 </Section>
 
                 {/* 사진 */}

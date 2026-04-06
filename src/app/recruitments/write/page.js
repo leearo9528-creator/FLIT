@@ -53,7 +53,10 @@ export default function RecruitmentWritePage() {
     // 공고 정보
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [feeType, setFeeType] = useState('fixed'); // 'free' | 'fixed' | 'rate'
     const [fee, setFee] = useState('');
+    const [feeFoodtruck, setFeeFoodtruck] = useState('');
+    const [extraCosts, setExtraCosts] = useState([]);
     const [endDate, setEndDate] = useState('');
     const [sellerType, setSellerType] = useState('');
 
@@ -157,13 +160,15 @@ export default function RecruitmentWritePage() {
         if (!eventDate) return alert('행사 일자를 입력해주세요.');
         if (!location.trim()) return alert('장소를 입력해주세요.');
         if (!title.trim()) return alert('공고 제목을 입력해주세요.');
-        if (!endDate) return alert('모집 마감일을 입력해주세요.');
         if (!content.trim()) return alert('모집 요강을 입력해주세요.');
 
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            const feeNum = fee ? parseInt(fee.replace(/,/g, ''), 10) : 0;
+            const parseFee = v => v ? parseInt(v.replace(/,/g, ''), 10) || 0 : 0;
+            const feeNum = feeType === 'free' ? 0 : parseFee(fee);
+            const feeFoodtruckNum = feeType !== 'free' && feeFoodtruck ? parseFee(feeFoodtruck) : null;
+            const validExtraCosts = extraCosts.filter(c => c.name.trim());
 
             // event_instance 생성
             const { data: instance, error: instErr } = await sb
@@ -186,7 +191,10 @@ export default function RecruitmentWritePage() {
                 title: title.trim(),
                 content: content.trim(),
                 fee: feeNum,
-                end_date: endDate,
+                fee_type: feeType,
+                fee_foodtruck: feeFoodtruckNum,
+                extra_costs: validExtraCosts.length > 0 ? validExtraCosts : null,
+                end_date: endDate || null,
                 status: 'OPEN',
                 application_method: applicationMethod.trim() || null,
             };
@@ -371,37 +379,55 @@ export default function RecruitmentWritePage() {
 
                 {/* ── 모집 조건 ── */}
                 <Section title="모집 조건">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                        {/* 모집 마감일 */}
                         <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Clock size={12} /> 모집 마감일
                             </div>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                style={{ ...inputStyle(!!endDate), padding: '11px 12px' }}
-                            />
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Banknote size={12} /> 참가비
-                            </div>
-                            <div style={{ position: 'relative' }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
                                 <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="0 (무료)"
-                                    value={fee}
-                                    onChange={e => {
-                                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                                        setFee(raw ? Number(raw).toLocaleString() : '');
-                                    }}
-                                    style={{ ...inputStyle(!!fee), paddingRight: 36 }}
+                                    type="date"
+                                    value={endDate}
+                                    onChange={e => setEndDate(e.target.value)}
+                                    style={{ ...inputStyle(!!endDate), padding: '11px 12px', flex: 1 }}
                                 />
-                                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: T.gray }}>원</span>
+                                <div
+                                    onClick={() => setEndDate('')}
+                                    style={{
+                                        padding: '11px 16px', borderRadius: T.radiusMd, cursor: 'pointer',
+                                        border: `1.5px solid ${!endDate ? T.blue : T.border}`,
+                                        background: !endDate ? T.blueLt : T.white,
+                                        fontSize: 13, fontWeight: 700,
+                                        color: !endDate ? T.blue : T.gray, whiteSpace: 'nowrap',
+                                    }}
+                                >없음</div>
                             </div>
                         </div>
+
+                        {/* 행사일수 (자동 계산) */}
+                        {eventDate && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                background: T.bg, borderRadius: T.radiusMd, padding: '10px 14px',
+                                border: `1px solid ${T.border}`,
+                            }}>
+                                <span style={{ fontSize: 12, color: T.gray, fontWeight: 600 }}>행사일수</span>
+                                <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>
+                                    {(() => {
+                                        if (!eventDateEnd || eventDateEnd === eventDate) return '1일';
+                                        const d = Math.round((new Date(eventDateEnd) - new Date(eventDate)) / 86400000) + 1;
+                                        return `${d}일`;
+                                    })()}
+                                </span>
+                                <span style={{ fontSize: 12, color: T.gray }}>
+                                    ({eventDate}{eventDateEnd && eventDateEnd !== eventDate ? ` ~ ${eventDateEnd}` : ''})
+                                </span>
+                            </div>
+                        )}
+
+                        {/* 모집 셀러 유형 */}
                         <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>모집 셀러 유형</div>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -410,24 +436,136 @@ export default function RecruitmentWritePage() {
                                     { key: 'seller', label: '💎 일반셀러' },
                                     { key: 'foodtruck', label: '🚚 푸드트럭' },
                                 ].map(opt => (
-                                    <div
-                                        key={opt.key}
-                                        onClick={() => setSellerType(opt.key)}
-                                        style={{
-                                            flex: 1, padding: '10px 6px', borderRadius: T.radiusMd,
-                                            textAlign: 'center', cursor: 'pointer',
-                                            border: `1.5px solid ${sellerType === opt.key ? T.blue : T.border}`,
-                                            background: sellerType === opt.key ? T.blueLt : T.white,
-                                            fontSize: 13, fontWeight: 700,
-                                            color: sellerType === opt.key ? T.blue : T.gray,
-                                            transition: 'all 0.15s',
-                                        }}
-                                    >
-                                        {opt.label}
-                                    </div>
+                                    <div key={opt.key} onClick={() => setSellerType(opt.key)} style={{
+                                        flex: 1, padding: '10px 6px', borderRadius: T.radiusMd,
+                                        textAlign: 'center', cursor: 'pointer',
+                                        border: `1.5px solid ${sellerType === opt.key ? T.blue : T.border}`,
+                                        background: sellerType === opt.key ? T.blueLt : T.white,
+                                        fontSize: 13, fontWeight: 700,
+                                        color: sellerType === opt.key ? T.blue : T.gray,
+                                        transition: 'all 0.15s',
+                                    }}>{opt.label}</div>
                                 ))}
                             </div>
                         </div>
+
+                        {/* 참가비 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Banknote size={12} /> 참가비
+                            </div>
+                            {/* 유형 토글 */}
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                                {[
+                                    { key: 'free', label: '무료' },
+                                    { key: 'fixed', label: '정액 (원)' },
+                                    { key: 'rate', label: '정률 (%)' },
+                                ].map(opt => (
+                                    <div key={opt.key} onClick={() => setFeeType(opt.key)} style={{
+                                        flex: 1, padding: '9px 4px', borderRadius: T.radiusMd,
+                                        textAlign: 'center', cursor: 'pointer',
+                                        border: `1.5px solid ${feeType === opt.key ? T.blue : T.border}`,
+                                        background: feeType === opt.key ? T.blueLt : T.white,
+                                        fontSize: 12, fontWeight: 700,
+                                        color: feeType === opt.key ? T.blue : T.gray,
+                                        transition: 'all 0.15s',
+                                    }}>{opt.label}</div>
+                                ))}
+                            </div>
+                            {/* 금액 입력 */}
+                            {feeType !== 'free' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {/* 일반셀러 (또는 단일) */}
+                                    <div>
+                                        <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>
+                                            {sellerType === '' ? '💎 일반셀러' : sellerType === 'seller' ? '💎 일반셀러' : '🚚 푸드트럭'}
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                type="text" inputMode="numeric"
+                                                placeholder={feeType === 'rate' ? '예: 20' : '예: 50,000'}
+                                                value={fee}
+                                                onChange={e => {
+                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                    setFee(feeType === 'rate' ? raw : raw ? Number(raw).toLocaleString() : '');
+                                                }}
+                                                style={{ ...inputStyle(!!fee), paddingRight: 38, width: '100%', boxSizing: 'border-box' }}
+                                            />
+                                            <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: T.gray }}>
+                                                {feeType === 'rate' ? '%' : '원'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* 푸드트럭 별도 (전체 모집일 때만) */}
+                                    {sellerType === '' && (
+                                        <div>
+                                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>🚚 푸드트럭 <span style={{ fontWeight: 400 }}>(비우면 위와 동일)</span></div>
+                                            <div style={{ position: 'relative' }}>
+                                                <input
+                                                    type="text" inputMode="numeric"
+                                                    placeholder={feeType === 'rate' ? '예: 15' : '예: 80,000'}
+                                                    value={feeFoodtruck}
+                                                    onChange={e => {
+                                                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                        setFeeFoodtruck(feeType === 'rate' ? raw : raw ? Number(raw).toLocaleString() : '');
+                                                    }}
+                                                    style={{ ...inputStyle(!!feeFoodtruck), paddingRight: 38, width: '100%', boxSizing: 'border-box' }}
+                                                />
+                                                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: T.gray }}>
+                                                    {feeType === 'rate' ? '%' : '원'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 추가비용 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 8 }}>
+                                추가비용 <span style={{ fontWeight: 400 }}>(선택 — 대여비, 오더비 등)</span>
+                            </div>
+                            {extraCosts.map((cost, i) => (
+                                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                                    <input
+                                        placeholder="항목명 (예: 대여비)"
+                                        value={cost.name}
+                                        onChange={e => setExtraCosts(prev => prev.map((c, j) => j === i ? { ...c, name: e.target.value } : c))}
+                                        style={{ ...inputStyle(!!cost.name), flex: 2, boxSizing: 'border-box' }}
+                                    />
+                                    <div style={{ position: 'relative', flex: 1.5 }}>
+                                        <input
+                                            type="text" inputMode="numeric"
+                                            placeholder="금액"
+                                            value={cost.amount}
+                                            onChange={e => {
+                                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                setExtraCosts(prev => prev.map((c, j) => j === i ? { ...c, amount: raw ? Number(raw).toLocaleString() : '' } : c));
+                                            }}
+                                            style={{ ...inputStyle(!!cost.amount), width: '100%', paddingRight: 28, boxSizing: 'border-box' }}
+                                        />
+                                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: T.gray }}>원</span>
+                                    </div>
+                                    <button onClick={() => setExtraCosts(prev => prev.filter((_, j) => j !== i))} style={{
+                                        flexShrink: 0, width: 38, background: T.grayLt, border: `1px solid ${T.border}`,
+                                        borderRadius: T.radiusMd, cursor: 'pointer', color: T.gray, fontSize: 16, fontWeight: 700,
+                                    }}>✕</button>
+                                </div>
+                            ))}
+                            <button
+                                onClick={() => setExtraCosts(prev => [...prev, { name: '', amount: '' }])}
+                                style={{
+                                    width: '100%', padding: '10px 0', border: `1.5px dashed ${T.border}`,
+                                    borderRadius: T.radiusMd, background: 'transparent', cursor: 'pointer',
+                                    fontSize: 13, fontWeight: 700, color: T.gray,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                                }}
+                            >
+                                <Plus size={14} /> 추가비용 항목 추가
+                            </button>
+                        </div>
+
                     </div>
                 </Section>
 
