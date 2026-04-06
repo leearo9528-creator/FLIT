@@ -89,7 +89,7 @@ export async function POST(request) {
                         orgId = existing.id;
                     } else {
                         const { data: inserted, error } = await sb.from('organizers')
-                            .insert({ name: 주최사명, is_mock: isMock }).select('id').single();
+                            .insert({ name: 주최사명, is_mock: isMock }).select('id').maybeSingle();
                         if (error) { addLog(`주최사 "${주최사명}" 생성 실패: ${error.message}`); }
                         else { orgId = inserted.id; addLog(`주최사 "${주최사명}" 생성`); }
                     }
@@ -105,7 +105,7 @@ export async function POST(request) {
                     baseEventId = existing.id;
                 } else {
                     const { data: inserted, error } = await sb.from('base_events')
-                        .insert({ name: 행사명, category: 카테고리 || null, is_mock: isMock }).select('id').single();
+                        .insert({ name: 행사명, category: 카테고리 || null, is_mock: isMock }).select('id').maybeSingle();
                     if (error) { addLog(`행사 "${행사명}" 생성 실패: ${error.message}`); continue; }
                     baseEventId = inserted.id;
                     addLog(`행사 "${행사명}" 생성`);
@@ -132,7 +132,7 @@ export async function POST(request) {
                         event_date: 행사시작일 || null,
                         event_date_end: 행사종료일 || null,
                         is_mock: isMock,
-                    }).select('id').single();
+                    }).select('id').maybeSingle();
                     if (error) { addLog(`개최 "${행사명} ${행사시작일}" 생성 실패: ${error.message}`); continue; }
                     instId = inserted.id;
                     addLog(`개최 "${행사명} ${행사시작일}" 생성`);
