@@ -216,22 +216,6 @@ export default function MyPage() {
             {/* ── 계정 ── */}
             <div style={{ background: T.white }}>
                 <MenuItem icon={LogOut} label="로그아웃" danger onPress={async () => { await signOut(); router.replace('/login'); }} />
-                <Divider />
-                <MenuItem icon={UserX} label="회원 탈퇴" danger onPress={async () => {
-                    if (!confirm('정말 탈퇴하시겠습니까?\n\n작성한 리뷰·게시글은 삭제되지 않습니다.\n이 작업은 되돌릴 수 없습니다.')) return;
-                    if (!confirm('마지막 확인입니다. 정말 탈퇴하시겠습니까?')) return;
-                    try {
-                        const { createClient } = await import('@/utils/supabase/client');
-                        const sb = createClient();
-                        await sb.from('profiles').delete().eq('id', user.id);
-                        await sb.auth.signOut();
-                        alert('탈퇴가 완료되었습니다.');
-                        router.replace('/');
-                    } catch (err) {
-                        alert('탈퇴 처리 중 오류가 발생했습니다.');
-                        console.error(err);
-                    }
-                }} />
             </div>
 
             <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 12, color: T.gray }}>
