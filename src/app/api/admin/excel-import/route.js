@@ -71,6 +71,9 @@ export async function POST(request) {
             const 공고내용 = (r['공고내용'] || r['공고 내용'] || '').replace(/\\n/g, '\n');
             const 참가비 = (r['참가비'] || r['참가비(원)'] || '').toString().trim() || null;
             const 신청방법 = (r['신청방법'] || r['신청 방법'] || '').trim() || null;
+            const 환불규정 = (r['환불규정'] || r['환불 규정'] || '').trim() || null;
+            const 주차지원 = (r['주차지원'] || r['주차 지원'] || '').trim() || null;
+            const 현장지원 = (r['현장지원'] || r['현장 지원'] || '').trim() || null;
             const 모집시작일 = toDateStr(r['모집시작일'] || r['모집 시작일']);
             const 모집마감일 = toDateStr(r['모집마감일 *'] || r['모집마감일'] || r['모집 마감일']);
             const 상태 = (r['상태'] || 'OPEN').trim().toUpperCase();
@@ -144,6 +147,9 @@ export async function POST(request) {
                 content: 공고내용 || null,
                 fee_description: 참가비,
                 application_method: 신청방법,
+                refund_policy: 환불규정,
+                parking_info: 주차지원,
+                onsite_support: 현장지원,
                 start_date: 모집시작일 || null,
                 end_date: 모집마감일 || null,
                 status: 상태,
