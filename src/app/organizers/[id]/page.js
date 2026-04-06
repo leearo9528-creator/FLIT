@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: org } = await supabase.from('organizers').select('name, description').eq('id', id).single();
+    const { data: org } = await supabase.from('organizers').select('name, description').eq('id', id).maybeSingle();
     if (!org) return { title: '주최사를 찾을 수 없습니다 - 플릿(FLIT)' };
     return {
         title: `${org.name} 주최사 리뷰 - 플릿(FLIT)`,
@@ -22,7 +22,7 @@ export default async function OrganizerPage({ params }) {
         .from('organizers')
         .select('id, name, description, logo_url, total_instances, total_reviews, phone, promo_link, contact_name')
         .eq('id', id)
-        .single();
+        .maybeSingle();
     if (!organizer) return notFound();
 
     // 이 주최사가 개최한 행사 인스턴스

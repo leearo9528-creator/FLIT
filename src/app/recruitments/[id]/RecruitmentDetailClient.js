@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { calcDDay } from '@/lib/helpers';
 
 /* ─── 섹션 UI ──────────────────────────────────────────────── */
 function Section({ title, children }) {
@@ -41,14 +42,6 @@ function InfoRow({ icon, label, value, valueColor, last }) {
 }
 
 /* ─── helpers ──────────────────────────────────────────────── */
-function calcDDay(dateStr) {
-    if (!dateStr) return null;
-    const diff = Math.ceil((new Date(dateStr) - Date.now()) / 86400000);
-    if (diff < 0) return { label: '종료' };
-    if (diff === 0) return { label: 'D-Day', urgent: true };
-    return { label: `D-${diff}`, urgent: diff <= 3 };
-}
-
 function formatDate(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });

@@ -23,3 +23,21 @@ export function formatDate(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
+
+// D-Day 계산. 반환: { label: 'D-3', urgent: true } | null (마감없음)
+export function calcDDay(dateStr) {
+    if (!dateStr) return null;
+    const diff = Math.ceil((new Date(dateStr) - Date.now()) / 86400000);
+    if (diff < 0) return { label: '마감', urgent: false };
+    if (diff === 0) return { label: 'D-Day', urgent: true };
+    return { label: `D-${diff}`, urgent: diff <= 3 };
+}
+
+// 리뷰 항목별 별점 배열 → 종합 평균 (0이면 0.0)
+export function calcOverallRating(review) {
+    const scores = [
+        review.rating_profit, review.rating_traffic,
+        review.rating_promotion, review.rating_support, review.rating_manners,
+    ].filter(v => v != null);
+    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+}

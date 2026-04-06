@@ -7,6 +7,7 @@ import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
+import EmptyState from '@/components/ui/EmptyState';
 
 const TABS = [
     { key: 'recruitments', label: '공고 스크랩' },
@@ -87,7 +88,7 @@ export default function MyScrapsPage() {
                 </div>
             ) : tab === 'recruitments' ? (
                 recScraps.length === 0 ? (
-                    <Empty icon="📋" title="스크랩한 공고가 없어요" sub="마음에 드는 공고에 북마크를 눌러보세요" cta="공고 찾기" href="/search" router={router} />
+                    <EmptyState icon="📋" title="스크랩한 공고가 없어요" sub="마음에 드는 공고에 북마크를 눌러보세요" cta="공고 찾기" href="/search" router={router} />
                 ) : (
                     <div style={{ background: T.white }}>
                         {recScraps.map((s, i) => {
@@ -117,7 +118,7 @@ export default function MyScrapsPage() {
                 )
             ) : (
                 evtScraps.length === 0 ? (
-                    <Empty icon="🎪" title="스크랩한 행사가 없어요" sub="행사 상세에서 북마크를 눌러보세요" cta="행사 찾기" href="/search" router={router} />
+                    <EmptyState icon="🎪" title="스크랩한 행사가 없어요" sub="행사 상세에서 북마크를 눌러보세요" cta="행사 찾기" href="/search" router={router} />
                 ) : (
                     <div style={{ background: T.white }}>
                         {evtScraps.map((s, i) => {
@@ -145,13 +146,3 @@ export default function MyScrapsPage() {
     );
 }
 
-function Empty({ icon, title, sub, cta, href, router }) {
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>{icon}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 13, color: T.gray, marginBottom: 20 }}>{sub}</div>
-            {cta && <div onClick={() => router.push(href)} style={{ background: T.blue, color: '#fff', padding: '9px 22px', borderRadius: T.radiusFull, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{cta}</div>}
-        </div>
-    );
-}

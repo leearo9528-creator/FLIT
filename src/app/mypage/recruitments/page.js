@@ -7,14 +7,7 @@ import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
-
-function calcDDay(dateStr) {
-    if (!dateStr) return null;
-    const diff = Math.ceil((new Date(dateStr) - Date.now()) / 86400000);
-    if (diff < 0) return { label: '마감', color: T.gray };
-    if (diff === 0) return { label: 'D-Day', color: T.red };
-    return { label: `D-${diff}`, color: diff <= 3 ? T.red : T.blue };
-}
+import { calcDDay } from '@/lib/helpers';
 
 export default function MyRecruitmentsPage() {
     const router = useRouter();
@@ -114,7 +107,7 @@ export default function MyRecruitmentsPage() {
                                         }}>
                                             {isOpen ? '모집중' : '마감됨'}
                                         </span>
-                                        {dday && <span style={{ fontSize: 11, fontWeight: 700, color: dday.color }}>{dday.label}</span>}
+                                        {dday && <span style={{ fontSize: 11, fontWeight: 700, color: dday.urgent ? T.red : T.blue }}>{dday.label}</span>}
                                     </div>
                                     <div onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === rec.id ? null : rec.id); }}
                                         style={{ padding: 4, cursor: 'pointer' }}>

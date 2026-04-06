@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    ChevronRight, LogOut, UserX,
-    Star, Bookmark, MessageSquare, MessageCircle as CommentIcon, Megaphone,
-    Bell, FileText, HelpCircle, MessageCircle, Settings, Shield,
+    ChevronRight, LogOut,
+    Star, Bookmark, Megaphone,
+    Bell, FileText, HelpCircle, MessageCircle, Shield,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';

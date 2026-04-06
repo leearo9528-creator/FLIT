@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Heart, Star as StarIcon } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import { timeAgo } from '@/lib/helpers';
 import TopBar from '@/components/ui/TopBar';
 import Link from 'next/link';
+import EmptyState from '@/components/ui/EmptyState';
 
 const TABS = [
     { key: 'reviews', label: '리뷰' },
@@ -183,15 +184,15 @@ export default function MyActivityPage() {
                     </div>
                 ) : tab === 'reviews' ? (
                     reviews.length === 0 ? (
-                        <Empty icon="✏️" title="작성한 리뷰가 없어요" sub="행사 참가 후 리뷰를 남겨보세요" cta="리뷰 작성하기" href="/reviews/write" router={router} />
+                        <EmptyState icon="✏️" title="작성한 리뷰가 없어요" sub="행사 참가 후 리뷰를 남겨보세요" cta="리뷰 작성하기" href="/reviews/write" router={router} />
                     ) : reviews.map(r => <ReviewItem key={r.id} review={r} onDelete={deleteReview} router={router} />)
                 ) : tab === 'posts' ? (
                     posts.length === 0 ? (
-                        <div style={{ padding: '0 16px' }}><Empty icon="💬" title="작성한 글이 없어요" sub="커뮤니티에서 첫 글을 남겨보세요" cta="글쓰기" href="/community/write" router={router} /></div>
+                        <div style={{ padding: '0 16px' }}><EmptyState icon="💬" title="작성한 글이 없어요" sub="커뮤니티에서 첫 글을 남겨보세요" cta="글쓰기" href="/community/write" router={router} /></div>
                     ) : <div style={{ background: T.white }}>{posts.map(p => <PostItem key={p.id} post={p} onDelete={deletePost} router={router} />)}</div>
                 ) : tab === 'comments' ? (
                     comments.length === 0 ? (
-                        <Empty icon="💭" title="작성한 댓글이 없어요" sub="게시글에 댓글을 달아보세요" />
+                        <EmptyState icon="💭" title="작성한 댓글이 없어요" sub="게시글에 댓글을 달아보세요" />
                     ) : comments.map(c => <CommentItem key={c.id} comment={c} onDelete={deleteComment} router={router} />)
                 ) : null}
             </div>
@@ -199,17 +200,3 @@ export default function MyActivityPage() {
     );
 }
 
-function Empty({ icon, title, sub, cta, href, router }) {
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px', color: T.gray }}>
-            <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.4 }}>{icon}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 13, color: T.gray, marginBottom: cta ? 20 : 0 }}>{sub}</div>
-            {cta && href && (
-                <div onClick={() => router.push(href)} style={{ background: T.blue, color: '#fff', padding: '9px 22px', borderRadius: T.radiusFull, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                    {cta}
-                </div>
-            )}
-        </div>
-    );
-}
