@@ -57,8 +57,11 @@ export default function RecruitmentWritePage() {
     const [endDate, setEndDate] = useState('');
     const [sellerType, setSellerType] = useState('');
 
-    // 신청 방법
+    // 신청 방법 + 추가 정보
     const [applicationMethod, setApplicationMethod] = useState('');
+    const [refundPolicy, setRefundPolicy] = useState('');
+    const [parkingInfo, setParkingInfo] = useState('');
+    const [onsiteSupport, setOnsiteSupport] = useState('');
 
     // 이미지
     const [images, setImages] = useState([]);
@@ -189,6 +192,9 @@ export default function RecruitmentWritePage() {
                 end_date: endDate || null,
                 status: 'OPEN',
                 application_method: applicationMethod.trim() || null,
+                refund_policy: refundPolicy.trim() || null,
+                parking_info: parkingInfo.trim() || null,
+                onsite_support: onsiteSupport.trim() || null,
             };
             if (images.length > 0) recPayload.images = images;
             const { data: rec, error: recErr } = await sb
@@ -520,6 +526,46 @@ export default function RecruitmentWritePage() {
                             }}
                         />
                     </div>
+                </Section>
+
+                {/* ── 환불 규정 ── */}
+                <Section title="환불 규정" hint="참가비 환불 가능 여부 및 조건을 알려주세요.">
+                    <input
+                        type="text"
+                        placeholder="예) 행사 7일 전 100% 환불 / 3일 전 50% / 이후 환불 불가"
+                        value={refundPolicy}
+                        onChange={e => setRefundPolicy(e.target.value)}
+                        style={inputStyle(!!refundPolicy)}
+                    />
+                </Section>
+
+                {/* ── 주차 지원 ── */}
+                <Section title="주차 지원">
+                    <input
+                        type="text"
+                        placeholder="예) 행사장 인근 공영주차장 이용 / 주차 지원 없음 / 셀러 전용 주차 2대 제공"
+                        value={parkingInfo}
+                        onChange={e => setParkingInfo(e.target.value)}
+                        style={inputStyle(!!parkingInfo)}
+                    />
+                </Section>
+
+                {/* ── 현장 지원 ── */}
+                <Section title="현장 지원" hint="스텝, 집기류, 홍보 등 현장에서 제공되는 지원 사항을 입력해주세요.">
+                    <textarea
+                        value={onsiteSupport}
+                        onChange={e => setOnsiteSupport(e.target.value)}
+                        placeholder={'예:\n- 현장 스텝 상주\n- 테이블·의자 제공\n- SNS 홍보 (인스타 팔로워 5만)\n- 공동 현수막 설치'}
+                        rows={4}
+                        style={{
+                            width: '100%', border: `1.5px solid ${onsiteSupport ? T.blue : T.border}`,
+                            borderRadius: T.radiusMd, padding: '12px 14px',
+                            fontSize: 14, color: T.text, lineHeight: 1.8,
+                            outline: 'none', resize: 'vertical', background: T.bg,
+                            fontFamily: 'inherit', boxSizing: 'border-box',
+                            transition: 'border-color 0.15s',
+                        }}
+                    />
                 </Section>
 
                 {/* ── 사진 첨부 ── */}

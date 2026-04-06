@@ -332,6 +332,33 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     )}
                 </Section>
 
+                {/* 환불 규정 */}
+                {recruitment.refund_policy && (
+                    <Section title="💸 환불 규정">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.refund_policy}
+                        </div>
+                    </Section>
+                )}
+
+                {/* 주차 지원 */}
+                {recruitment.parking_info && (
+                    <Section title="🅿️ 주차 지원">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.parking_info}
+                        </div>
+                    </Section>
+                )}
+
+                {/* 현장 지원 */}
+                {recruitment.onsite_support && (
+                    <Section title="🛠️ 현장 지원">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.onsite_support}
+                        </div>
+                    </Section>
+                )}
+
                 {/* 주최사 */}
                 {organizer.id && (
                     <Section title="🏢 주최사">
