@@ -69,28 +69,11 @@ export async function POST(request) {
             const 행사시작일 = toDateStr(r['행사시작일 *'] || r['행사시작일'] || r['행사 시작일']);
             const 행사종료일 = toDateStr(r['행사종료일'] || r['행사 종료일']) || 행사시작일;
             const 공고내용 = (r['공고내용'] || r['공고 내용'] || '').replace(/\\n/g, '\n');
-            const 참가비raw = r['참가비(원)'] ?? r['참가비'] ?? null;
-            const 참가비유형 = (r['참가비유형'] || r['참가비 유형'] || 'fixed').trim().toLowerCase();
-            const 푸드트럭참가비raw = r['푸드트럭참가비(원)'] ?? r['푸드트럭 참가비'] ?? null;
-            const 추가비용raw = (r['추가비용'] || r['추가 비용'] || '').trim();
+            const 참가비 = (r['참가비'] || r['참가비(원)'] || '').toString().trim() || null;
             const 신청방법 = (r['신청방법'] || r['신청 방법'] || '').trim() || null;
             const 모집시작일 = toDateStr(r['모집시작일'] || r['모집 시작일']);
             const 모집마감일 = toDateStr(r['모집마감일 *'] || r['모집마감일'] || r['모집 마감일']);
             const 상태 = (r['상태'] || 'OPEN').trim().toUpperCase();
-
-            // 참가비 파싱
-            const 참가비 = 참가비raw != null && 참가비raw !== '' ? Number(String(참가비raw).replace(/[^0-9.]/g, '')) : null;
-            const 푸드트럭참가비 = 푸드트럭참가비raw != null && 푸드트럭참가비raw !== '' ? Number(String(푸드트럭참가비raw).replace(/[^0-9.]/g, '')) : null;
-
-            // 추가비용 파싱: "대여비:50000,오더비:30000" 형식
-            let 추가비용 = null;
-            if (추가비용raw) {
-                const items = 추가비용raw.split(',').map(s => {
-                    const [name, amount] = s.split(':').map(x => x.trim());
-                    return name ? { name, amount: amount ? Number(amount.replace(/[^0-9]/g, '')).toLocaleString() : '' } : null;
-                }).filter(Boolean);
-                if (items.length > 0) 추가비용 = items;
-            }
 
             // 1. 주최사
             let orgId = null;
@@ -155,16 +138,11 @@ export async function POST(request) {
             }
 
             // 4. 모집공고
-            const feeTypeNorm = ['free', 'fixed', 'rate'].includes(참가비유형) ? 참가비유형
-                : 참가비 === 0 || 참가비 === null ? 'free' : 'fixed';
             const { error } = await sb.from('recruitments').insert({
                 event_instance_id: instId,
                 title: 공고제목,
                 content: 공고내용 || null,
-                fee: (참가비 != null && !isNaN(참가비)) ? 참가비 : 0,
-                fee_type: feeTypeNorm,
-                fee_foodtruck: (푸드트럭참가비 != null && !isNaN(푸드트럭참가비)) ? 푸드트럭참가비 : null,
-                extra_costs: 추가비용,
+                fee_description: 참가비,
                 application_method: 신청방법,
                 start_date: 모집시작일 || null,
                 end_date: 모집마감일 || null,
