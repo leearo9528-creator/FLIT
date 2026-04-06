@@ -195,17 +195,19 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     {baseEvent.id && (
                         <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
                             <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                display: 'flex', alignItems: 'center', gap: 12,
                                 paddingBottom: 12, marginBottom: 12, borderBottom: `1px solid ${T.border}`,
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: 18 }}>🎪</span>
-                                    <div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{baseEvent.name}</div>
-                                        {baseEvent.total_reviews > 0 && (
-                                            <div style={{ fontSize: 11, color: T.blue, fontWeight: 600, marginTop: 1 }}>리뷰 {baseEvent.total_reviews}개 →</div>
-                                        )}
-                                    </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: 76, flexShrink: 0, color: T.gray, fontSize: 12, paddingTop: 2 }}>
+                                    <span>🎪</span>
+                                    <span>행사명</span>
+                                </div>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: T.text, flex: 1, lineHeight: 1.55 }}>
+                                    {baseEvent.name}
+                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                                    <span style={{ fontSize: 12, color: T.blue, fontWeight: 700 }}>행사 보기 →</span>
+                                    <span style={{ fontSize: 11, color: T.gray, marginTop: 1 }}>리뷰 보러가기</span>
                                 </div>
                             </div>
                         </Link>
