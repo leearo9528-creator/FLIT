@@ -16,8 +16,8 @@ import TopBar from '@/components/ui/TopBar';
 const btnPrimary = { padding: '8px 16px', borderRadius: T.radiusMd, background: T.blue, color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 const btnDanger = { ...btnPrimary, background: T.white, color: T.red, border: `1.5px solid ${T.red}` };
 const btnOutline = { ...btnPrimary, background: T.white, color: T.text, border: `1.5px solid ${T.border}` };
-const cellStyle = { fontSize: 13, color: T.text, padding: '10px 8px', borderBottom: `1px solid ${T.border}`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 };
-const thStyle = { ...cellStyle, fontWeight: 700, fontSize: 11, color: T.gray, background: T.bg, position: 'sticky', top: 0 };
+const cellStyle = { fontSize: 13, color: T.text, padding: '11px 12px', borderBottom: `1px solid ${T.border}`, verticalAlign: 'middle', wordBreak: 'break-all' };
+const thStyle = { fontSize: 11, fontWeight: 700, color: T.gray, background: '#F8F9FA', padding: '10px 12px', borderBottom: `2px solid ${T.border}`, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', top: 0 };
 
 /* ─── 관리자 비밀번호 ─── */
 const ADMIN_PASSWORD = 'flit2026!';
@@ -176,27 +176,47 @@ function DataTable({ columns, rows, onDelete, onDeleteSelected, onEdit, emptyMsg
                 </div>
             )}
             <div style={{ overflowX: 'auto', background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}` }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                    <colgroup>
+                        <col style={{ width: 40 }} />
+                        {columns.map(c => <col key={c.key} style={{ width: c.width || 'auto' }} />)}
+                        <col style={{ width: 64 }} />
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th style={{ ...thStyle, width: 36, textAlign: 'center' }}>
+                            <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>
                                 <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer' }} />
                             </th>
-                            {columns.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}
-                            <th style={{ ...thStyle, width: 60 }}></th>
+                            {columns.map(c => <th key={c.key} style={{ ...thStyle, width: c.width }}>{c.label}</th>)}
+                            <th style={{ ...thStyle, width: 64 }}></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map(row => (
-                            <tr key={row.id} style={{ background: selected.has(row.id) ? '#FFF5F5' : 'transparent' }}>
-                                <td style={{ ...cellStyle, textAlign: 'center', width: 36 }}>
+                        {rows.map((row, i) => (
+                            <tr key={row.id} style={{
+                                background: selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA',
+                                transition: 'background 0.1s',
+                            }}
+                                onMouseEnter={e => { if (!selected.has(row.id)) e.currentTarget.style.background = '#F0F7FF'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA'; }}
+                            >
+                                <td style={{ ...cellStyle, textAlign: 'center', width: 40 }}>
                                     <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleOne(row.id)} style={{ cursor: 'pointer' }} />
                                 </td>
-                                {columns.map(c => <td key={c.key} style={cellStyle}>{c.render ? c.render(row) : (row[c.key] ?? '-')}</td>)}
-                                <td style={{ ...cellStyle, textAlign: 'center', width: 60 }}>
-                                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                        {onEdit && <Edit3 size={13} color={T.blue} style={{ cursor: 'pointer' }} onClick={() => onEdit(row)} />}
-                                        <Trash2 size={13} color={T.red} style={{ cursor: 'pointer' }} onClick={() => onDelete(row.id)} />
+                                {columns.map(c => (
+                                    <td key={c.key} style={{
+                                        ...cellStyle,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: c.wrap ? 'normal' : 'nowrap',
+                                    }}>
+                                        {c.render ? c.render(row) : (row[c.key] ?? '-')}
+                                    </td>
+                                ))}
+                                <td style={{ ...cellStyle, textAlign: 'center', width: 64 }}>
+                                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                                        {onEdit && <Edit3 size={14} color={T.blue} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onEdit(row)} />}
+                                        <Trash2 size={14} color={T.red} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onDelete(row.id)} />
                                     </div>
                                 </td>
                             </tr>
@@ -1067,10 +1087,10 @@ export default function AdminPage() {
     if (!pwPassed) return <PasswordGate onPass={() => setPwPassed(true)} />;
 
     const evtCols = [
-        { key: 'name', label: '행사명' },
-        { key: 'category', label: '카테고리' },
-        { key: 'total_instances', label: '개최' },
-        { key: 'total_reviews', label: '리뷰' },
+        { key: 'name', label: '행사명', width: 'auto' },
+        { key: 'category', label: '카테고리', width: 120 },
+        { key: 'total_instances', label: '개최', width: 60 },
+        { key: 'total_reviews', label: '리뷰', width: 60 },
     ];
     const evtFields = [
         { key: 'name', label: '행사명', type: 'text' },
@@ -1085,10 +1105,10 @@ export default function AdminPage() {
     ];
 
     const orgCols = [
-        { key: 'name', label: '주최사명' },
-        { key: 'total_instances', label: '행사' },
-        { key: 'total_reviews', label: '리뷰' },
-        { key: 'created_at', label: '등록일', render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
+        { key: 'name', label: '주최사명', width: 'auto' },
+        { key: 'total_instances', label: '행사', width: 60 },
+        { key: 'total_reviews', label: '리뷰', width: 60 },
+        { key: 'created_at', label: '등록일', width: 110, render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
     ];
     const orgFields = [
         { key: 'name', label: '주최사명', type: 'text' },
@@ -1097,11 +1117,11 @@ export default function AdminPage() {
     ];
 
     const recCols = [
-        { key: 'title', label: '제목' },
-        { key: 'event', label: '행사', render: r => r.event_instance?.base_event?.name || '-' },
-        { key: 'fee_description', label: '참가비', render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
-        { key: 'status', label: '상태', render: r => r.status === 'OPEN' ? '모집중' : '마감' },
-        { key: 'end_date', label: '마감일', render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
+        { key: 'title', label: '제목', width: 'auto' },
+        { key: 'event', label: '행사', width: 160, render: r => r.event_instance?.base_event?.name || '-' },
+        { key: 'fee_description', label: '참가비', width: 160, render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
+        { key: 'status', label: '상태', width: 72, render: r => r.status === 'OPEN' ? '모집중' : '마감' },
+        { key: 'end_date', label: '마감일', width: 100, render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
     ];
     const recFields = [
         { key: 'title', label: '공고 제목', type: 'text' },
@@ -1114,11 +1134,11 @@ export default function AdminPage() {
     ];
 
     const userCols = [
-        { key: 'name', label: '이름' },
-        { key: 'email', label: '이메일' },
-        { key: 'plan', label: '역할', render: r => r.plan === 'organizer' ? '주최사' : '셀러' },
-        { key: 'review_count', label: '리뷰' },
-        { key: 'created_at', label: '가입일', render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
+        { key: 'name', label: '이름', width: 120 },
+        { key: 'email', label: '이메일', width: 'auto' },
+        { key: 'plan', label: '역할', width: 72, render: r => r.plan === 'organizer' ? '주최사' : '셀러' },
+        { key: 'review_count', label: '리뷰', width: 60 },
+        { key: 'created_at', label: '가입일', width: 110, render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
     ];
     const userFields = [
         { key: 'name', label: '이름', type: 'text' },
