@@ -310,7 +310,7 @@ export default function CommunityPage() {
                 )}
 
                 {/* 더 이상 없을 때 */}
-                {!loading && !loadingMore && !hasMore && filtered.length > 0 && (
+                {!loading && !loadingMore && !hasMore && posts.length > 0 && (
                     <div style={{ textAlign: 'center', padding: '24px 0', color: T.gray, fontSize: 13 }}>
                         모든 게시글을 불러왔습니다.
                     </div>

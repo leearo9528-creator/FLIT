@@ -264,11 +264,35 @@ export default function RecruitmentDetailClient({ recruitment }) {
                                         <InfoRow icon={<Banknote size={13} color="#D97706" />} label="🚚 참가비"
                                             value={feeType === 'rate' ? `${recruitment.fee_foodtruck}%` : `${Number(recruitment.fee_foodtruck).toLocaleString()}원`}
                                             valueColor={T.text}
-                                            last={!recruitment.extra_costs?.length}
+                                            last={!days || days <= 1 || feeType !== 'fixed' || !recruitment.fee_foodtruck}
                                         />
+                                        {days > 1 && feeType === 'fixed' && recruitment.fee_foodtruck > 0 && (
+                                            <InfoRow
+                                                icon={<span style={{ fontSize: 12 }}>💡</span>}
+                                                label="🚚 일수별"
+                                                value={Array.from({ length: days }, (_, i) =>
+                                                    `${i + 1}일 ${((i + 1) * recruitment.fee_foodtruck).toLocaleString()}원`
+                                                ).join(' / ')}
+                                                last={!recruitment.extra_costs?.length}
+                                            />
+                                        )}
                                     </>
                                 ) : (
-                                    <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={feeDisplay} valueColor={feeColor} last={!recruitment.extra_costs?.length} />
+                                    <>
+                                        <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={feeDisplay} valueColor={feeColor}
+                                            last={!days || days <= 1 || feeType !== 'fixed' || !recruitment.fee}
+                                        />
+                                        {days > 1 && feeType === 'fixed' && recruitment.fee > 0 && (
+                                            <InfoRow
+                                                icon={<span style={{ fontSize: 12 }}>💡</span>}
+                                                label="일수별"
+                                                value={Array.from({ length: days }, (_, i) =>
+                                                    `${i + 1}일 ${((i + 1) * recruitment.fee).toLocaleString()}원`
+                                                ).join(' / ')}
+                                                last={!recruitment.extra_costs?.length}
+                                            />
+                                        )}
+                                    </>
                                 )}
                                 {recruitment.extra_costs?.length > 0 && (
                                     <>

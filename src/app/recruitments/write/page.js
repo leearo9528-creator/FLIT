@@ -523,6 +523,25 @@ export default function RecruitmentWritePage() {
                             )}
                         </div>
 
+                            {/* 일수별 참가비 미리보기 */}
+                            {feeType === 'fixed' && fee && eventDate && (
+                                <div style={{ marginTop: 4, padding: '10px 12px', background: T.blueLt, borderRadius: T.radiusMd, border: `1px solid ${T.blue}30` }}>
+                                    <div style={{ fontSize: 11, color: T.blue, fontWeight: 700, marginBottom: 3 }}>💡 일수별 참가비</div>
+                                    <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.7 }}>
+                                        {(() => {
+                                            const totalDays = eventDateEnd && eventDateEnd > eventDate
+                                                ? Math.round((new Date(eventDateEnd) - new Date(eventDate)) / 86400000) + 1
+                                                : 1;
+                                            const feeNum = parseInt(fee.replace(/,/g, ''), 10);
+                                            if (!feeNum) return null;
+                                            return Array.from({ length: totalDays }, (_, i) =>
+                                                `${i + 1}일 ${((i + 1) * feeNum).toLocaleString()}원`
+                                            ).join(' / ');
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
                         {/* 추가비용 */}
                         <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 8 }}>
