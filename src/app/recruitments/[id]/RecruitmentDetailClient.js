@@ -258,41 +258,19 @@ export default function RecruitmentDetailClient({ recruitment }) {
                                 {days && <InfoRow icon={<span style={{ fontSize: 12 }}>📅</span>} label="행사일수" value={`${days}일`} />}
                                 <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={recruitment.end_date ? formatDate(recruitment.end_date) : '없음'} valueColor={recruitment.end_date ? T.red : T.gray} />
                                 <InfoRow icon={<MapPin size={13} color={T.green} />} label="장소" value={instance.location || '미정'} />
-                                {hasFoodtruckFee ? (
+                                {recruitment.fee_description ? (
+                                    <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={recruitment.fee_description} last={!recruitment.extra_costs?.length} />
+                                ) : hasFoodtruckFee ? (
                                     <>
                                         <InfoRow icon={<Banknote size={13} color="#D97706" />} label="💎 참가비" value={feeDisplay} valueColor={feeColor} />
                                         <InfoRow icon={<Banknote size={13} color="#D97706" />} label="🚚 참가비"
                                             value={feeType === 'rate' ? `${recruitment.fee_foodtruck}%` : `${Number(recruitment.fee_foodtruck).toLocaleString()}원`}
                                             valueColor={T.text}
-                                            last={!days || days <= 1 || feeType !== 'fixed' || !recruitment.fee_foodtruck}
+                                            last={!recruitment.extra_costs?.length}
                                         />
-                                        {days > 1 && feeType === 'fixed' && recruitment.fee_foodtruck > 0 && (
-                                            <InfoRow
-                                                icon={<span style={{ fontSize: 12 }}>💡</span>}
-                                                label="🚚 일수별"
-                                                value={Array.from({ length: days }, (_, i) =>
-                                                    `${i + 1}일 ${((i + 1) * recruitment.fee_foodtruck).toLocaleString()}원`
-                                                ).join(' / ')}
-                                                last={!recruitment.extra_costs?.length}
-                                            />
-                                        )}
                                     </>
                                 ) : (
-                                    <>
-                                        <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={feeDisplay} valueColor={feeColor}
-                                            last={!days || days <= 1 || feeType !== 'fixed' || !recruitment.fee}
-                                        />
-                                        {days > 1 && feeType === 'fixed' && recruitment.fee > 0 && (
-                                            <InfoRow
-                                                icon={<span style={{ fontSize: 12 }}>💡</span>}
-                                                label="일수별"
-                                                value={Array.from({ length: days }, (_, i) =>
-                                                    `${i + 1}일 ${((i + 1) * recruitment.fee).toLocaleString()}원`
-                                                ).join(' / ')}
-                                                last={!recruitment.extra_costs?.length}
-                                            />
-                                        )}
-                                    </>
+                                    <InfoRow icon={<Banknote size={13} color="#D97706" />} label="참가비" value={feeDisplay} valueColor={feeColor} last={!recruitment.extra_costs?.length} />
                                 )}
                                 {recruitment.extra_costs?.length > 0 && (
                                     <>

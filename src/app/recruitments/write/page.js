@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, ChevronDown, ClipboardList } from 'lucide-react';
+import { Search, X, Plus, MapPin, Calendar, Banknote, Clock } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
@@ -53,10 +53,7 @@ export default function RecruitmentWritePage() {
     // 공고 정보
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [feeType, setFeeType] = useState('fixed'); // 'free' | 'fixed' | 'rate'
-    const [fee, setFee] = useState('');
-    const [feeFoodtruck, setFeeFoodtruck] = useState('');
-    const [extraCosts, setExtraCosts] = useState([]);
+    const [feeText, setFeeText] = useState('');
     const [endDate, setEndDate] = useState('');
     const [sellerType, setSellerType] = useState('');
 
@@ -167,10 +164,6 @@ export default function RecruitmentWritePage() {
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            const parseFee = v => v ? parseInt(v.replace(/,/g, ''), 10) || 0 : 0;
-            const feeNum = feeType === 'free' ? 0 : parseFee(fee);
-            const feeFoodtruckNum = feeType !== 'free' && feeFoodtruck ? parseFee(feeFoodtruck) : null;
-            const validExtraCosts = extraCosts.filter(c => c.name.trim());
 
             // event_instance 생성
             const { data: instance, error: instErr } = await sb
@@ -192,10 +185,7 @@ export default function RecruitmentWritePage() {
                 event_instance_id: instance.id,
                 title: title.trim(),
                 content: content.trim(),
-                fee: feeNum,
-                fee_type: feeType,
-                fee_foodtruck: feeFoodtruckNum,
-                extra_costs: validExtraCosts.length > 0 ? validExtraCosts : null,
+                fee_description: feeText.trim() || null,
                 end_date: endDate || null,
                 status: 'OPEN',
                 application_method: applicationMethod.trim() || null,
@@ -453,138 +443,16 @@ export default function RecruitmentWritePage() {
 
                         {/* 참가비 */}
                         <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Banknote size={12} /> 참가비
                             </div>
-                            {/* 유형 토글 */}
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                                {[
-                                    { key: 'free', label: '무료' },
-                                    { key: 'fixed', label: '정액 (원)' },
-                                    { key: 'rate', label: '정률 (%)' },
-                                ].map(opt => (
-                                    <div key={opt.key} onClick={() => setFeeType(opt.key)} style={{
-                                        flex: 1, padding: '9px 4px', borderRadius: T.radiusMd,
-                                        textAlign: 'center', cursor: 'pointer',
-                                        border: `1.5px solid ${feeType === opt.key ? T.blue : T.border}`,
-                                        background: feeType === opt.key ? T.blueLt : T.white,
-                                        fontSize: 12, fontWeight: 700,
-                                        color: feeType === opt.key ? T.blue : T.gray,
-                                        transition: 'all 0.15s',
-                                    }}>{opt.label}</div>
-                                ))}
-                            </div>
-                            {/* 금액 입력 */}
-                            {feeType !== 'free' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {/* 일반셀러 (또는 단일) */}
-                                    <div>
-                                        <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>
-                                            {sellerType === '' ? '💎 일반셀러' : sellerType === 'seller' ? '💎 일반셀러' : '🚚 푸드트럭'}
-                                        </div>
-                                        <div style={{ position: 'relative' }}>
-                                            <input
-                                                type="text" inputMode="numeric"
-                                                placeholder={feeType === 'rate' ? '예: 20' : '예: 50,000'}
-                                                value={fee}
-                                                onChange={e => {
-                                                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                    setFee(feeType === 'rate' ? raw : raw ? Number(raw).toLocaleString() : '');
-                                                }}
-                                                style={{ ...inputStyle(!!fee), paddingRight: 38, width: '100%', boxSizing: 'border-box' }}
-                                            />
-                                            <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: T.gray }}>
-                                                {feeType === 'rate' ? '%' : '원'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {/* 푸드트럭 별도 (전체 모집일 때만) */}
-                                    {sellerType === '' && (
-                                        <div>
-                                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 4 }}>🚚 푸드트럭 <span style={{ fontWeight: 400 }}>(비우면 위와 동일)</span></div>
-                                            <div style={{ position: 'relative' }}>
-                                                <input
-                                                    type="text" inputMode="numeric"
-                                                    placeholder={feeType === 'rate' ? '예: 15' : '예: 80,000'}
-                                                    value={feeFoodtruck}
-                                                    onChange={e => {
-                                                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                        setFeeFoodtruck(feeType === 'rate' ? raw : raw ? Number(raw).toLocaleString() : '');
-                                                    }}
-                                                    style={{ ...inputStyle(!!feeFoodtruck), paddingRight: 38, width: '100%', boxSizing: 'border-box' }}
-                                                />
-                                                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: T.gray }}>
-                                                    {feeType === 'rate' ? '%' : '원'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                            {/* 일수별 참가비 미리보기 */}
-                            {feeType === 'fixed' && fee && eventDate && (
-                                <div style={{ marginTop: 4, padding: '10px 12px', background: T.blueLt, borderRadius: T.radiusMd, border: `1px solid ${T.blue}30` }}>
-                                    <div style={{ fontSize: 11, color: T.blue, fontWeight: 700, marginBottom: 3 }}>💡 일수별 참가비</div>
-                                    <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.7 }}>
-                                        {(() => {
-                                            const totalDays = eventDateEnd && eventDateEnd > eventDate
-                                                ? Math.round((new Date(eventDateEnd) - new Date(eventDate)) / 86400000) + 1
-                                                : 1;
-                                            const feeNum = parseInt(fee.replace(/,/g, ''), 10);
-                                            if (!feeNum) return null;
-                                            return Array.from({ length: totalDays }, (_, i) =>
-                                                `${i + 1}일 ${((i + 1) * feeNum).toLocaleString()}원`
-                                            ).join(' / ');
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-
-                        {/* 추가비용 */}
-                        <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 8 }}>
-                                추가비용 <span style={{ fontWeight: 400 }}>(선택 — 대여비, 오더비 등)</span>
-                            </div>
-                            {extraCosts.map((cost, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                                    <input
-                                        placeholder="항목명 (예: 대여비)"
-                                        value={cost.name}
-                                        onChange={e => setExtraCosts(prev => prev.map((c, j) => j === i ? { ...c, name: e.target.value } : c))}
-                                        style={{ ...inputStyle(!!cost.name), flex: 2, boxSizing: 'border-box' }}
-                                    />
-                                    <div style={{ position: 'relative', flex: 1.5 }}>
-                                        <input
-                                            type="text" inputMode="numeric"
-                                            placeholder="금액"
-                                            value={cost.amount}
-                                            onChange={e => {
-                                                const raw = e.target.value.replace(/[^0-9]/g, '');
-                                                setExtraCosts(prev => prev.map((c, j) => j === i ? { ...c, amount: raw ? Number(raw).toLocaleString() : '' } : c));
-                                            }}
-                                            style={{ ...inputStyle(!!cost.amount), width: '100%', paddingRight: 28, boxSizing: 'border-box' }}
-                                        />
-                                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: T.gray }}>원</span>
-                                    </div>
-                                    <button onClick={() => setExtraCosts(prev => prev.filter((_, j) => j !== i))} style={{
-                                        flexShrink: 0, width: 38, background: T.grayLt, border: `1px solid ${T.border}`,
-                                        borderRadius: T.radiusMd, cursor: 'pointer', color: T.gray, fontSize: 16, fontWeight: 700,
-                                    }}>✕</button>
-                                </div>
-                            ))}
-                            <button
-                                onClick={() => setExtraCosts(prev => [...prev, { name: '', amount: '' }])}
-                                style={{
-                                    width: '100%', padding: '10px 0', border: `1.5px dashed ${T.border}`,
-                                    borderRadius: T.radiusMd, background: 'transparent', cursor: 'pointer',
-                                    fontSize: 13, fontWeight: 700, color: T.gray,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                                }}
-                            >
-                                <Plus size={14} /> 추가비용 항목 추가
-                            </button>
+                            <input
+                                type="text"
+                                placeholder="예) 무료 / 1일 80,000원 / 2일 150,000원 / 매출의 20%"
+                                value={feeText}
+                                onChange={e => setFeeText(e.target.value)}
+                                style={inputStyle(!!feeText)}
+                            />
                         </div>
 
                     </div>
