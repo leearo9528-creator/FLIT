@@ -97,9 +97,16 @@ export default function CommunityPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(0);
+    const [debouncedQuery, setDebouncedQuery] = useState('');
 
     const sentinelRef = useRef(null);
     const observerRef = useRef(null);
+
+    /* 검색어 디바운스 (350ms) */
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(query), 350);
+        return () => clearTimeout(t);
+    }, [query]);
 
     /* ── 데이터 fetch ── */
     const fetchPosts = useCallback(async (pageIndex, reset = false) => {
@@ -113,6 +120,9 @@ export default function CommunityPage() {
 
         if (category !== '전체') q = q.eq('category', category);
         if (sellerType !== '전체') q = q.eq('seller_type', sellerType === '일반셀러' ? 'seller' : 'foodtruck');
+        if (debouncedQuery.trim()) {
+            q = q.or(`title.ilike.%${debouncedQuery.trim()}%,content.ilike.%${debouncedQuery.trim()}%`);
+        }
 
         q = q.order(sortBy === 'likes' ? 'likes' : 'created_at', { ascending: false })
              .range(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE - 1);
@@ -125,14 +135,14 @@ export default function CommunityPage() {
         setHasMore(fetched.length === PAGE_SIZE);
         setLoading(false);
         setLoadingMore(false);
-    }, [category, sellerType, sortBy]);
+    }, [category, sellerType, sortBy, debouncedQuery]);
 
-    /* 필터 변경 시 초기화 */
+    /* 필터/검색 변경 시 초기화 (fetchPosts 재생성 시 자동 실행) */
     useEffect(() => {
         setPage(0);
         setHasMore(true);
         fetchPosts(0, true);
-    }, [category, sellerType, sortBy, fetchPosts]);
+    }, [fetchPosts]);
 
     /* 무한 스크롤 */
     useEffect(() => {
@@ -148,14 +158,6 @@ export default function CommunityPage() {
         if (sentinelRef.current) observerRef.current.observe(sentinelRef.current);
         return () => observerRef.current?.disconnect();
     }, [hasMore, loadingMore, loading, page, fetchPosts]);
-
-    /* 클라이언트 검색 필터 */
-    const filtered = query.trim()
-        ? posts.filter(p =>
-            p.title?.toLowerCase().includes(query.toLowerCase()) ||
-            p.content?.toLowerCase().includes(query.toLowerCase())
-          )
-        : posts;
 
     const activeFilterCount = [sellerType !== '전체', sortBy !== 'latest'].filter(Boolean).length;
 
@@ -279,13 +281,13 @@ export default function CommunityPage() {
                             <div key={i} style={{ height: 130, background: T.grayLt, borderRadius: T.radiusLg, animation: 'pulse 1.5s infinite' }} />
                         ))}
                     </div>
-                ) : filtered.length === 0 ? (
+                ) : posts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>
-                        {query ? `"${query}" 검색 결과가 없어요.` : '아직 게시글이 없어요.'}
+                        {debouncedQuery ? `"${debouncedQuery}" 검색 결과가 없어요.` : '아직 게시글이 없어요.'}
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {filtered.map(post => (
+                        {posts.map(post => (
                             <PostCard
                                 key={post.id}
                                 post={post}

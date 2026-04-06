@@ -126,7 +126,7 @@ export default function PostDetailPage() {
             anonymous_name: null,
             content: commentText.trim(),
             is_anonymous: isAnon,
-        }).select().single();
+        }).select().maybeSingle();
         if (!error && data) setComments(prev => [...prev, data]);
         setCommentText('');
         setIsSubmittingComment(false);

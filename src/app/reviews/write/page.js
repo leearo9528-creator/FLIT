@@ -238,14 +238,14 @@ export default function ReviewWritePage() {
             const sb = createClient();
             // 1. base_event 생성
             const { data: ev, error: evErr } = await sb
-                .from('base_events').insert({ name: newEvtName.trim() }).select('id, name').single();
+                .from('base_events').insert({ name: newEvtName.trim() }).select('id, name').maybeSingle();
             if (evErr) throw evErr;
             // 2. event_instance 생성
             const { data: inst, error: instErr } = await sb
                 .from('event_instances').insert({
                     base_event_id: ev.id,
                     event_date: newEvtDate,
-                }).select('id, event_date, base_event:base_events(id, name), organizer:organizers(id, name)').single();
+                }).select('id, event_date, base_event:base_events(id, name), organizer:organizers(id, name)').maybeSingle();
             if (instErr) throw instErr;
             setInstances(prev => [inst, ...prev]);
             setSelectedInstance(inst);

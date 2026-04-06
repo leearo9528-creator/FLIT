@@ -111,7 +111,7 @@ export default function RecruitmentWritePage() {
                     .from('organizers')
                     .insert({ id: user.id, name: orgName })
                     .select('id, name')
-                    .single();
+                    .maybeSingle();
                 if (newOrg) setOrganizer(newOrg);
             }
 
@@ -143,7 +143,7 @@ export default function RecruitmentWritePage() {
             const sb = createClient();
             const { data, error } = await sb.from('base_events')
                 .insert({ name: newEventName.trim(), category: newEventCategory })
-                .select('id, name, category').single();
+                .select('id, name, category').maybeSingle();
             if (error) throw error;
             setBaseEvents(prev => [data, ...prev]);
             setSelectedBaseEvent(data);
@@ -184,7 +184,7 @@ export default function RecruitmentWritePage() {
                     event_date_end: eventDateEnd || eventDate,
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
             if (instErr) throw instErr;
 
             // recruitment 생성
@@ -205,7 +205,7 @@ export default function RecruitmentWritePage() {
                 .from('recruitments')
                 .insert(recPayload)
                 .select('id')
-                .single();
+                .maybeSingle();
             if (recErr) throw recErr;
 
             router.push(`/recruitments/${rec.id}`);
