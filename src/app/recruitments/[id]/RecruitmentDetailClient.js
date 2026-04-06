@@ -193,28 +193,58 @@ export default function RecruitmentDetailClient({ recruitment }) {
             {/* ── 콘텐츠 ── */}
             <div style={{ padding: '16px 14px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
+                {/* 셀러 후기 요약 */}
+                {baseEvent.id && (
+                    <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{
+                            background: T.white, borderRadius: 16, overflow: 'hidden',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                            border: `1.5px solid ${T.blue}22`,
+                        }}>
+                            <div style={{
+                                padding: '10px 18px', background: T.blueLt,
+                                borderBottom: `1px solid ${T.blue}20`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, color: T.blue }}>📊 이 행사 셀러 후기</span>
+                                <span style={{ fontSize: 12, color: T.blue, fontWeight: 600 }}>전체 보기 →</span>
+                            </div>
+                            <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {baseEvent.name}
+                                    </div>
+                                    {baseEvent.total_reviews > 0 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span style={{ fontSize: 22, fontWeight: 900, color: T.text }}>
+                                                ⭐ {Number(baseEvent.avg_event_rating || 0).toFixed(1)}
+                                            </span>
+                                            <span style={{ fontSize: 13, color: T.gray }}>/ 5.0</span>
+                                            <span style={{ fontSize: 12, color: T.gray }}>·</span>
+                                            <span style={{ fontSize: 13, color: T.gray }}>후기 {baseEvent.total_reviews}개</span>
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: 13, color: T.gray }}>아직 작성된 후기가 없어요</div>
+                                    )}
+                                </div>
+                                {baseEvent.total_reviews > 0 && (
+                                    <div style={{
+                                        flexShrink: 0, background: T.blue, borderRadius: 10,
+                                        padding: '8px 14px', textAlign: 'center',
+                                    }}>
+                                        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1 }}>
+                                            {Number(baseEvent.avg_event_rating || 0).toFixed(1)}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>평균 평점</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Link>
+                )}
+
                 {/* 공고 핵심 정보 */}
                 <Section title="📌 공고 핵심 정보">
-                    {baseEvent.id && (
-                        <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: 12,
-                                paddingBottom: 12, marginBottom: 12, borderBottom: `1px solid ${T.border}`,
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: 76, flexShrink: 0, color: T.gray, fontSize: 12, paddingTop: 2 }}>
-                                    <span>🎪</span>
-                                    <span>행사명</span>
-                                </div>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: T.text, flex: 1, lineHeight: 1.55 }}>
-                                    {baseEvent.name}
-                                </span>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                                    <span style={{ fontSize: 12, color: T.blue, fontWeight: 700 }}>행사 보기 →</span>
-                                    <span style={{ fontSize: 11, color: T.gray, marginTop: 1 }}>리뷰 보러가기</span>
-                                </div>
-                            </div>
-                        </Link>
-                    )}
                     <InfoRow icon={<Calendar size={13} color={T.blue} />} label="행사 기간" value={formatDateRange(instance.event_date, instance.event_date_end)} />
                     <InfoRow icon={<Clock size={13} color={T.red} />} label="모집 마감" value={recruitment.end_date ? formatDate(recruitment.end_date) : '없음'} valueColor={recruitment.end_date ? T.red : T.gray} />
                     <InfoRow icon={<MapPin size={13} color={T.green} />} label="장소" value={instance.location || '미정'} />
