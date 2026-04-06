@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { T } from '@/lib/design-tokens';
 
@@ -89,6 +90,7 @@ export default function HomeCalendarSection() {
             {/* 섹션 타이틀 */}
             <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: T.text }}>📅 이달의 행사 캘린더</div>
+                <Link href="/calendar" style={{ fontSize: 13, color: T.blue, fontWeight: 600, textDecoration: 'none' }}>전체 보기 →</Link>
             </div>
 
             {/* 월 네비 */}
@@ -193,6 +195,19 @@ export default function HomeCalendarSection() {
                             );
                         })}
                     </div>
+                )}
+
+                {/* 전체 보기 버튼 */}
+                {!selectedDate && !loading && events.length > 0 && (
+                    <Link href="/calendar" style={{ textDecoration: 'none' }}>
+                        <div style={{
+                            marginTop: 8, padding: '10px 0', borderRadius: 10,
+                            border: `1.5px solid ${T.border}`, textAlign: 'center',
+                            fontSize: 13, fontWeight: 700, color: T.gray,
+                        }}>
+                            이달 행사 전체 보기 ({events.length}개) →
+                        </div>
+                    </Link>
                 )}
             </div>
         </div>
