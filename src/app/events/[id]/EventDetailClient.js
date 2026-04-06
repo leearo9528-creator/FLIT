@@ -245,52 +245,53 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                 <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
                 <div style={{ position: 'absolute', bottom: -60, left: -20, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-                {/* 상단 네비: 뒤로가기 + 페이지 레이블 */}
-                <div style={{
-                    padding: '16px 16px 0', position: 'relative', zIndex: 2,
-                    display: 'flex', alignItems: 'center', gap: 12,
-                }}>
+                {/* 상단 네비 */}
+                <div style={{ padding: '52px 16px 0', position: 'relative', zIndex: 2 }}>
                     <button onClick={() => router.back()} style={{
                         background: 'rgba(255,255,255,0.15)', border: 'none',
-                        borderRadius: T.radiusFull, width: 36, height: 36,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        flexShrink: 0,
+                        borderRadius: 999, width: 38, height: 38,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', backdropFilter: 'blur(8px)',
                     }}>
                         <ChevronLeft size={18} color="#fff" />
                     </button>
-                    <div style={{
-                        fontSize: 13, fontWeight: 800, color: '#fff',
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '6px 14px', borderRadius: T.radiusFull,
-                        letterSpacing: 0.3,
-                    }}>
-                        🎪 행사 정보
-                    </div>
                 </div>
 
+                {/* 본문 */}
                 <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
+                    {/* 카테고리 칩 */}
                     {event.category && (
                         <div style={{
-                            display: 'inline-block', padding: '4px 10px', borderRadius: 6,
-                            fontSize: 12, fontWeight: 700, background: 'rgba(255,255,255,0.25)', color: '#fff',
-                            marginBottom: 10, marginLeft: 6,
+                            display: 'inline-flex', alignItems: 'center',
+                            padding: '4px 12px', borderRadius: 999, marginBottom: 12,
+                            fontSize: 12, fontWeight: 700,
+                            background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.9)',
+                            border: '1px solid rgba(255,255,255,0.25)',
                         }}>
-                            {event.category}
+                            🎪 {event.category}
                         </div>
                     )}
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 10 }}>
+                    {/* 행사명 */}
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.35, marginBottom: 14 }}>
                         {event.name}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {/* 메타 정보 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                         {instances[0]?.location && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                                <MapPin size={13} /> {instances[0].location}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                                <MapPin size={12} color="rgba(255,255,255,0.7)" />
+                                {instances[0].location}
                             </div>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                            <Calendar size={13} /> 총 {event.total_instances || 0}회 개최
-                            {event.total_reviews > 0 && <> · 리뷰 {event.total_reviews}개</>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                            <Calendar size={12} color="rgba(255,255,255,0.7)" />
+                            총 {event.total_instances || 0}회 개최
                         </div>
+                        {event.total_reviews > 0 && (
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                                ⭐ 리뷰 {event.total_reviews}개
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

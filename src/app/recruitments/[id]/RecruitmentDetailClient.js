@@ -110,7 +110,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                 <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
                 <div style={{ position: 'absolute', bottom: -50, left: -30, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-                {/* 네비바 */}
+                {/* 상단 네비 */}
                 <div style={{ padding: '52px 16px 0', position: 'relative', zIndex: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <button onClick={() => router.back()} style={{
                         background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 999,
@@ -119,7 +119,6 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     }}>
                         <ArrowLeft size={18} color="#fff" />
                     </button>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>셀러 모집공고</span>
                     <button onClick={handleScrap} style={{
                         background: scrapped ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.15)',
                         border: 'none', borderRadius: 999,
@@ -130,31 +129,29 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     </button>
                 </div>
 
-                {/* 브레드크럼 */}
-                {baseEvent.id && (
-                    <div style={{ padding: '14px 20px 0', position: 'relative', zIndex: 2 }}>
+                {/* 본문 */}
+                <div style={{ padding: '14px 20px 28px', position: 'relative', zIndex: 2 }}>
+                    {/* 행사 컨텍스트 칩 */}
+                    {baseEvent.id && (
                         <Link href={`/events/${baseEvent.id}`} style={{ textDecoration: 'none' }}>
                             <div style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                display: 'inline-flex', alignItems: 'center', gap: 5,
                                 background: 'rgba(255,255,255,0.12)', borderRadius: 999,
-                                padding: '4px 12px', backdropFilter: 'blur(6px)',
+                                padding: '4px 12px', marginBottom: 12,
+                                border: '1px solid rgba(255,255,255,0.2)',
                             }}>
                                 <span style={{ fontSize: 11 }}>🎪</span>
                                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{baseEvent.name}</span>
-                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: '0 1px' }}>›</span>
+                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>›</span>
                                 <span style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>셀러 모집</span>
                             </div>
                         </Link>
-                    </div>
-                )}
-
-                {/* 본문 */}
-                <div style={{ padding: '16px 20px 28px', position: 'relative', zIndex: 2 }}>
+                    )}
                     {/* 상태 + D-Day */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                         <div style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '4px 11px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                            padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
                             background: isOpen ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.25)',
                             color: '#fff', border: '1px solid rgba(255,255,255,0.3)',
                         }}>
@@ -163,7 +160,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
                         </div>
                         {dDay && (
                             <div style={{
-                                padding: '4px 11px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                                padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
                                 background: dDay.urgent ? 'rgba(239,68,68,0.45)' : 'rgba(255,255,255,0.14)',
                                 color: '#fff', border: '1px solid rgba(255,255,255,0.2)',
                             }}>
@@ -171,17 +168,15 @@ export default function RecruitmentDetailClient({ recruitment }) {
                             </div>
                         )}
                     </div>
-
-                    {/* 제목 */}
+                    {/* 공고 제목 */}
                     <div style={{ fontSize: 21, fontWeight: 900, color: '#fff', lineHeight: 1.45, marginBottom: 10, letterSpacing: -0.4 }}>
                         {recruitment.title}
                     </div>
-
                     {/* 주최사 */}
                     {organizer.name && (
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            주최사
-                            <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>{organizer.name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                            <span>주최</span>
+                            <span style={{ color: '#fff', fontWeight: 700 }}>{organizer.name}</span>
                         </div>
                     )}
                 </div>
