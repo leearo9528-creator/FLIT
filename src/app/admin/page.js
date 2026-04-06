@@ -295,11 +295,11 @@ const PARSE_KEYS = [
     { pattern: /주제|카테고리/i, key: 'category', label: '카테고리' },
     { pattern: /주최[·・]주관|주최사/i, key: 'organizer', label: '주최사' },
     { pattern: /개최.*장소|입점.*장소|장소/i, key: 'location', label: '장소' },
-    { pattern: /개최.*일정|입점.*일정|일정/i, key: 'schedule', label: '일정' },
-    { pattern: /모집기간/i, key: 'recruitPeriod', label: '모집기간' },
+    { pattern: /개최.*일정|입점.*일정|일정/i, key: 'schedule', label: '일정(원문)' },
+    { pattern: /모집기간/i, key: 'recruitPeriod', label: '모집기간(원문)' },
     { pattern: /모집규모/i, key: 'scale', label: '모집규모' },
     { pattern: /모집조건/i, key: 'conditions', label: '모집조건' },
-    { pattern: /참가.*비용|입점.*비용|참가비/i, key: 'fee', label: '참가비' },
+    { pattern: /참가.*비용|입점.*비용|참가비/i, key: 'fee', label: '참가비(원문)' },
     { pattern: /환불규정|환불/i, key: 'refund', label: '환불규정' },
     { pattern: /유동인구/i, key: 'traffic', label: '유동인구' },
     { pattern: /주차지원|주차/i, key: 'parking', label: '주차지원' },
@@ -308,6 +308,35 @@ const PARSE_KEYS = [
     { pattern: /담당자.*연락처|연락처/i, key: 'contact', label: '담당자 연락처' },
     { pattern: /현장소개|현장.*사진/i, key: 'description', label: '현장소개' },
 ];
+
+// 파생 필드 (파싱 후 계산되는 편집 가능한 필드)
+const DERIVED_KEYS = [
+    { key: 'eventDate', label: '행사 시작일 (YYYY-MM-DD)' },
+    { key: 'eventDateEnd', label: '행사 종료일 (YYYY-MM-DD)' },
+    { key: 'endDate', label: '모집 마감일 (YYYY-MM-DD, 없으면 빈칸)' },
+    { key: 'feeType', label: '참가비 유형 (free/fixed/rate)' },
+    { key: 'feeAmount', label: '참가비 금액 (원 또는 %)' },
+    { key: 'feeFoodtruck', label: '푸드트럭 참가비 (원, 없으면 빈칸)' },
+    { key: 'extraCostsText', label: '추가비용 (형식: 대여비:50000,오더비:30000)' },
+];
+
+// 날짜 텍스트에서 YYYY-MM-DD 추출
+function extractDate(text) {
+    if (!text) return null;
+    // YYYY년 MM월 DD일
+    const m1 = text.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    if (m1) return `${m1[1]}-${String(m1[2]).padStart(2,'0')}-${String(m1[3]).padStart(2,'0')}`;
+    // YYYY.MM.DD or YYYY-MM-DD
+    const m2 = text.match(/(\d{4})[.\-](\d{1,2})[.\-](\d{1,2})/);
+    if (m2) return `${m2[1]}-${String(m2[2]).padStart(2,'0')}-${String(m2[3]).padStart(2,'0')}`;
+    // MM/DD or M/D (올해 연도 가정)
+    const m3 = text.match(/(\d{1,2})\/(\d{1,2})/);
+    if (m3) {
+        const y = new Date().getFullYear();
+        return `${y}-${String(m3[1]).padStart(2,'0')}-${String(m3[2]).padStart(2,'0')}`;
+    }
+    return null;
+}
 
 function parsePostText(raw) {
     if (!raw) return {};
@@ -344,6 +373,64 @@ function parsePostText(raw) {
         }
     }
     flush();
+
+    // ── 파생 필드 자동 계산 ──
+
+    // 행사 날짜: schedule에서 시작일/종료일 추출
+    // 패턴: "4/15(수)~4/17(금)", "2026년 4월 15일 ~ 2026년 4월 17일", "4/15(수), 4/22(수)" 등
+    if (result.schedule) {
+        const sch = result.schedule;
+        // ~ 또는 - 로 날짜 범위 구분
+        const rangeSep = sch.split(/[~\-](?!\d{4})/); // '-'는 YYYY-MM-DD 내부 제외
+        const d1 = extractDate(rangeSep[0]);
+        const d2 = rangeSep[1] ? extractDate(rangeSep[1]) : null;
+        if (d1) result.eventDate = d1;
+        if (d2 && d2 !== d1) result.eventDateEnd = d2;
+        else if (d1) result.eventDateEnd = d1;
+    }
+
+    // 모집 마감일: recruitPeriod에서 종료일 추출
+    // 패턴: "~4/10(금)", "4/1~4/10", "2026년 4월 10일까지"
+    if (result.recruitPeriod) {
+        const rp = result.recruitPeriod;
+        // ~ 이후 부분이 마감일
+        const parts = rp.split('~');
+        const lastPart = parts[parts.length - 1];
+        const d = extractDate(lastPart);
+        if (d) result.endDate = d;
+    }
+
+    // 참가비 파싱: fee_type, feeAmount, feeFoodtruck, extraCostsText
+    if (result.fee) {
+        const feeText = result.fee;
+        if (/무료|없음|0원/i.test(feeText)) {
+            result.feeType = 'free';
+            result.feeAmount = '0';
+        } else if (/%/.test(feeText)) {
+            result.feeType = 'rate';
+            const m = feeText.match(/(\d+)\s*%/);
+            if (m) result.feeAmount = m[1];
+        } else {
+            result.feeType = 'fixed';
+            // 첫 번째 금액 추출
+            const nums = feeText.match(/(\d[\d,]*)\s*원/g);
+            if (nums && nums.length > 0) {
+                result.feeAmount = nums[0].replace(/[^\d]/g, '');
+                // 푸드트럭 별도 금액이 있으면 두 번째 금액
+                if (nums.length > 1 && /푸드트럭|food/i.test(feeText)) {
+                    result.feeFoodtruck = nums[1].replace(/[^\d]/g, '');
+                }
+            }
+        }
+        // 추가비용 감지: 대여비, 오더비, 전기료 등
+        const extraMatches = [...feeText.matchAll(/([가-힣]{2,6}(?:비|료|금))\s*:?\s*(\d[\d,]*)\s*원/g)];
+        if (extraMatches.length > 0) {
+            result.extraCostsText = extraMatches
+                .map(m => `${m[1]}:${m[2].replace(/,/g, '')}`)
+                .join(',');
+        }
+    }
+
     return result;
 }
 
@@ -459,15 +546,14 @@ function TextPasteParser({ onComplete }) {
             // 1. 주최사
             let organizerId = null;
             if (parsed.organizer) {
-                // 괄호 안 사업자번호 제거, 이름만 추출
                 const orgName = parsed.organizer.replace(/\s*\(.*\)\s*/, '').trim();
                 const { data: existing } = await sb.from('organizers').select('id').eq('name', orgName).maybeSingle();
                 if (existing) {
                     organizerId = existing.id;
                 } else {
-                    const { data: newOrg, error } = await sb.from('organizers').insert({ name: orgName }).select('id').single();
+                    const { data: newOrg, error } = await sb.from('organizers').insert({ name: orgName }).select('id').maybeSingle();
                     if (error) throw new Error(`주최사 생성 실패: ${error.message}`);
-                    organizerId = newOrg.id;
+                    organizerId = newOrg?.id;
                 }
             }
 
@@ -482,10 +568,11 @@ function TextPasteParser({ onComplete }) {
                     name: parsed.eventName,
                     category: cat,
                     description: parsed.description || null,
-                }).select('id').single();
+                }).select('id').maybeSingle();
                 if (error) throw new Error(`행사 생성 실패: ${error.message}`);
-                baseEventId = newEvt.id;
+                baseEventId = newEvt?.id;
             }
+            if (!baseEventId) throw new Error('행사 ID를 가져오지 못했습니다.');
 
             // 3. 행사 개최 (event_instance)
             const locationSido = parsed.location ? parsed.location.split(/\s+/)[0] : null;
@@ -494,18 +581,36 @@ function TextPasteParser({ onComplete }) {
                 organizer_id: organizerId,
                 location: parsed.location || '장소 미정',
                 location_sido: locationSido,
-            }).select('id').single();
+                event_date: parsed.eventDate || null,
+                event_date_end: parsed.eventDateEnd || null,
+            }).select('id').maybeSingle();
             if (instErr) throw new Error(`행사 개최 생성 실패: ${instErr.message}`);
+            if (!inst?.id) throw new Error('event_instance ID를 가져오지 못했습니다.');
 
-            // 4. 모집공고
-            // 참가비 파싱: 숫자 추출 시도
-            let fee = null;
-            if (parsed.fee) {
-                const nums = parsed.fee.match(/(\d[\d,]*)\s*원/);
-                if (nums) fee = parseInt(nums[1].replace(/,/g, ''));
+            // 4. 참가비 처리
+            const feeType = parsed.feeType || 'fixed';
+            let feeNum = null;
+            if (feeType === 'free') {
+                feeNum = 0;
+            } else if (parsed.feeAmount) {
+                feeNum = parseInt(String(parsed.feeAmount).replace(/,/g, ''), 10) || null;
+            }
+            const feeFoodtruckNum = (feeType !== 'free' && parsed.feeFoodtruck)
+                ? parseInt(String(parsed.feeFoodtruck).replace(/,/g, ''), 10) || null
+                : null;
+
+            // extra_costs 파싱: "대여비:50000,오더비:30000" → [{name, amount}]
+            let extraCosts = null;
+            if (parsed.extraCostsText && parsed.extraCostsText.trim()) {
+                const pairs = parsed.extraCostsText.split(',').map(s => s.trim()).filter(Boolean);
+                const arr = pairs.map(p => {
+                    const [name, amt] = p.split(':');
+                    return { name: (name || '').trim(), amount: parseInt((amt || '0').replace(/,/g, ''), 10) || 0 };
+                }).filter(c => c.name);
+                if (arr.length > 0) extraCosts = arr;
             }
 
-            // 공고 내용 조합
+            // 5. 공고 내용 조합
             const contentParts = [];
             if (parsed.conditions) contentParts.push(`■ 모집조건\n${parsed.conditions}`);
             if (parsed.scale) contentParts.push(`■ 모집규모\n${parsed.scale}`);
@@ -525,7 +630,11 @@ function TextPasteParser({ onComplete }) {
                 event_instance_id: inst.id,
                 title,
                 content,
-                fee,
+                fee: feeNum,
+                fee_type: feeType,
+                fee_foodtruck: feeFoodtruckNum,
+                extra_costs: extraCosts,
+                end_date: parsed.endDate || null,
                 application_method: appMethod,
                 status: 'OPEN',
             });
@@ -577,7 +686,7 @@ function TextPasteParser({ onComplete }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         {PARSE_KEYS.map(k => (
                             <div key={k.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, width: 90, flexShrink: 0, paddingTop: 8 }}>{k.label}</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: T.blue, width: 120, flexShrink: 0, paddingTop: 8 }}>{k.label}</span>
                                 {(parsed[k.key] || '').includes('\n') || (parsed[k.key] || '').length > 60 ? (
                                     <textarea
                                         value={parsed[k.key] || ''}
@@ -594,6 +703,19 @@ function TextPasteParser({ onComplete }) {
                                 )}
                             </div>
                         ))}
+                        <div style={{ marginTop: 6, paddingTop: 10, borderTop: `1px dashed ${T.border}` }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 8 }}>저장 필드 (자동 추출 — 수정 가능)</div>
+                            {DERIVED_KEYS.map(k => (
+                                <div key={k.key} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: T.green, width: 220, flexShrink: 0 }}>{k.label}</span>
+                                    <input
+                                        value={parsed[k.key] || ''}
+                                        onChange={e => setParsed({ ...parsed, [k.key]: e.target.value })}
+                                        style={{ flex: 1, padding: '8px 10px', fontSize: 13, color: T.text, border: `1px solid ${T.green}`, borderRadius: T.radiusMd, outline: 'none', background: '#f0fdf4', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     {parsed.eventName && (
@@ -603,6 +725,11 @@ function TextPasteParser({ onComplete }) {
                                 <b>주최사:</b> {parsed.organizer?.replace(/\s*\(.*\)\s*/, '').trim() || '(없음)'}<br/>
                                 <b>행사:</b> {parsed.eventName}<br/>
                                 <b>장소:</b> {parsed.location || '미정'}<br/>
+                                <b>행사일:</b> {parsed.eventDate || '미입력'}{parsed.eventDateEnd && parsed.eventDateEnd !== parsed.eventDate ? ` ~ ${parsed.eventDateEnd}` : ''}<br/>
+                                <b>모집마감:</b> {parsed.endDate || '없음'}<br/>
+                                <b>참가비:</b> {parsed.feeType === 'free' ? '무료' : parsed.feeType === 'rate' ? `${parsed.feeAmount}%` : `${Number(parsed.feeAmount||0).toLocaleString()}원`}
+                                {parsed.feeFoodtruck ? ` / 푸드트럭 ${Number(parsed.feeFoodtruck).toLocaleString()}원` : ''}<br/>
+                                {parsed.extraCostsText ? <><b>추가비용:</b> {parsed.extraCostsText}<br/></> : null}
                                 <b>모집공고:</b> {parsed.eventName} 셀러 모집
                             </div>
                         </div>
