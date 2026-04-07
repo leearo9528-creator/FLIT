@@ -197,7 +197,7 @@ export default function ReviewWritePage() {
                     .select('id, event_date, event_date_end, location, base_event:base_events(id, name), organizer:organizers(id, name)')
                     .order('event_date', { ascending: false })
                     .limit(200),
-                sb.from('profiles').select('review_count').eq('id', user.id).single(),
+                sb.from('profiles').select('review_count').eq('id', user.id).maybeSingle(),
             ]);
             if (instRes.data) setInstances(instRes.data);
             if (profileRes.data) setReviewCount(profileRes.data.review_count ?? 0);

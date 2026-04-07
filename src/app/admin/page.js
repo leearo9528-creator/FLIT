@@ -19,9 +19,6 @@ const btnOutline = { ...btnPrimary, background: T.white, color: T.text, border: 
 const cellStyle = { fontSize: 13, color: T.text, padding: '11px 12px', borderBottom: `1px solid ${T.border}`, verticalAlign: 'middle', wordBreak: 'break-all' };
 const thStyle = { fontSize: 11, fontWeight: 700, color: T.gray, background: '#F8F9FA', padding: '10px 12px', borderBottom: `2px solid ${T.border}`, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', top: 0 };
 
-/* ─── 관리자 비밀번호 ─── */
-const ADMIN_PASSWORD = 'flit2026!';
-
 /* ─── 탭 설정 ─── */
 const TABS = [
     { key: 'notices', label: '공지', icon: Bell },
@@ -246,7 +243,6 @@ function ExcelUploader({ onComplete }) {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('password', 'flit2026!');
             formData.append('isMock', String(isMock));
 
             setStatus('서버에서 처리 중...');
@@ -802,8 +798,8 @@ function EventForm({ orgList, onComplete }) {
             description: form.description.trim() || null,
             image_url: form.image_url.trim() || null,
             is_mock: form.is_mock,
-        }).select('id').single();
-        if (evtErr) { setSaving(false); return alert(`행사 저장 실패: ${evtErr.message}`); }
+        }).select('id').maybeSingle();
+        if (evtErr || !evt) { setSaving(false); return alert(`행사 저장 실패: ${evtErr?.message || '데이터 반환 실패'}`); }
 
         if (form.location.trim() && form.event_date) {
             const { error: instErr } = await sb.from('event_instances').insert({
@@ -979,38 +975,12 @@ function RecruitmentForm({ onComplete }) {
     );
 }
 
-/* ─── 비밀번호 게이트 ─── */
-function PasswordGate({ onPass }) {
-    const [pw, setPw] = useState('');
-    const [error, setError] = useState(false);
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (pw === ADMIN_PASSWORD) { onPass(); }
-        else { setError(true); setPw(''); }
-    };
-    return (
-        <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <form onSubmit={handleSubmit} style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 32, width: 320, textAlign: 'center' }}>
-                <Shield size={32} color={T.blue} style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>관리자 인증</div>
-                <div style={{ fontSize: 13, color: T.gray, marginBottom: 20 }}>비밀번호를 입력하세요</div>
-                <input type="password" value={pw} onChange={e => { setPw(e.target.value); setError(false); }}
-                    placeholder="비밀번호" autoFocus
-                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, border: `1.5px solid ${error ? T.red : T.border}`, borderRadius: T.radiusMd, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }} />
-                {error && <div style={{ fontSize: 12, color: T.red, marginBottom: 8 }}>비밀번호가 틀렸습니다.</div>}
-                <button type="submit" style={{ width: '100%', padding: '12px 0', borderRadius: T.radiusMd, background: T.blue, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>확인</button>
-            </form>
-        </div>
-    );
-}
-
 /* ─── Admin Page ─── */
 export default function AdminPage() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingAdmin, setCheckingAdmin] = useState(true);
-    const [pwPassed, setPwPassed] = useState(false);
     const [tab, setTab] = useState('notices');
     const [events, setEvents] = useState([]);
     const [recruitments, setRecruitments] = useState([]);
@@ -1025,7 +995,7 @@ export default function AdminPage() {
         (async () => {
             try {
                 const sb = createClient();
-                const { data } = await sb.from('profiles').select('is_admin').eq('id', user.id).single();
+                const { data } = await sb.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
                 if (!data?.is_admin) { router.replace('/'); return; }
                 setIsAdmin(true);
             } catch { router.replace('/'); }
@@ -1084,7 +1054,6 @@ export default function AdminPage() {
         </div>
     );
     if (!isAdmin) return null;
-    if (!pwPassed) return <PasswordGate onPass={() => setPwPassed(true)} />;
 
     const evtCols = [
         { key: 'name', label: '행사명', width: 'auto' },
