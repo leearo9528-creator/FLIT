@@ -199,7 +199,7 @@ DELETE FROM auth.users WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
         sql += `INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token) VALUES ('${p.id}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', '${p.email}', '$2a$10$mockmockmockmockmockmockmockmockmockmockmockmockmockmo', NOW(), '{"full_name":"${esc(p.name)}","name":"${esc(p.name)}"}', ${randDate(120)}, NOW(), '', '') ON CONFLICT (id) DO NOTHING;\n`;
     });
 
-    sql += `\n-- ── profiles 페르소나 정보 채우기 (트리거가 row 생성, UPDATE로 페르소나 부여) ──\n`;
+    sql += `\n-- ── profiles 페르소나 정보 채우기 (트리거가 row 생성, UPDATE로 페르소나 부여) ──\n-- 페르소나는 id 패턴 'e1%'/'e2%'로 식별 → 일괄 삭제 가능 (profiles에 is_mock 컬럼 없음)\n`;
     personas.forEach(p => {
         sql += `UPDATE public.profiles SET ` +
             `name = ${sqlStr(p.name)}, ` +
@@ -208,8 +208,7 @@ DELETE FROM auth.users WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
             `real_name = ${sqlStr(p.real_name)}, ` +
             `phone = ${sqlStr(p.phone)}, ` +
             `products = ${sqlStr(p.products)}, ` +
-            `promo_link = ${sqlStr(p.promo_link)}, ` +
-            `is_mock = true ` +
+            `promo_link = ${sqlStr(p.promo_link)} ` +
             `WHERE id = '${p.id}';\n`;
     });
 
