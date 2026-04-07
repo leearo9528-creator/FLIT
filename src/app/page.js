@@ -16,7 +16,7 @@ export default async function HomePage() {
     ] = await Promise.all([
         sb.from('recruitments')
             .select(`
-                id, title, fee, end_date, status,
+                id, title, fee, fee_description, end_date, status,
                 instance:event_instances(
                     id, location, event_date, event_date_end,
                     base_event:base_events(id, name),

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, MapPin, Building2 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
-import { timeAgo } from '@/lib/helpers';
+import { timeAgo, formatFee } from '@/lib/helpers';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
@@ -53,7 +53,7 @@ function RecruitCard({ rec }) {
                 {/* 참가비 + 날짜 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 14, fontWeight: 800, color: T.blue }}>
-                        {!rec.fee ? '참가비 무료' : `${Number(rec.fee).toLocaleString()}원`}
+                        {formatFee(rec)}
                     </span>
                     {inst.event_date && (
                         <span style={{ fontSize: 12, color: T.gray }}>
