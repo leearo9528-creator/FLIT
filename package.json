@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate:seed": "node scripts/generate_seed.js",
+    "generate:personas": "node scripts/generate_personas.js",
     "generate:template": "node scripts/generate_template.mjs"
   },
   "dependencies": {
