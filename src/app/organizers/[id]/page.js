@@ -5,11 +5,23 @@ import { notFound } from 'next/navigation';
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();
-    const { data: org } = await supabase.from('organizers').select('name, description').eq('id', id).maybeSingle();
-    if (!org) return { title: '주최사를 찾을 수 없습니다 - 플릿(FLIT)' };
+    const { data: org } = await supabase
+        .from('organizers')
+        .select('name, description, logo_url, total_reviews, total_instances')
+        .eq('id', id)
+        .maybeSingle();
+    if (!org) return { title: '주최사를 찾을 수 없습니다' };
+
+    const title = `${org.name} 주최사 리뷰`;
+    const description = org.description
+        || `${org.name}의 운영지원·매너 평점과 개최 행사 ${org.total_instances || 0}건, 셀러 리뷰 ${org.total_reviews || 0}건을 확인해보세요.`;
+    const images = org.logo_url ? [{ url: org.logo_url }] : undefined;
+
     return {
-        title: `${org.name} 주최사 리뷰 - 플릿(FLIT)`,
-        description: `${org.name}의 운영지원·매너 평점과 개최 행사, 셀러 리뷰를 확인해보세요.`,
+        title,
+        description,
+        openGraph: { title, description, type: 'profile', images },
+        twitter: { card: 'summary', title, description, images },
     };
 }
 

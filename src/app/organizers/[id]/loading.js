@@ -6,18 +6,21 @@ export default function Loading() {
             <div style={{ height: 48, background: T.white }} />
             <div style={{ padding: '16px 16px 80px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: T.grayLt }} />
+                    <div className="skeleton" style={{ width: 64, height: 64, borderRadius: '50%' }} />
                     <div style={{ flex: 1 }}>
-                        <div style={{ height: 18, background: T.grayLt, borderRadius: 6, width: '50%', marginBottom: 8 }} />
-                        <div style={{ height: 13, background: T.grayLt, borderRadius: 6, width: '35%' }} />
+                        <div className="skeleton" style={{ height: 18, width: '50%', marginBottom: 8 }} />
+                        <div className="skeleton" style={{ height: 13, width: '35%' }} />
                     </div>
                 </div>
                 <div style={{ height: 1, background: T.border }} />
                 {Array(4).fill(0).map((_, i) => (
                     <div key={i} style={{
                         background: T.white, borderRadius: T.radiusLg,
-                        border: `1px solid ${T.border}`, padding: 16, height: 72,
-                    }} />
+                        border: `1px solid ${T.border}`, padding: 16,
+                    }}>
+                        <div className="skeleton" style={{ height: 14, width: '45%', marginBottom: 10 }} />
+                        <div className="skeleton" style={{ height: 12, width: '70%' }} />
+                    </div>
                 ))}
             </div>
         </div>

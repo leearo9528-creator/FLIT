@@ -1,6 +1,6 @@
 import { T } from '@/lib/design-tokens';
 
-/* 카드 스켈레톤 */
+/* 카드 스켈레톤 (shimmer) */
 function CardSkeleton() {
     return (
         <div style={{
@@ -9,11 +9,11 @@ function CardSkeleton() {
             marginBottom: 10,
         }}>
             <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 56, height: 56, borderRadius: T.radiusMd, background: T.grayLt, flexShrink: 0 }} />
+                <div className="skeleton" style={{ width: 56, height: 56, borderRadius: T.radiusMd, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                    <div style={{ height: 14, background: T.grayLt, borderRadius: 6, marginBottom: 8, width: '60%' }} />
-                    <div style={{ height: 12, background: T.grayLt, borderRadius: 6, marginBottom: 6, width: '40%' }} />
-                    <div style={{ height: 12, background: T.grayLt, borderRadius: 6, width: '80%' }} />
+                    <div className="skeleton" style={{ height: 14, marginBottom: 8, width: '60%' }} />
+                    <div className="skeleton" style={{ height: 12, marginBottom: 6, width: '40%' }} />
+                    <div className="skeleton" style={{ height: 12, width: '80%' }} />
                 </div>
             </div>
         </div>

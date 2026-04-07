@@ -8,23 +8,40 @@ export async function generateMetadata({ params }) {
     const { data: rec } = await supabase
         .from('recruitments')
         .select(`
-            title,
+            title, images, fee_description,
             instance:event_instances(
-                base_event:base_events(name),
+                location, event_date,
+                base_event:base_events(name, image_url),
                 organizer:organizers(name)
             )
         `)
         .eq('id', id)
         .maybeSingle();
 
-    if (!rec) return { title: '공고를 찾을 수 없습니다 - 플릿(FLIT)' };
+    if (!rec) return { title: '공고를 찾을 수 없습니다' };
 
     const eventName = rec.instance?.base_event?.name || '';
     const orgName = rec.instance?.organizer?.name || '';
+    const loc = rec.instance?.location || '';
+    const date = rec.instance?.event_date || '';
+
+    const title = rec.title;
+    const description = [
+        orgName,
+        eventName,
+        loc && `📍${loc}`,
+        date && `📅${date}`,
+        rec.fee_description && `💰${rec.fee_description}`,
+    ].filter(Boolean).join(' · ');
+
+    const ogImage = rec.images?.[0] || rec.instance?.base_event?.image_url;
+    const images = ogImage ? [{ url: ogImage }] : undefined;
 
     return {
-        title: `${rec.title} - 플릿(FLIT)`,
-        description: `${orgName}에서 ${eventName}에서 진행하는 모집 공고입니다.`,
+        title,
+        description,
+        openGraph: { title, description, type: 'article', images },
+        twitter: { card: 'summary_large_image', title, description, images },
     };
 }
 
