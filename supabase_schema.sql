@@ -220,6 +220,9 @@ CREATE TABLE public.recruitments (
     parking_info        TEXT,                  -- 주차지원
     onsite_support      TEXT,                  -- 현장지원
 
+    -- 모집 대상 셀러 유형 (null = 전체)
+    seller_type         TEXT CHECK (seller_type IN ('seller', 'foodtruck')),
+
     images              TEXT[],
 
     start_date          TIMESTAMPTZ,

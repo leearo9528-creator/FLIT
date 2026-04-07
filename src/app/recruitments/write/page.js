@@ -195,6 +195,7 @@ export default function RecruitmentWritePage() {
                 refund_policy: refundPolicy.trim() || null,
                 parking_info: parkingInfo.trim() || null,
                 onsite_support: onsiteSupport.trim() || null,
+                seller_type: sellerType || null,
             };
             if (images.length > 0) recPayload.images = images;
             const { data: rec, error: recErr } = await sb
