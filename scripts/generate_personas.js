@@ -161,6 +161,55 @@ const FT_POST_TEMPLATES = [
 const HM_LOCATIONS = ['한강공원', '성수', '홍대', '코엑스', '판교', '잠실', '여의도', '뚝섬'];
 const FT_LOCATIONS = ['한강공원', '여의도', '코엑스', '판교 테크노밸리', '대학로', '경리단길', '월드컵공원'];
 
+/* ─── 댓글 템플릿 (카테고리/타입별) ─── */
+const COMMENTS_GENERIC = [
+    '저도 같은 고민이에요!', '완전 공감 100%', '정보 감사합니다 👍', '저도 알려주세요!',
+    '도움 많이 됐어요', '오 좋네요', '저도 해보고 싶어요', '오 처음 알았네요',
+    '저장해놓고 두고두고 봐야겠어요', '고생 많으셨어요', '이거 진짜 꿀팁이네요',
+    '저는 좀 다르게 하는데 한번 시도해볼게요', '솔직한 후기 좋아요', '응원합니다 💪',
+    '경험담 감사해요', '저도 작년에 비슷한 경험 했어요', '글 잘 봤습니다',
+];
+
+const COMMENTS_HANDMADE = [
+    '브랜드 컨셉 너무 예쁘네요 ☺', '인스타 팔로우했어요!', '저도 같은 카테고리인데 화이팅해요',
+    '디피 사진 한번 볼 수 있을까요?', '재료 어디서 사세요?', '이 가격대면 적정한가요?',
+    '저는 부스비 빼면 거의 안 남더라고요...', '클래스도 한다고 하시던데 후기 어떤가요?',
+    '저도 손으로 다 만들어요 응원합니다', '비슷한 작가님 만나서 반가워요',
+];
+
+const COMMENTS_FOODTRUCK = [
+    '메뉴 구성 좋네요!', '단가가 어느 정도세요?', '저도 트럭 운영하는데 동지네요 😊',
+    '직접 만든 소스가 시그니처라니 멋있어요', 'HACCP 부럽습니다 저도 준비 중이에요',
+    '발전기 추천 부탁드려요', '폐기물 처리 어떻게 하세요?', '주말 매출 부럽네요',
+    '대학가 점심 장사 얼마 정도 나오세요?', '이번 주말 같은 행사 가요!',
+];
+
+const COMMENTS_TRANSFER = [
+    'DM 드릴게요!', '아직 양도 가능한가요?', '연락드렸어요 확인 부탁드려요',
+    '저도 관심 있어요!', '카톡으로 연락주세요', '인스타로 연락드릴게요',
+];
+
+const COMMENTS_LIVE = [
+    '저도 지금 가는 중이에요!', '날씨가 좋아서 부럽네요', '매출 대박나세요!',
+    '사진 올려주세요 ㅎㅎ', '저는 다음 주에 가요', '지금 어디 부스세요?',
+];
+
+const COMMENTS_ANON = [
+    '저도 솔직히 그래요...', '익명이라 말하는데 진짜 공감', '저만 그런 줄 알았어요',
+    '비슷한 일 겪었어요', '용기 내서 글 써주셔서 감사해요', '주최사 어디인지 DM 가능?',
+];
+
+function pickComments(post, n) {
+    const cat = post.cat;
+    let pool = [...COMMENTS_GENERIC];
+    if (cat === '익명') pool = [...COMMENTS_ANON, ...COMMENTS_GENERIC];
+    else if (cat === '실시간 행사 현황') pool = [...COMMENTS_LIVE, ...COMMENTS_GENERIC];
+    else if (cat === '행사 양도/양수') pool = [...COMMENTS_TRANSFER, ...COMMENTS_GENERIC];
+    else if (post.sellerType === 'seller') pool = [...COMMENTS_HANDMADE, ...COMMENTS_GENERIC];
+    else pool = [...COMMENTS_FOODTRUCK, ...COMMENTS_GENERIC];
+    return shuffle(pool).slice(0, n);
+}
+
 function fillTemplate(tmpl, persona) {
     return tmpl
         .replace(/\{brand\}/g, persona.brand_name)
@@ -181,7 +230,8 @@ function generateSQL() {
 -- 모두 is_mock = true 로 마킹 → 어드민에서 일괄 삭제 가능
 -- ═══════════════════════════════════════════════════════════
 
--- 기존 mock 페르소나 + 글 삭제 (재실행 안전)
+-- 기존 mock 페르소나 + 글 + 댓글 삭제 (재실행 안전)
+DELETE FROM public.post_comments WHERE user_id IN (SELECT id FROM public.profiles WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%');
 DELETE FROM public.posts WHERE user_id IN (SELECT id FROM public.profiles WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%');
 DELETE FROM public.profiles WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
 DELETE FROM auth.users WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
@@ -212,24 +262,45 @@ DELETE FROM auth.users WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
             `WHERE id = '${p.id}';\n`;
     });
 
-    // 3) 게시글 — 페르소나마다 1~2개씩
+    // 3) 게시글 — 페르소나마다 1~2개씩 (id 명시 → 댓글 참조 가능)
     sql += `\n-- ── 페르소나별 게시글 (~250개) ──\n`;
+    const allPosts = [];
     let postCount = 0;
     personas.forEach(p => {
         const templates = p.sellerType === 'seller' ? HM_POST_TEMPLATES : FT_POST_TEMPLATES;
         const numPosts = rand(1, 2);
         const picked = shuffle(templates).slice(0, numPosts);
         picked.forEach(tmpl => {
+            postCount++;
+            const postId = uuid('f1000000', postCount);
             const title = fillTemplate(tmpl.title, p);
             const content = fillTemplate(tmpl.content, p);
             const isAnon = tmpl.cat === '익명';
             const author = isAnon ? 'NULL' : sqlStr(p.name);
-            sql += `INSERT INTO public.posts (user_id, title, content, category, seller_type, author, is_anonymous, anonymous_name, likes, is_mock, created_at) VALUES ('${p.id}', ${sqlStr(title)}, ${sqlStr(content)}, '${tmpl.cat}', '${p.sellerType}', ${author}, ${isAnon}, ${isAnon ? sqlStr('익명' + rand(1, 999)) : 'NULL'}, ${rand(0, 80)}, true, ${randDate(60)});\n`;
-            postCount++;
+            sql += `INSERT INTO public.posts (id, user_id, title, content, category, seller_type, author, is_anonymous, anonymous_name, likes, is_mock, created_at) VALUES ('${postId}', '${p.id}', ${sqlStr(title)}, ${sqlStr(content)}, '${tmpl.cat}', '${p.sellerType}', ${author}, ${isAnon}, ${isAnon ? sqlStr('익명' + rand(1, 999)) : 'NULL'}, ${rand(0, 80)}, true, ${randDate(60)});\n`;
+            allPosts.push({ id: postId, ownerId: p.id, cat: tmpl.cat, sellerType: p.sellerType });
         });
     });
 
-    sql += `\n-- 완료\n-- 페르소나: ${personas.length} (핸드메이드 100 + 푸드트럭 100)\n-- 게시글: ${postCount}\n`;
+    // 4) 댓글 — 게시글마다 0~5개 (자기 글 제외, 페르소나 랜덤)
+    sql += `\n-- ── 페르소나가 다는 댓글 ──\n`;
+    let commentCount = 0;
+    allPosts.forEach(post => {
+        const numComments = rand(0, 5);
+        if (numComments === 0) return;
+        const commenters = shuffle(personas.filter(p => p.id !== post.ownerId)).slice(0, numComments);
+        const contents = pickComments(post, numComments);
+        commenters.forEach((commenter, idx) => {
+            const text = contents[idx] || pick(COMMENTS_GENERIC);
+            const isAnon = post.cat === '익명' || Math.random() < 0.25;
+            const author = isAnon ? 'NULL' : sqlStr(commenter.name);
+            const anonName = isAnon ? sqlStr('익명' + rand(1, 999)) : 'NULL';
+            sql += `INSERT INTO public.post_comments (post_id, user_id, content, author, is_anonymous, anonymous_name, is_mock, created_at) VALUES ('${post.id}', '${commenter.id}', ${sqlStr(text)}, ${author}, ${isAnon}, ${anonName}, true, ${randDate(60)});\n`;
+            commentCount++;
+        });
+    });
+
+    sql += `\n-- 완료\n-- 페르소나: ${personas.length} (핸드메이드 100 + 푸드트럭 100)\n-- 게시글: ${postCount}\n-- 댓글: ${commentCount}\n`;
 
     const outDir = path.join(__dirname, '..', 'supabase_migrations');
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -238,6 +309,7 @@ DELETE FROM auth.users WHERE id::text LIKE 'e1%' OR id::text LIKE 'e2%';
     console.log(`✅ 생성 완료: ${outPath}`);
     console.log(`   페르소나: ${personas.length} (셀러 100 + 푸드트럭 100)`);
     console.log(`   게시글: ${postCount}`);
+    console.log(`   댓글: ${commentCount}`);
 }
 
 generateSQL();
