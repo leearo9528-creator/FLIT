@@ -185,7 +185,7 @@ export default function MyPage() {
             <div style={{ background: T.white }}>
                 <MenuItem icon={HelpCircle} label="공지사항" href="/notices" />
                 <Divider />
-                <MenuItem icon={MessageCircle} label="행사 개최 문의" onPress={() => window.open('https://flitunion.vercel.app/', '_blank')} />
+                <MenuItem icon={MessageCircle} label="행사 개최 문의" href="/contact" />
                 <Divider />
                 <MenuItem icon={FileText} label="약관 및 정책" href="/terms" />
             </div>
