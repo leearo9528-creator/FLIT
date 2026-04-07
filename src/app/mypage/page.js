@@ -54,11 +54,6 @@ function RoleBadge({ plan }) {
             주최사
         </span>
     );
-    if (plan === 'organizer_pending') return (
-        <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 6 }}>
-            승인 대기
-        </span>
-    );
     return (
         <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 6 }}>
             셀러

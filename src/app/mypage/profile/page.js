@@ -76,7 +76,7 @@ export default function ProfilePage() {
             if (data) {
                 setName(data.name || user.user_metadata?.full_name || user.user_metadata?.name || '');
                 setAvatarUrl(data.avatar_url || '');
-                setRole(data.plan === 'organizer' || data.plan === 'organizer_pending' ? 'organizer' : 'seller');
+                setRole(data.plan === 'organizer' ? 'organizer' : 'seller');
                 setBrandName(data.brand_name || '');
                 setRealName(data.real_name || '');
                 setPhone(data.phone || '');
@@ -138,7 +138,7 @@ export default function ProfilePage() {
             // 역할 변경 처리 (승인 없이 즉시 전환)
             if (isOrganizer && currentPlan !== 'organizer') {
                 profileUpdate.plan = 'organizer';
-            } else if (!isOrganizer && (currentPlan === 'organizer' || currentPlan === 'organizer_pending')) {
+            } else if (!isOrganizer && currentPlan === 'organizer') {
                 profileUpdate.plan = 'free';
                 profileUpdate.seller_type = 'seller';
             }
