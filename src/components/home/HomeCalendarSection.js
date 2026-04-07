@@ -39,6 +39,7 @@ export default function HomeCalendarSection() {
                 .from('event_instances')
                 .select(`id, event_date, event_date_end, location,
                     base_event:base_events(id, name),
+                    organizer:organizers(id, name),
                     recruitments(id, title, status)`)
                 .gte('event_date', start)
                 .lte('event_date', end)
@@ -180,7 +181,12 @@ export default function HomeCalendarSection() {
                                         borderLeft: `3px solid ${openRec ? T.green : T.border}`,
                                     }}>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 1 }}>{ev.base_event?.name}</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.base_event?.name}</div>
+                                        {ev.organizer?.name && (
+                                            <div style={{ fontSize: 11, color: T.blue, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                🏢 {ev.organizer.name}
+                                            </div>
+                                        )}
                                         <div style={{ fontSize: 11, color: T.gray }}>
                                             {ev.event_date?.slice(5).replace('-', '/')}
                                             {ev.event_date_end && ev.event_date_end !== ev.event_date && ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}`}
