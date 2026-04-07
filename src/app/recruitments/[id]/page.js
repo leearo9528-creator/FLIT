@@ -2,6 +2,9 @@ import { createClient } from '@/utils/supabase/server';
 import RecruitmentDetailClient from './RecruitmentDetailClient';
 import { notFound } from 'next/navigation';
 
+// ISR: 공고 상세는 60초 주기 재생성 (모집중/마감 상태 빠른 반영)
+export const revalidate = 60;
+
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();

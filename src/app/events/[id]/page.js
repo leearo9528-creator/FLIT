@@ -2,6 +2,9 @@ import { createClient } from '@/utils/supabase/server';
 import EventDetailClient from './EventDetailClient';
 import { notFound } from 'next/navigation';
 
+// ISR: 행사 상세는 5분 주기 재생성
+export const revalidate = 300;
+
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();
