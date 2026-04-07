@@ -201,7 +201,8 @@ export default function CalendarClient() {
                     ) : (
                         selectedEvents.map(ev => {
                             const openRec = ev.recruitments?.find(r => r.status === 'OPEN');
-                            const recCount = ev.recruitments?.length || 0;
+                            const dateLabel = ev.event_date?.slice(5).replace('-', '/')
+                                + (ev.event_date_end && ev.event_date_end !== ev.event_date ? ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}` : '');
                             return (
                                 <div
                                     key={ev.id}
@@ -209,48 +210,19 @@ export default function CalendarClient() {
                                     style={{
                                         background: T.white, borderRadius: 14, padding: '14px 16px',
                                         boxShadow: T.shadowSm, cursor: 'pointer',
-                                        borderLeft: `4px solid ${openRec ? T.green : T.border}`,
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>
-                                                {ev.base_event?.name}
-                                            </div>
-                                            {ev.location && (
-                                                <div style={{ fontSize: 12, color: T.gray, marginBottom: openRec ? 6 : 0 }}>
-                                                    📍 {ev.location}
-                                                </div>
-                                            )}
-                                            {ev.event_date_end && ev.event_date_end !== ev.event_date && (
-                                                <div style={{ fontSize: 11, color: T.gray }}>
-                                                    ~ {ev.event_date_end.slice(5).replace('-', '/')}까지
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                                            {openRec ? (
-                                                <div style={{
-                                                    fontSize: 11, fontWeight: 800, color: T.green,
-                                                    background: T.greenLt, borderRadius: 99, padding: '3px 9px',
-                                                }}>모집중</div>
-                                            ) : (
-                                                <div style={{
-                                                    fontSize: 11, fontWeight: 700, color: T.gray,
-                                                    background: T.grayLt, borderRadius: 99, padding: '3px 9px',
-                                                }}>행사만</div>
-                                            )}
-                                            {recCount > 0 && (
-                                                <div style={{ fontSize: 11, color: T.gray }}>공고 {recCount}개</div>
-                                            )}
-                                        </div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                                        <span style={{ color: T.blue }}>[{dateLabel}]</span> {ev.base_event?.name}
                                     </div>
-                                    {openRec && (
-                                        <div style={{
-                                            marginTop: 8, padding: '8px 10px', background: T.greenLt,
-                                            borderRadius: 8, fontSize: 12, color: '#059669', fontWeight: 700,
-                                        }}>
-                                            📋 {openRec.title}
+                                    {ev.organizer?.name && (
+                                        <div style={{ fontSize: 12, color: T.gray, marginBottom: 2 }}>
+                                            주최사 · {ev.organizer.name}
+                                        </div>
+                                    )}
+                                    {ev.location && (
+                                        <div style={{ fontSize: 12, color: T.gray }}>
+                                            장소 · {ev.location}
                                         </div>
                                     )}
                                 </div>
@@ -275,6 +247,8 @@ export default function CalendarClient() {
                     ) : (
                         events.map(ev => {
                             const openRec = ev.recruitments?.find(r => r.status === 'OPEN');
+                            const dateLabel = ev.event_date?.slice(5).replace('-', '/')
+                                + (ev.event_date_end && ev.event_date_end !== ev.event_date ? ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}` : '');
                             return (
                                 <div
                                     key={ev.id}
@@ -282,24 +256,21 @@ export default function CalendarClient() {
                                     style={{
                                         background: T.white, borderRadius: 14, padding: '14px 16px',
                                         boxShadow: T.shadowSm, cursor: 'pointer',
-                                        borderLeft: `4px solid ${openRec ? T.green : T.border}`,
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 13, color: T.gray, marginBottom: 3 }}>
-                                                {ev.event_date?.slice(5).replace('-', '/')}
-                                                {ev.event_date_end && ev.event_date_end !== ev.event_date && ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}`}
-                                            </div>
-                                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{ev.base_event?.name}</div>
-                                            {ev.location && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>📍 {ev.location}</div>}
-                                        </div>
-                                        {openRec ? (
-                                            <div style={{ fontSize: 11, fontWeight: 800, color: T.green, background: T.greenLt, borderRadius: 99, padding: '3px 9px', flexShrink: 0 }}>모집중</div>
-                                        ) : (
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, borderRadius: 99, padding: '3px 9px', flexShrink: 0 }}>행사만</div>
-                                        )}
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+                                        <span style={{ color: T.blue }}>[{dateLabel}]</span> {ev.base_event?.name}
                                     </div>
+                                    {ev.organizer?.name && (
+                                        <div style={{ fontSize: 12, color: T.gray, marginBottom: 2 }}>
+                                            주최사 · {ev.organizer.name}
+                                        </div>
+                                    )}
+                                    {ev.location && (
+                                        <div style={{ fontSize: 12, color: T.gray }}>
+                                            장소 · {ev.location}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })
