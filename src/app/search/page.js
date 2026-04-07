@@ -385,6 +385,7 @@ function OrganizerCard({ org }) {
         <Card padding={16} style={{ border: `1px solid ${T.border}` }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
+                    position: 'relative',
                     width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                     background: T.grayLt, overflow: 'hidden',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

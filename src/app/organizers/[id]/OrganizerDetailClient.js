@@ -192,6 +192,7 @@ export default function OrganizerDetailClient({ organizer, instances, initialRec
                 <div style={{ padding: '14px 20px 24px', position: 'relative', zIndex: 2 }}>
                     <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
                         <div style={{
+                            position: 'relative',
                             width: 56, height: 56, borderRadius: 14, flexShrink: 0,
                             background: 'rgba(255,255,255,0.15)', overflow: 'hidden',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -159,11 +159,11 @@ export default function CalendarClient() {
                                         {dayEvents.slice(0, 3).map((ev, i) => (
                                             <div key={i} style={{
                                                 width: 5, height: 5, borderRadius: '50%',
-                                                background: isOpen ? T.green : T.gray,
+                                                background: T.blue,
                                             }} />
                                         ))}
                                         {dayEvents.length > 3 && (
-                                            <div style={{ fontSize: 8, color: T.gray, fontWeight: 700 }}>+{dayEvents.length - 3}</div>
+                                            <div style={{ fontSize: 8, color: T.blue, fontWeight: 700 }}>+{dayEvents.length - 3}</div>
                                         )}
                                     </div>
                                 )}
@@ -176,10 +176,7 @@ export default function CalendarClient() {
             {/* 범례 */}
             <div style={{ display: 'flex', gap: 16, padding: '10px 16px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: T.gray }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.green }} /> 모집 중 행사
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: T.gray }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.gray }} /> 행사 일정
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.blue }} /> 행사 일정
                 </div>
             </div>
 
