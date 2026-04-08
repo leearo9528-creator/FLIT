@@ -23,7 +23,7 @@ export default function CommunityWritePage() {
     const [images, setImages] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const WRITE_CATEGORIES = ['자유게시판', '실시간 행사 현황', '행사 양도/양수'];
+    const WRITE_CATEGORIES = ['자유게시판', '행사 양도/양수'];
 
     useEffect(() => {
         if (!authLoading && !user) router.replace('/login');
