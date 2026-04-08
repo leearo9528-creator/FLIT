@@ -162,7 +162,8 @@ export default function ReviewWritePage() {
     // 새 행사 직접 추가
     const [showAddEvent, setShowAddEvent] = useState(false);
     const [newEvtName, setNewEvtName] = useState('');
-    const [newEvtDate, setNewEvtDate] = useState('');
+    const [newEvtStart, setNewEvtStart] = useState('');
+    const [newEvtEnd, setNewEvtEnd] = useState('');
     const [addingEvent, setAddingEvent] = useState(false);
 
     const [sellerType, setSellerType] = useState('seller');
@@ -232,7 +233,9 @@ export default function ReviewWritePage() {
 
     const handleAddEvent = async () => {
         if (!newEvtName.trim()) return alert('행사명을 입력해주세요.');
-        if (!newEvtDate) return alert('행사 날짜를 선택해주세요.');
+        if (!newEvtStart) return alert('행사 시작일을 선택해주세요.');
+        if (!newEvtEnd) return alert('행사 마감일을 선택해주세요.');
+        if (newEvtEnd < newEvtStart) return alert('마감일은 시작일 이후여야 합니다.');
         setAddingEvent(true);
         try {
             const sb = createClient();
@@ -244,13 +247,14 @@ export default function ReviewWritePage() {
             const { data: inst, error: instErr } = await sb
                 .from('event_instances').insert({
                     base_event_id: ev.id,
-                    event_date: newEvtDate,
-                }).select('id, event_date, base_event:base_events(id, name), organizer:organizers(id, name)').maybeSingle();
+                    event_date: newEvtStart,
+                    event_date_end: newEvtEnd,
+                }).select('id, event_date, event_date_end, base_event:base_events(id, name), organizer:organizers(id, name)').maybeSingle();
             if (instErr) throw instErr;
             setInstances(prev => [inst, ...prev]);
             setSelectedInstance(inst);
             setInstKeyword(ev.name);
-            setShowAddEvent(false); setNewEvtName(''); setNewEvtDate('');
+            setShowAddEvent(false); setNewEvtName(''); setNewEvtStart(''); setNewEvtEnd('');
         } catch (err) {
             console.error(err);
             alert('행사 추가 중 오류가 발생했습니다.');
@@ -401,10 +405,21 @@ export default function ReviewWritePage() {
                                         <input value={newEvtName} onChange={e => setNewEvtName(e.target.value)}
                                             placeholder="행사명을 입력해주세요"
                                             style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
-                                        <input type="date" value={newEvtDate} onChange={e => setNewEvtDate(e.target.value)}
-                                            style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, marginBottom: 4 }}>시작일</div>
+                                                <input type="date" value={newEvtStart} onChange={e => setNewEvtStart(e.target.value)}
+                                                    style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div style={{ fontSize: 14, color: T.gray, marginTop: 16 }}>~</div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, marginBottom: 4 }}>마감일</div>
+                                                <input type="date" value={newEvtEnd} min={newEvtStart || undefined} onChange={e => setNewEvtEnd(e.target.value)}
+                                                    style={{ width: '100%', padding: '11px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box' }} />
+                                            </div>
+                                        </div>
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); setNewEvtDate(''); }}
+                                            <div onClick={() => { setShowAddEvent(false); setNewEvtName(''); setNewEvtStart(''); setNewEvtEnd(''); }}
                                                 style={{ flex: 1, padding: '11px 0', textAlign: 'center', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</div>
                                             <div onClick={addingEvent ? null : handleAddEvent}
                                                 style={{ flex: 2, padding: '11px 0', textAlign: 'center', background: addingEvent ? T.gray : T.blue, borderRadius: T.radiusMd, fontSize: 14, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer' }}>{addingEvent ? '추가 중...' : '추가하기'}</div>
