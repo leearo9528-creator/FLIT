@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/git/FLIT/.claude/**)",
+      "Bash(curl -s http://localhost:3000/ -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(npx --no-install next lint --file src/app/recruitments/write/page.js --file src/app/reviews/write/page.js)"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X, Plus, MapPin, Calendar, Banknote, Clock } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
@@ -33,8 +33,19 @@ function Section({ title, required, hint, children }) {
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function RecruitmentWritePage() {
+    return (
+        <Suspense fallback={<div style={{ minHeight: '100vh', background: T.bg }} />}>
+            <RecruitmentWriteContent />
+        </Suspense>
+    );
+}
+
+function RecruitmentWriteContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('edit');
     const { user, plan, loading: authLoading } = useAuth();
+    const [editInstanceId, setEditInstanceId] = useState(null);
 
     const [organizer, setOrganizer] = useState(null);
 
@@ -120,8 +131,44 @@ export default function RecruitmentWritePage() {
                 .select('id, name, category')
                 .order('name');
             if (evData) setBaseEvents(evData);
+
+            // 수정 모드: 기존 공고/회차 로드
+            if (editId) {
+                const { data: rec, error: recErr } = await sb
+                    .from('recruitments')
+                    .select('*, event_instance:event_instances(id, base_event_id, organizer_id, location, event_date, event_date_end, base_event:base_events(id, name, category))')
+                    .eq('id', editId)
+                    .maybeSingle();
+                if (recErr || !rec) {
+                    alert('공고를 불러오지 못했습니다.');
+                    router.replace('/mypage/recruitments');
+                    return;
+                }
+                if (rec.event_instance?.organizer_id !== user.id) {
+                    alert('본인이 등록한 공고만 수정할 수 있습니다.');
+                    router.replace('/mypage/recruitments');
+                    return;
+                }
+                setEditInstanceId(rec.event_instance.id);
+                setSelectedBaseEvent(rec.event_instance.base_event || null);
+                setEventKeyword(rec.event_instance.base_event?.name || '');
+                setEventDate(rec.event_instance.event_date || '');
+                setEventDateEnd(rec.event_instance.event_date_end && rec.event_instance.event_date_end !== rec.event_instance.event_date ? rec.event_instance.event_date_end : '');
+                setLocation(rec.event_instance.location || '');
+                setTitle(rec.title || '');
+                setContent(rec.content || '');
+                setFeeText(rec.fee_description || '');
+                setEndDate(rec.end_date || '');
+                setSellerType(rec.seller_type || '');
+                setApplicationMethod(rec.application_method || '');
+                setRefundPolicy(rec.refund_policy || '');
+                setParkingInfo(rec.parking_info || '');
+                setOnsiteSupport(rec.onsite_support || '');
+                setImages(rec.images || []);
+            }
         })();
-    }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, editId]);
 
     /* 외부 클릭 시 드롭다운 닫기 */
     useEffect(() => {
@@ -168,47 +215,64 @@ export default function RecruitmentWritePage() {
         try {
             const sb = createClient();
 
-            // event_instance 생성
-            const { data: instance, error: instErr } = await sb
-                .from('event_instances')
-                .insert({
-                    base_event_id: selectedBaseEvent.id,
-                    organizer_id: organizer?.id || null,
-                    location: location.trim(),
-                    location_sido: location.trim().split(' ')[0],
-                    event_date: eventDate,
-                    event_date_end: eventDateEnd || eventDate,
-                })
-                .select('id')
-                .maybeSingle();
-            if (instErr) throw instErr;
+            const instancePayload = {
+                base_event_id: selectedBaseEvent.id,
+                organizer_id: organizer?.id || null,
+                location: location.trim(),
+                location_sido: location.trim().split(' ')[0],
+                event_date: eventDate,
+                event_date_end: eventDateEnd || eventDate,
+            };
 
-            // recruitment 생성
             const recPayload = {
-                event_instance_id: instance.id,
                 title: title.trim(),
                 content: content.trim(),
                 fee_description: feeText.trim() || null,
                 end_date: endDate || null,
-                status: 'OPEN',
                 application_method: applicationMethod.trim() || null,
                 refund_policy: refundPolicy.trim() || null,
                 parking_info: parkingInfo.trim() || null,
                 onsite_support: onsiteSupport.trim() || null,
                 seller_type: sellerType || null,
+                images: images.length > 0 ? images : null,
             };
-            if (images.length > 0) recPayload.images = images;
-            const { data: rec, error: recErr } = await sb
-                .from('recruitments')
-                .insert(recPayload)
-                .select('id')
-                .maybeSingle();
-            if (recErr) throw recErr;
 
-            router.push(`/recruitments/${rec.id}`);
+            if (editId) {
+                // 수정: event_instance + recruitment 동시 업데이트
+                const { error: instErr } = await sb
+                    .from('event_instances')
+                    .update(instancePayload)
+                    .eq('id', editInstanceId);
+                if (instErr) throw instErr;
+
+                const { error: recErr } = await sb
+                    .from('recruitments')
+                    .update(recPayload)
+                    .eq('id', editId);
+                if (recErr) throw recErr;
+
+                router.push(`/recruitments/${editId}`);
+            } else {
+                // 신규: event_instance 생성 → recruitment 생성
+                const { data: instance, error: instErr } = await sb
+                    .from('event_instances')
+                    .insert(instancePayload)
+                    .select('id')
+                    .maybeSingle();
+                if (instErr) throw instErr;
+
+                const { data: rec, error: recErr } = await sb
+                    .from('recruitments')
+                    .insert({ ...recPayload, event_instance_id: instance.id, status: 'OPEN' })
+                    .select('id')
+                    .maybeSingle();
+                if (recErr) throw recErr;
+
+                router.push(`/recruitments/${rec.id}`);
+            }
         } catch (err) {
             console.error('공고 등록 오류:', err);
-            alert('등록 중 오류가 발생했습니다.\n' + (err.message || ''));
+            alert((editId ? '수정' : '등록') + ' 중 오류가 발생했습니다.\n' + (err.message || ''));
             setIsSubmitting(false);
         }
     };
@@ -218,7 +282,7 @@ export default function RecruitmentWritePage() {
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 100 }}>
-            <TopBar title="공고 올리기" back />
+            <TopBar title={editId ? '공고 수정' : '공고 올리기'} back />
 
             <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
@@ -586,7 +650,7 @@ export default function RecruitmentWritePage() {
                         marginTop: 8,
                     }}
                 >
-                    {isSubmitting ? '등록 중...' : '공고 등록하기'}
+                    {isSubmitting ? (editId ? '수정 중...' : '등록 중...') : (editId ? '공고 수정하기' : '공고 등록하기')}
                 </button>
 
             </div>

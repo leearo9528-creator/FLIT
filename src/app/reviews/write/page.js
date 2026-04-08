@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X, Plus } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
@@ -148,7 +148,18 @@ function MultiChips({ options, values, onChange }) {
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function ReviewWritePage() {
+    return (
+        <Suspense fallback={<div style={{ minHeight: '100vh', background: T.bg }} />}>
+            <ReviewWriteContent />
+        </Suspense>
+    );
+}
+
+function ReviewWriteContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const fromUrl = searchParams.get('from') || '/mypage';
+    const editId = searchParams.get('edit');
     const { user, loading: authLoading, refreshPlan } = useAuth();
 
     const [instances, setInstances] = useState([]);
@@ -187,6 +198,7 @@ export default function ReviewWritePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const instRef = useRef(null);
+    const sellerTypeInitRef = useRef(true);
 
     useEffect(() => {
         if (authLoading) return;
@@ -202,8 +214,48 @@ export default function ReviewWritePage() {
             ]);
             if (instRes.data) setInstances(instRes.data);
             if (profileRes.data) setReviewCount(profileRes.data.review_count ?? 0);
+
+            // 수정 모드: 기존 리뷰 로드 후 폼에 채우기
+            if (editId) {
+                const { data: rv, error: rvErr } = await sb
+                    .from('reviews')
+                    .select('*, event_instance:event_instances(id, event_date, event_date_end, location, base_event:base_events(id, name), organizer:organizers(id, name))')
+                    .eq('id', editId)
+                    .maybeSingle();
+                if (rvErr || !rv) {
+                    alert('리뷰를 불러오지 못했습니다.');
+                    router.replace(fromUrl);
+                    return;
+                }
+                if (rv.user_id !== user.id) {
+                    alert('본인이 작성한 리뷰만 수정할 수 있습니다.');
+                    router.replace(fromUrl);
+                    return;
+                }
+                setSelectedInstance(rv.event_instance || null);
+                setInstKeyword(rv.event_instance?.base_event?.name || '');
+                setSellerType(rv.seller_type || 'seller');
+                setRProfit(rv.rating_profit || 0);
+                setRTraffic(rv.rating_traffic || 0);
+                setRSupport(rv.rating_support || 0);
+                setRManners(rv.rating_manners || 0);
+                setRPromotion(rv.rating_promotion || 0);
+                setRevenueRange(rv.revenue_range || '');
+                setAgeGroups(new Set(rv.age_groups || []));
+                setVisitorTypes(new Set(rv.visitor_types || []));
+                setPros(rv.pros || '');
+                setCons(rv.cons || '');
+                setContent(rv.content || '');
+                // 칩 선택 상태 복원
+                const prosArr = (rv.pros || '').split('\n').map(s => s.trim()).filter(Boolean);
+                const consArr = (rv.cons || '').split('\n').map(s => s.trim()).filter(Boolean);
+                const chipSet = CHIPS[rv.seller_type || 'seller'];
+                setProsChips(new Set(prosArr.filter(p => chipSet.pros.includes(p))));
+                setConsChips(new Set(consArr.filter(c => chipSet.cons.includes(c))));
+            }
         })();
-    }, [user, authLoading, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, authLoading, router, editId]);
 
     useEffect(() => {
         const handler = e => {
@@ -214,6 +266,8 @@ export default function ReviewWritePage() {
     }, []);
 
     useEffect(() => {
+        // 수정 모드 첫 진입 시 sellerType 초기화 스킵
+        if (sellerTypeInitRef.current) { sellerTypeInitRef.current = false; return; }
         setProsChips(new Set()); setConsChips(new Set()); setPros(''); setCons('');
         setRProfit(0); setRTraffic(0); setRSupport(0); setRManners(0); setRPromotion(0);
         setRevenueRange(''); setAgeGroups(new Set()); setVisitorTypes(new Set());
@@ -291,18 +345,23 @@ export default function ReviewWritePage() {
             if (ageGroups.size > 0) payload.age_groups = [...ageGroups];
             if (visitorTypes.size > 0) payload.visitor_types = [...visitorTypes];
 
-            const { error } = await sb.from('reviews').insert(payload);
-            if (error) throw error;
+            if (editId) {
+                const { error } = await sb.from('reviews').update(payload).eq('id', editId);
+                if (error) throw error;
+            } else {
+                const { error } = await sb.from('reviews').insert(payload);
+                if (error) throw error;
 
-            // 리뷰 카운트 갱신 + 열람 권한 타이머 시작
-            const { error: profileErr } = await sb.from('profiles').update({
-                review_count: reviewCount + 1,
-                last_review_at: new Date().toISOString(),
-            }).eq('id', user.id);
-            if (profileErr) console.error('프로필 업데이트 실패:', profileErr);
+                // 리뷰 카운트 갱신 + 열람 권한 타이머 시작 (신규 작성 시에만)
+                const { error: profileErr } = await sb.from('profiles').update({
+                    review_count: reviewCount + 1,
+                    last_review_at: new Date().toISOString(),
+                }).eq('id', user.id);
+                if (profileErr) console.error('프로필 업데이트 실패:', profileErr);
 
-            await refreshPlan();
-            router.push('/mypage');
+                await refreshPlan();
+            }
+            router.push(fromUrl);
         } catch (err) {
             console.error('리뷰 등록 에러:', err);
             alert('저장 중 오류가 발생했습니다.');
@@ -328,10 +387,10 @@ export default function ReviewWritePage() {
 
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 60 }}>
-            <TopBar title="행사 리뷰 작성" back />
+            <TopBar title={editId ? '리뷰 수정' : '행사 리뷰 작성'} back />
 
             <div className="page-padding">
-                <ReviewBanner />
+                {!editId && <ReviewBanner />}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -548,7 +607,7 @@ export default function ReviewWritePage() {
                             cursor: isSubmitting ? 'default' : 'pointer', transition: 'opacity 0.15s',
                         }}
                     >
-                        {isSubmitting ? '처리 중...' : '리뷰 등록하기'}
+                        {isSubmitting ? '처리 중...' : (editId ? '리뷰 수정하기' : '리뷰 등록하기')}
                     </div>
                 </div>
             </div>

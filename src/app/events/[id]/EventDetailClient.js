@@ -415,7 +415,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                                     <div style={{ fontSize: 12, color: T.gray, textAlign: 'center', lineHeight: 1.6 }}>
                                         {user ? '리뷰를 1개 이상 작성하면\n항목별 평점·매출 분포 등을 확인할 수 있어요' : '로그인 후 리뷰를 작성하면\n셀러 평가 요약을 볼 수 있어요'}
                                     </div>
-                                    <a href={user ? '/reviews/write' : '/login'} style={{
+                                    <a href={user ? `/reviews/write?event_id=${event.id}&from=/events/${event.id}` : '/login'} style={{
                                         fontSize: 12, fontWeight: 700, color: '#fff',
                                         background: T.blue, padding: '8px 20px', borderRadius: 99,
                                         textDecoration: 'none', marginTop: 4,
@@ -605,7 +605,7 @@ export default function EventDetailClient({ event, instances, initialReviews, in
                             )}
                         </div>
 
-                        <Link href={`/reviews/write?event_id=${event.id}`} style={{ textDecoration: 'none' }}>
+                        <Link href={`/reviews/write?event_id=${event.id}&from=/events/${event.id}`} style={{ textDecoration: 'none' }}>
                             <div style={{
                                 textAlign: 'center', padding: '14px', borderRadius: 12,
                                 border: `1.5px dashed ${T.border}`,

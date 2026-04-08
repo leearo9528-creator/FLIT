@@ -61,7 +61,10 @@ function ReviewItem({ review, onDelete, router }) {
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: T.gray }}>{org.name ? `🏢 ${org.name} · ` : ''}{timeAgo(review.created_at)}</span>
-                <span onClick={() => onDelete(review.id)} style={{ fontSize: 12, color: T.gray, cursor: 'pointer' }}>삭제</span>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <span onClick={() => router.push(`/reviews/write?edit=${review.id}&from=/mypage/activity`)} style={{ fontSize: 12, color: T.blue, cursor: 'pointer', fontWeight: 600 }}>수정</span>
+                    <span onClick={() => onDelete(review.id)} style={{ fontSize: 12, color: T.gray, cursor: 'pointer' }}>삭제</span>
+                </div>
             </div>
         </div>
     );

@@ -123,9 +123,9 @@ export default function MyRecruitmentsPage() {
                                         border: `1px solid ${T.border}`, boxShadow: T.shadowMd,
                                         overflow: 'hidden', minWidth: 140,
                                     }}>
-                                        <div onClick={() => { setMenuOpen(null); router.push(`/recruitments/${rec.id}`); }}
+                                        <div onClick={() => { setMenuOpen(null); router.push(`/recruitments/write?edit=${rec.id}`); }}
                                             style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: T.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.border}` }}>
-                                            <Edit3 size={14} /> 상세 보기
+                                            <Edit3 size={14} /> 수정하기
                                         </div>
                                         <div onClick={() => handleToggleStatus(rec.id, rec.status)}
                                             style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: isOpen ? T.gray : T.green, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.border}` }}>
