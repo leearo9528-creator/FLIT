@@ -427,7 +427,7 @@ DROP POLICY IF EXISTS "profiles_select" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update" ON public.profiles;
 CREATE POLICY "profiles_select" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "profiles_insert" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id); -- handle_new_user 트리거는 SECURITY DEFINER로 RLS 우회하므로 정상 동작
 CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- organizers
@@ -452,9 +452,13 @@ CREATE POLICY "base_events_insert" ON public.base_events FOR INSERT WITH CHECK (
 ALTER TABLE public.event_instances ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "event_instances_select" ON public.event_instances;
 DROP POLICY IF EXISTS "event_instances_insert" ON public.event_instances;
+DROP POLICY IF EXISTS "event_instances_update" ON public.event_instances;
 CREATE POLICY "event_instances_select" ON public.event_instances FOR SELECT USING (true);
 CREATE POLICY "event_instances_insert" ON public.event_instances FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND plan = 'organizer')
+);
+CREATE POLICY "event_instances_update" ON public.event_instances FOR UPDATE USING (
+    auth.uid() = organizer_id
 );
 
 -- recruitments
@@ -471,6 +475,13 @@ CREATE POLICY "recruitments_insert" ON public.recruitments FOR INSERT WITH CHECK
     )
 );
 CREATE POLICY "recruitments_update" ON public.recruitments FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM public.event_instances ei
+        JOIN public.organizers o ON o.id = ei.organizer_id
+        WHERE ei.id = event_instance_id AND o.id = auth.uid()
+    )
+);
+CREATE POLICY "recruitments_delete" ON public.recruitments FOR DELETE USING (
     EXISTS (
         SELECT 1 FROM public.event_instances ei
         JOIN public.organizers o ON o.id = ei.organizer_id
