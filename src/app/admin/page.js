@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
     Shield, Users,
-    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell,
+    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell, Flag,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -26,6 +27,7 @@ const TABS = [
     { key: 'recruitments', label: '공고', icon: Megaphone },
     { key: 'organizers', label: '주최사', icon: Building2 },
     { key: 'users', label: '회원', icon: Users },
+    { key: 'reports', label: '신고', icon: Flag },
     { key: 'upload', label: '업로드', icon: Upload },
     { key: 'paste', label: '텍스트', icon: FileText },
 ];
@@ -464,6 +466,225 @@ function NoticeManager() {
                         <div style={{ fontSize: 12, color: T.gray }}>{new Date(n.created_at).toLocaleDateString('ko-KR')} · {n.content.slice(0, 50)}...</div>
                     </div>
                 ))
+            )}
+        </div>
+    );
+}
+
+/* ─── 신고 관리 ─── */
+function ReportsManager() {
+    const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [statusFilter, setStatusFilter] = useState('pending');
+    const [targets, setTargets] = useState({}); // { `${type}:${id}`: targetInfo }
+
+    const [reporters, setReporters] = useState({}); // id → profile
+
+    const fetchReports = useCallback(async () => {
+        setLoading(true);
+        const sb = createClient();
+        let q = sb.from('reports')
+            .select('id, reporter_id, target_type, target_id, reason, detail, status, created_at')
+            .order('created_at', { ascending: false });
+        if (statusFilter !== 'all') q = q.eq('status', statusFilter);
+        const { data, error } = await q;
+        if (error) { console.error('신고 로드 실패:', error); setLoading(false); return; }
+        setReports(data || []);
+
+        // 신고자 정보
+        const reporterIds = [...new Set((data || []).map(r => r.reporter_id).filter(Boolean))];
+        const reporterMap = {};
+        if (reporterIds.length) {
+            const { data: profs } = await sb.from('profiles').select('id, name, email').in('id', reporterIds);
+            (profs || []).forEach(p => { reporterMap[p.id] = p; });
+        }
+        setReporters(reporterMap);
+
+        // 대상 정보 일괄 로딩
+        const byType = { recruitment: [], review: [], post: [], post_comment: [] };
+        (data || []).forEach(r => { if (byType[r.target_type]) byType[r.target_type].push(r.target_id); });
+        const map = {};
+        await Promise.all([
+            byType.recruitment.length
+                ? sb.from('recruitments').select('id, title').in('id', byType.recruitment).then(({ data }) => {
+                    (data || []).forEach(x => { map[`recruitment:${x.id}`] = { label: x.title, link: `/recruitments/${x.id}` }; });
+                })
+                : null,
+            byType.review.length
+                ? sb.from('reviews').select('id, content').in('id', byType.review).then(({ data }) => {
+                    (data || []).forEach(x => { map[`review:${x.id}`] = { label: (x.content || '(내용 없음)').slice(0, 60), link: null }; });
+                })
+                : null,
+            byType.post.length
+                ? sb.from('posts').select('id, title').in('id', byType.post).then(({ data }) => {
+                    (data || []).forEach(x => { map[`post:${x.id}`] = { label: x.title, link: `/community/${x.id}` }; });
+                })
+                : null,
+            byType.post_comment.length
+                ? sb.from('post_comments').select('id, content, post_id').in('id', byType.post_comment).then(({ data }) => {
+                    (data || []).forEach(x => { map[`post_comment:${x.id}`] = { label: (x.content || '').slice(0, 60), link: `/community/${x.post_id}` }; });
+                })
+                : null,
+        ]);
+        setTargets(map);
+        setLoading(false);
+    }, [statusFilter]);
+
+    useEffect(() => { fetchReports(); }, [fetchReports]);
+
+    const updateStatus = async (id, status) => {
+        const sb = createClient();
+        const { error } = await sb.from('reports').update({ status }).eq('id', id);
+        if (error) { alert(`처리 실패: ${error.message}`); return; }
+        fetchReports();
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('이 신고 기록을 삭제할까요?')) return;
+        const sb = createClient();
+        const { error } = await sb.from('reports').delete().eq('id', id);
+        if (error) { alert(`삭제 실패: ${error.message}`); return; }
+        fetchReports();
+    };
+
+    const TYPE_LABEL = { recruitment: '모집공고', review: '리뷰', post: '게시글', post_comment: '댓글' };
+    const TYPE_COLOR = { recruitment: T.blue, review: '#F59E0B', post: T.green, post_comment: '#8B5CF6' };
+    const STATUS_LABEL = { pending: '대기', resolved: '처리완료', dismissed: '반려' };
+    const STATUS_COLOR = { pending: T.red, resolved: T.green, dismissed: T.gray };
+
+    const filters = [
+        { key: 'pending', label: '대기' },
+        { key: 'resolved', label: '처리완료' },
+        { key: 'dismissed', label: '반려' },
+        { key: 'all', label: '전체' },
+    ];
+
+    return (
+        <div style={{ padding: '0 16px' }}>
+            {/* 필터 */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                {filters.map(f => {
+                    const active = statusFilter === f.key;
+                    return (
+                        <button key={f.key} onClick={() => setStatusFilter(f.key)} style={{
+                            padding: '6px 12px', borderRadius: T.radiusFull,
+                            border: `1.5px solid ${active ? T.text : T.border}`,
+                            background: active ? T.text : T.white,
+                            color: active ? '#fff' : T.text,
+                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        }}>
+                            {f.label}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {loading ? (
+                Array(3).fill(0).map((_, i) => <div key={i} style={{ height: 100, background: T.grayLt, borderRadius: T.radiusLg, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />)
+            ) : reports.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>신고 내역이 없어요.</div>
+            ) : (
+                reports.map(r => {
+                    const target = targets[`${r.target_type}:${r.target_id}`];
+                    return (
+                        <div key={r.id} style={{
+                            background: T.white, borderRadius: T.radiusLg,
+                            border: `1px solid ${T.border}`, padding: 14, marginBottom: 10,
+                        }}>
+                            {/* 상단: 타입 + 상태 */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                                <span style={{
+                                    fontSize: 11, fontWeight: 700,
+                                    padding: '3px 8px', borderRadius: 4,
+                                    background: `${TYPE_COLOR[r.target_type]}18`,
+                                    color: TYPE_COLOR[r.target_type],
+                                }}>
+                                    {TYPE_LABEL[r.target_type] || r.target_type}
+                                </span>
+                                <span style={{
+                                    fontSize: 11, fontWeight: 700,
+                                    padding: '3px 8px', borderRadius: 4,
+                                    background: `${STATUS_COLOR[r.status]}18`,
+                                    color: STATUS_COLOR[r.status],
+                                }}>
+                                    {STATUS_LABEL[r.status] || r.status}
+                                </span>
+                                <span style={{ fontSize: 11, color: T.gray, marginLeft: 'auto' }}>
+                                    {new Date(r.created_at).toLocaleString('ko-KR')}
+                                </span>
+                            </div>
+
+                            {/* 대상 */}
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>대상</div>
+                                {target ? (
+                                    target.link ? (
+                                        <Link href={target.link} target="_blank" style={{
+                                            fontSize: 13, fontWeight: 600, color: T.blue,
+                                            textDecoration: 'none', wordBreak: 'break-all',
+                                        }}>
+                                            {target.label || '(제목 없음)'} ↗
+                                        </Link>
+                                    ) : (
+                                        <div style={{ fontSize: 13, color: T.text, wordBreak: 'break-all' }}>
+                                            {target.label || '(제목 없음)'}
+                                        </div>
+                                    )
+                                ) : (
+                                    <div style={{ fontSize: 12, color: T.gray }}>
+                                        (삭제됨 · ID {r.target_id?.slice(0, 8)})
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 사유 */}
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>사유</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: T.red }}>{r.reason}</div>
+                                {r.detail && (
+                                    <div style={{ fontSize: 12, color: T.textSub, marginTop: 4, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                        {r.detail}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 신고자 */}
+                            <div style={{ fontSize: 11, color: T.gray, marginBottom: 10 }}>
+                                신고자: {reporters[r.reporter_id]?.name || reporters[r.reporter_id]?.email || '(알 수 없음)'}
+                            </div>
+
+                            {/* 액션 */}
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {r.status !== 'resolved' && (
+                                    <button onClick={() => updateStatus(r.id, 'resolved')} style={{
+                                        padding: '6px 12px', borderRadius: T.radiusFull, border: 'none',
+                                        background: T.green, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    }}>처리완료</button>
+                                )}
+                                {r.status !== 'dismissed' && (
+                                    <button onClick={() => updateStatus(r.id, 'dismissed')} style={{
+                                        padding: '6px 12px', borderRadius: T.radiusFull,
+                                        border: `1px solid ${T.border}`, background: T.white,
+                                        color: T.gray, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    }}>반려</button>
+                                )}
+                                {r.status !== 'pending' && (
+                                    <button onClick={() => updateStatus(r.id, 'pending')} style={{
+                                        padding: '6px 12px', borderRadius: T.radiusFull,
+                                        border: `1px solid ${T.border}`, background: T.white,
+                                        color: T.text, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    }}>다시 대기</button>
+                                )}
+                                <button onClick={() => handleDelete(r.id)} style={{
+                                    padding: '6px 12px', borderRadius: T.radiusFull,
+                                    border: `1px solid ${T.red}`, background: T.white,
+                                    color: T.red, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    marginLeft: 'auto',
+                                }}>삭제</button>
+                            </div>
+                        </div>
+                    );
+                })
             )}
         </div>
     );
@@ -1151,6 +1372,8 @@ export default function AdminPage() {
                             onEdit={row => setEditItem({ item: row, tableName: 'profiles', fields: userFields })}
                             emptyMsg="가입된 회원이 없어요." />
                     </div>
+                ) : tab === 'reports' ? (
+                    <ReportsManager />
                 ) : tab === 'upload' ? (
                     <ExcelUploader onComplete={fetchAll} />
                 ) : tab === 'paste' ? (

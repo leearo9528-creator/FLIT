@@ -72,6 +72,7 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] Supabase Storage 이미지 업로드 설정 (images 버킷 + RLS)
 - [x] 온보딩 단계 제거 — 로그인 후 바로 홈으로 이동
 - [x] 새 Supabase 프로젝트 이전 (서울 리전)
+- [x] 신고 기능: 모집공고 / 리뷰 / 커뮤니티 글·댓글 (`reports` 테이블 + ReportModal + 관리자 신고 탭)
 
 ### 미완료
 - [ ] 도메인 연결 (Vercel 설정)

@@ -9,6 +9,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
 import TopBar from '@/components/ui/TopBar';
 import { SellerBadge } from '@/components/ui/SellerBadge';
+import ReportModal from '@/components/ui/ReportModal';
 
 /* ─── Avatar ────────────────────────────────────────────────── */
 function Avatar({ name, size = 36 }) {
@@ -56,6 +57,12 @@ export default function PostDetailPage() {
     const menuRef = useRef(null);
     const inputRef = useRef(null);
 
+    // 신고 모달 ({ type, id } 또는 null)
+    const [reportTarget, setReportTarget] = useState(null);
+    // 각 댓글별 메뉴 열림 상태 (열린 댓글 ID)
+    const [openCommentMenu, setOpenCommentMenu] = useState(null);
+    const commentMenuRef = useRef(null);
+
     /* fetch */
     useEffect(() => {
         if (!id) return;
@@ -91,6 +98,7 @@ export default function PostDetailPage() {
     useEffect(() => {
         const handler = e => {
             if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+            if (commentMenuRef.current && !commentMenuRef.current.contains(e.target)) setOpenCommentMenu(null);
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
@@ -251,7 +259,11 @@ export default function PostDetailPage() {
                                     </>
                                 ) : (
                                     <div
-                                        onClick={() => { alert('신고가 접수됐어요.'); setMenuOpen(false); }}
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            if (!user) { router.push('/login'); return; }
+                                            setReportTarget({ type: 'post', id: post.id });
+                                        }}
                                         style={{ padding: '12px 16px', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: T.red, display: 'flex', alignItems: 'center', gap: 8 }}
                                     >
                                         <Flag size={14} /> 신고하기
@@ -417,6 +429,7 @@ export default function PostDetailPage() {
                         <div>
                             {comments.map((comment, i) => {
                                 const commentAuthor = comment.is_anonymous ? '익명' : (comment.author || '셀러');
+                                const isMyComment = user?.id === comment.user_id;
                                 return (
                                     <div key={comment.id} style={{
                                         padding: '14px 18px',
@@ -431,6 +444,49 @@ export default function PostDetailPage() {
                                                         <span style={{ fontSize: 10, color: T.gray, background: T.grayLt, padding: '1px 5px', borderRadius: 3 }}>익명</span>
                                                     )}
                                                     <span style={{ fontSize: 11, color: T.gray, marginLeft: 'auto' }}>{timeAgo(comment.created_at)}</span>
+                                                    {!isMyComment && (
+                                                        <div
+                                                            ref={openCommentMenu === comment.id ? commentMenuRef : null}
+                                                            style={{ position: 'relative', marginLeft: 2 }}
+                                                        >
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenCommentMenu(prev => prev === comment.id ? null : comment.id);
+                                                                }}
+                                                                style={{
+                                                                    background: 'none', border: 'none', padding: 2,
+                                                                    display: 'flex', alignItems: 'center', cursor: 'pointer',
+                                                                }}
+                                                                aria-label="댓글 메뉴"
+                                                            >
+                                                                <MoreHorizontal size={16} color={T.gray} />
+                                                            </button>
+                                                            {openCommentMenu === comment.id && (
+                                                                <div style={{
+                                                                    position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                                                                    background: T.white, border: `1px solid ${T.border}`,
+                                                                    borderRadius: T.radiusMd, boxShadow: T.shadowMd,
+                                                                    minWidth: 120, zIndex: 50, overflow: 'hidden',
+                                                                }}>
+                                                                    <div
+                                                                        onClick={() => {
+                                                                            setOpenCommentMenu(null);
+                                                                            if (!user) { router.push('/login'); return; }
+                                                                            setReportTarget({ type: 'post_comment', id: comment.id });
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '10px 14px', cursor: 'pointer',
+                                                                            fontSize: 13, fontWeight: 600, color: T.red,
+                                                                            display: 'flex', alignItems: 'center', gap: 6,
+                                                                        }}
+                                                                    >
+                                                                        <Flag size={13} /> 신고하기
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {editingCommentId === comment.id ? (
@@ -537,6 +593,13 @@ export default function PostDetailPage() {
                     </button>
                 </div>
             </div>
+
+            <ReportModal
+                open={!!reportTarget}
+                onClose={() => setReportTarget(null)}
+                targetType={reportTarget?.type}
+                targetId={reportTarget?.id}
+            />
 
             <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
         </div>

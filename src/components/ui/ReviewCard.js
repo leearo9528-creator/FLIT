@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock } from 'lucide-react';
+import { Lock, Flag } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { timeAgo } from '@/lib/helpers';
+import ReportModal from '@/components/ui/ReportModal';
 
 /* ─── 리뷰 잠금 ─── */
 export function ReviewLock({ isLoggedIn }) {
@@ -40,7 +42,9 @@ const INFO_VALUE = { fontSize: 13, fontWeight: 600, color: T.text };
 
 /* ─── 리뷰 카드 ─── */
 export default function ReviewCard({ review, canView, isLoggedIn, showEventLink, showOrgInfo }) {
+    const router = useRouter();
     const [expanded, setExpanded] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
     const inst = review.event_instance || {};
     const ev   = inst.base_event || {};
     const org  = inst.organizer || {};
@@ -178,8 +182,32 @@ export default function ReviewCard({ review, canView, isLoggedIn, showEventLink,
                 <ReviewLock isLoggedIn={isLoggedIn} />
             )}
 
-            {/* 작성 시간 */}
-            <div style={{ fontSize: 11, color: T.gray, textAlign: 'right', marginTop: 10 }}>{timeAgo(review.created_at)}</div>
+            {/* 하단: 작성시간 + 신고 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                <button
+                    onClick={() => {
+                        if (!isLoggedIn) { router.push('/login'); return; }
+                        setReportOpen(true);
+                    }}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        background: 'none', border: 'none', padding: '2px 4px',
+                        fontSize: 11, color: T.gray, fontWeight: 600,
+                        cursor: 'pointer',
+                    }}
+                    aria-label="리뷰 신고"
+                >
+                    <Flag size={11} /> 신고
+                </button>
+                <div style={{ fontSize: 11, color: T.gray }}>{timeAgo(review.created_at)}</div>
+            </div>
+
+            <ReportModal
+                open={reportOpen}
+                onClose={() => setReportOpen(false)}
+                targetType="review"
+                targetId={review.id}
+            />
         </div>
     );
 }

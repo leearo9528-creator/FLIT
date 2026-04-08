@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Bookmark, MapPin, Calendar, Banknote, Clock } from 'lucide-react';
+import { ArrowLeft, Bookmark, MapPin, Calendar, Banknote, Clock, Flag } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { calcDDay } from '@/lib/helpers';
+import ReportModal from '@/components/ui/ReportModal';
 
 /* ─── 섹션 UI ──────────────────────────────────────────────── */
 function Section({ title, children }) {
@@ -61,6 +62,7 @@ export default function RecruitmentDetailClient({ recruitment }) {
     const { user } = useAuth();
     const [scrapped, setScrapped] = useState(false);
     const [scrapLoading, setScrapLoading] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
 
     const instance = recruitment.instance || {};
     const baseEvent = instance.base_event || {};
@@ -120,14 +122,26 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     }}>
                         <ArrowLeft size={18} color="#fff" />
                     </button>
-                    <button onClick={handleScrap} style={{
-                        background: scrapped ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.15)',
-                        border: 'none', borderRadius: 999,
-                        width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer', backdropFilter: 'blur(8px)',
-                    }}>
-                        <Bookmark size={18} fill={scrapped ? T.green : 'none'} color={scrapped ? T.green : '#fff'} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button onClick={() => {
+                            if (!user) { router.push('/login'); return; }
+                            setReportOpen(true);
+                        }} style={{
+                            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 999,
+                            width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', backdropFilter: 'blur(8px)',
+                        }} aria-label="신고하기">
+                            <Flag size={17} color="#fff" />
+                        </button>
+                        <button onClick={handleScrap} style={{
+                            background: scrapped ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.15)',
+                            border: 'none', borderRadius: 999,
+                            width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', backdropFilter: 'blur(8px)',
+                        }}>
+                            <Bookmark size={18} fill={scrapped ? T.green : 'none'} color={scrapped ? T.green : '#fff'} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* 본문 */}
@@ -384,6 +398,12 @@ export default function RecruitmentDetailClient({ recruitment }) {
 
             </div>
 
+            <ReportModal
+                open={reportOpen}
+                onClose={() => setReportOpen(false)}
+                targetType="recruitment"
+                targetId={recruitment.id}
+            />
 
         </div>
     );
