@@ -14,11 +14,11 @@ export const metadata = {
     keywords: ['플리마켓', '팝업스토어', '셀러', '행사', '모집공고', '플릿', 'FLIT'],
     authors: [{ name: 'FLIT' }],
     creator: 'FLIT',
-    metadataBase: new URL('https://flitunion.vercel.app'),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://flit-black.vercel.app'),
     openGraph: {
         type: 'website',
         locale: 'ko_KR',
-        url: 'https://flitunion.vercel.app',
+        url: process.env.NEXT_PUBLIC_SITE_URL || 'https://flit-black.vercel.app',
         siteName: '플릿 (FLIT)',
         title: '플릿 (FLIT) — 셀러들이 말하는 진짜 행사 정보',
         description: '플리마켓·팝업스토어 셀러를 위한 행사 정보 플랫폼. 모집공고, 셀러 리뷰, 주최사 정보를 한 곳에서.',

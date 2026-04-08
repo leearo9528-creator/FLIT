@@ -3,7 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 export const revalidate = 3600; // 1시간마다 재생성
 
 export default async function sitemap() {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://flitunion.vercel.app';
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://flit-black.vercel.app';
     const now = new Date();
 
     // 정적 페이지
