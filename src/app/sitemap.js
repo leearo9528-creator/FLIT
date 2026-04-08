@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // 1시간마다 재생성
 
 export default async function sitemap() {
