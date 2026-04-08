@@ -66,13 +66,15 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 에러 UI: error.js + global-error.js + not-found.js
 - [x] 로딩 스켈레톤 shimmer 애니메이션 (`.skeleton` 클래스)
 
-### 미완료
-- [ ] 프로필 아바타 이미지 업로드
-- [ ] Supabase Storage 이미지 업로드 설정
-- [ ] 도메인 연결 (Vercel 설정)
-
 ### 완료 (추가)
 - [x] RLS 정책 전면 검토 및 보완 (profiles_insert 보안 수정, event_instances/recruitments 누락 정책 추가)
+- [x] 프로필 아바타 이미지 업로드 (Supabase Storage avatars 폴더)
+- [x] Supabase Storage 이미지 업로드 설정 (images 버킷 + RLS)
+- [x] 온보딩 단계 제거 — 로그인 후 바로 홈으로 이동
+- [x] 새 Supabase 프로젝트 이전 (서울 리전)
+
+### 미완료
+- [ ] 도메인 연결 (Vercel 설정)
 
 ---
 
