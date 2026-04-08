@@ -39,6 +39,7 @@ export default function HomeCalendarSection() {
                 .from('event_instances')
                 .select(`id, event_date, event_date_end, location,
                     base_event:base_events(id, name),
+                    organizer:organizers(id, name),
                     recruitments(id, title, status)`)
                 .gte('event_date', start)
                 .lte('event_date', end)
@@ -133,9 +134,9 @@ export default function HomeCalendarSection() {
                                 {dayEvs.length > 0 && (
                                     <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
                                         {dayEvs.slice(0, 2).map((_, i) => (
-                                            <div key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: hasOpen ? T.green : T.gray }} />
+                                            <div key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: T.blue }} />
                                         ))}
-                                        {dayEvs.length > 2 && <div style={{ width: 4, height: 4, borderRadius: '50%', background: T.gray }} />}
+                                        {dayEvs.length > 2 && <div style={{ width: 4, height: 4, borderRadius: '50%', background: T.blue }} />}
                                     </div>
                                 )}
                             </div>
@@ -147,10 +148,7 @@ export default function HomeCalendarSection() {
             {/* 범례 */}
             <div style={{ display: 'flex', gap: 14, padding: '8px 16px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: T.gray }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.green }} /> 모집 중
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: T.gray }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.gray }} /> 행사 일정
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: T.blue }} /> 행사 일정
                 </div>
             </div>
 
@@ -171,26 +169,28 @@ export default function HomeCalendarSection() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {upcomingEvents.map(ev => {
                             const openRec = ev.recruitments?.find(r => r.status === 'OPEN');
+                            const dateLabel = ev.event_date?.slice(5).replace('-', '/')
+                                + (ev.event_date_end && ev.event_date_end !== ev.event_date ? ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}` : '');
                             return (
                                 <div key={ev.id}
                                     onClick={() => openRec ? router.push(`/recruitments/${openRec.id}`) : router.push(`/events/${ev.base_event?.id}`)}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                                        background: '#F9FAFB', borderRadius: 10, cursor: 'pointer',
-                                        borderLeft: `3px solid ${openRec ? T.green : T.border}`,
+                                        padding: '10px 12px', background: '#F9FAFB',
+                                        borderRadius: 10, cursor: 'pointer',
                                     }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 1 }}>{ev.base_event?.name}</div>
-                                        <div style={{ fontSize: 11, color: T.gray }}>
-                                            {ev.event_date?.slice(5).replace('-', '/')}
-                                            {ev.event_date_end && ev.event_date_end !== ev.event_date && ` ~ ${ev.event_date_end.slice(5).replace('-', '/')}`}
-                                            {ev.location ? ` · ${ev.location.split(' ').slice(0, 2).join(' ')}` : ''}
-                                        </div>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <span style={{ color: T.blue }}>[{dateLabel}]</span> {ev.base_event?.name}
                                     </div>
-                                    {openRec
-                                        ? <div style={{ fontSize: 10, fontWeight: 800, color: T.green, background: T.greenLt, borderRadius: 99, padding: '3px 8px', flexShrink: 0 }}>모집중</div>
-                                        : <div style={{ fontSize: 10, color: T.gray, background: T.grayLt, borderRadius: 99, padding: '3px 8px', flexShrink: 0, fontWeight: 600 }}>행사만</div>
-                                    }
+                                    {ev.organizer?.name && (
+                                        <div style={{ fontSize: 11, color: T.gray, marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            주최사 · {ev.organizer.name}
+                                        </div>
+                                    )}
+                                    {ev.location && (
+                                        <div style={{ fontSize: 11, color: T.gray, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            장소 · {ev.location}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

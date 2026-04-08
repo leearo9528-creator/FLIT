@@ -54,11 +54,6 @@ function RoleBadge({ plan }) {
             주최사
         </span>
     );
-    if (plan === 'organizer_pending') return (
-        <span style={{ fontSize: 11, fontWeight: 700, color: T.gray, background: T.grayLt, padding: '3px 8px', borderRadius: 6 }}>
-            승인 대기
-        </span>
-    );
     return (
         <span style={{ fontSize: 11, fontWeight: 700, color: T.blue, background: T.blueLt, padding: '3px 8px', borderRadius: 6 }}>
             셀러
@@ -190,7 +185,7 @@ export default function MyPage() {
             <div style={{ background: T.white }}>
                 <MenuItem icon={HelpCircle} label="공지사항" href="/notices" />
                 <Divider />
-                <MenuItem icon={MessageCircle} label="행사 개최 문의" onPress={() => window.open('https://flitunion.vercel.app/', '_blank')} />
+                <MenuItem icon={MessageCircle} label="행사 개최 문의" href="/contact" />
                 <Divider />
                 <MenuItem icon={FileText} label="약관 및 정책" href="/terms" />
             </div>

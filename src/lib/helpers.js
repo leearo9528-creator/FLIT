@@ -33,6 +33,16 @@ export function calcDDay(dateStr) {
     return { label: `D-${diff}`, urgent: diff <= 3 };
 }
 
+// 공고 참가비 표시용 포맷터
+// fee_description(자유 텍스트)가 우선, 없으면 레거시 fee(숫자) 폴백
+export function formatFee(rec) {
+    if (!rec) return '미정';
+    if (rec.fee_description) return rec.fee_description;
+    if (rec.fee == null) return '미정';
+    if (rec.fee === 0) return '무료';
+    return `${Number(rec.fee).toLocaleString()}원`;
+}
+
 // 리뷰 항목별 별점 배열 → 종합 평균 (0이면 0.0)
 export function calcOverallRating(review) {
     const scores = [

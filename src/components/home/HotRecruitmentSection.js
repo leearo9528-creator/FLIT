@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { T } from '@/lib/design-tokens';
-import { formatDate } from '@/lib/helpers';
+import { formatDate, formatFee } from '@/lib/helpers';
 
 function RecruitmentCard({ rec }) {
     const inst = rec.instance || {};
     const org  = inst.organizer || {};
     const daysLeft = rec.end_date ? Math.ceil((new Date(rec.end_date) - Date.now()) / 86400000) : null;
     const isUrgent = daysLeft !== null && daysLeft <= 3 && daysLeft >= 0;
-    const feeText = rec.fee == null ? '미정' : rec.fee === 0 ? '무료' : `${Number(rec.fee).toLocaleString()}원`;
+    const feeText = formatFee(rec);
     const dateText = inst.event_date
         ? formatDate(inst.event_date) + (inst.event_date_end && inst.event_date_end !== inst.event_date ? ` ~ ${formatDate(inst.event_date_end)}` : '')
         : '미정';

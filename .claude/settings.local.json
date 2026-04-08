@@ -42,7 +42,9 @@
       "Bash(node -e \":*)",
       "Bash(npm ls:*)",
       "Bash(wc:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(find /d/git/FLIT/.claude/worktrees/sweet-gould -type f \\\\\\(-name *subscribe* -o -name *SubscriptionLock* -o -name *SubscriptionModal* -o -name *payments* -o -name *plans* \\\\\\))",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

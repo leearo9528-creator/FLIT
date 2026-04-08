@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    Shield, CheckCircle, XCircle, Users, Clock, ChevronDown, ChevronUp,
+    Shield, Users,
     Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
@@ -19,9 +19,6 @@ const btnOutline = { ...btnPrimary, background: T.white, color: T.text, border: 
 const cellStyle = { fontSize: 13, color: T.text, padding: '11px 12px', borderBottom: `1px solid ${T.border}`, verticalAlign: 'middle', wordBreak: 'break-all' };
 const thStyle = { fontSize: 11, fontWeight: 700, color: T.gray, background: '#F8F9FA', padding: '10px 12px', borderBottom: `2px solid ${T.border}`, textAlign: 'left', whiteSpace: 'nowrap', position: 'sticky', top: 0 };
 
-/* ─── 관리자 비밀번호 ─── */
-const ADMIN_PASSWORD = 'flit2026!';
-
 /* ─── 탭 설정 ─── */
 const TABS = [
     { key: 'notices', label: '공지', icon: Bell },
@@ -33,55 +30,12 @@ const TABS = [
     { key: 'paste', label: '텍스트', icon: FileText },
 ];
 
-/* ─── InfoItem ─── */
-function InfoItem({ label, value }) {
-    return (
-        <div>
-            <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{value}</div>
-        </div>
-    );
-}
-
 /* ─── StatCard ─── */
 function StatCard({ label, count, color }) {
     return (
         <div style={{ flex: 1, background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: '12px 14px', boxShadow: T.shadowSm }}>
             <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>{label}</div>
             <div style={{ fontSize: 22, fontWeight: 900, color }}>{count}</div>
-        </div>
-    );
-}
-
-/* ─── 승인 대기 카드 ─── */
-function UserCard({ profile, onApprove, onReject }) {
-    const [open, setOpen] = useState(false);
-    return (
-        <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, marginBottom: 10, boxShadow: T.shadowSm }}>
-            <div onClick={() => setOpen(!open)} style={{ padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg,${T.blue},${T.blueDark||'#1B64DA'})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', fontWeight: 800 }}>
-                        {(profile.name?.[0] || '?').toUpperCase()}
-                    </div>
-                    <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{profile.name || '이름 없음'}</div>
-                        <div style={{ fontSize: 12, color: T.gray }}>{profile.email}</div>
-                    </div>
-                </div>
-                {open ? <ChevronUp size={16} color={T.gray}/> : <ChevronDown size={16} color={T.gray}/>}
-            </div>
-            {open && (
-                <div style={{ padding: '0 16px 14px', borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-                        <InfoItem label="주최사명" value={profile.organizer_name || '-'} />
-                        <InfoItem label="가입일" value={profile.created_at ? new Date(profile.created_at).toLocaleDateString('ko-KR') : '-'} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => onApprove(profile.id)} style={{ ...btnPrimary, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><CheckCircle size={14}/> 승인</button>
-                        <button onClick={() => onReject(profile.id)} style={{ ...btnDanger, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><XCircle size={14}/> 거절</button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
@@ -246,7 +200,6 @@ function ExcelUploader({ onComplete }) {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('password', 'flit2026!');
             formData.append('isMock', String(isMock));
 
             setStatus('서버에서 처리 중...');
@@ -279,8 +232,8 @@ function ExcelUploader({ onComplete }) {
                 <div style={{ fontSize: 12, color: T.gray, marginBottom: 12, lineHeight: 1.6 }}>
                     엑셀 파일을 선택하면 자동으로 업로드됩니다.<br/>
                     <b>단일 시트</b> 형식: 한 행에 공고 하나씩 입력<br/>
-                    <span style={{ color: T.blue }}>행사명* | 공고제목* | 주최사명 | 카테고리 | 장소 | 시/도 | 행사시작일 | 행사종료일 | 모집마감일 | 참가비(원) | 참가비유형 | 푸드트럭참가비(원) | 추가비용 | 신청방법 | 공고내용 | 상태</span><br/>
-                    <span style={{ color: T.gray }}>참가비유형: fixed(정액)/rate(정률)/free(무료) · 추가비용: &quot;대여비:50000,오더비:30000&quot; 형식</span>
+                    <span style={{ color: T.blue }}>행사명* | 공고제목* | 주최사명 | 카테고리 | 장소 | 시/도 | 행사시작일 | 행사종료일 | 모집시작일 | 모집마감일 | 참가비 | 환불규정 | 주차지원 | 현장지원 | 신청방법 | 공고내용 | 상태</span><br/>
+                    <span style={{ color: T.gray }}>참가비는 자유 텍스트 (예: &quot;무료&quot;, &quot;1일 8만원&quot;, &quot;매출의 20%&quot;)</span>
                 </div>
                 <a href="/data_template.xlsx" download="FLIT_데이터입력양식.xlsx"
                     style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>
@@ -802,8 +755,8 @@ function EventForm({ orgList, onComplete }) {
             description: form.description.trim() || null,
             image_url: form.image_url.trim() || null,
             is_mock: form.is_mock,
-        }).select('id').single();
-        if (evtErr) { setSaving(false); return alert(`행사 저장 실패: ${evtErr.message}`); }
+        }).select('id').maybeSingle();
+        if (evtErr || !evt) { setSaving(false); return alert(`행사 저장 실패: ${evtErr?.message || '데이터 반환 실패'}`); }
 
         if (form.location.trim() && form.event_date) {
             const { error: instErr } = await sb.from('event_instances').insert({
@@ -979,38 +932,12 @@ function RecruitmentForm({ onComplete }) {
     );
 }
 
-/* ─── 비밀번호 게이트 ─── */
-function PasswordGate({ onPass }) {
-    const [pw, setPw] = useState('');
-    const [error, setError] = useState(false);
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (pw === ADMIN_PASSWORD) { onPass(); }
-        else { setError(true); setPw(''); }
-    };
-    return (
-        <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <form onSubmit={handleSubmit} style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 32, width: 320, textAlign: 'center' }}>
-                <Shield size={32} color={T.blue} style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 4 }}>관리자 인증</div>
-                <div style={{ fontSize: 13, color: T.gray, marginBottom: 20 }}>비밀번호를 입력하세요</div>
-                <input type="password" value={pw} onChange={e => { setPw(e.target.value); setError(false); }}
-                    placeholder="비밀번호" autoFocus
-                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, border: `1.5px solid ${error ? T.red : T.border}`, borderRadius: T.radiusMd, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }} />
-                {error && <div style={{ fontSize: 12, color: T.red, marginBottom: 8 }}>비밀번호가 틀렸습니다.</div>}
-                <button type="submit" style={{ width: '100%', padding: '12px 0', borderRadius: T.radiusMd, background: T.blue, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>확인</button>
-            </form>
-        </div>
-    );
-}
-
 /* ─── Admin Page ─── */
 export default function AdminPage() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingAdmin, setCheckingAdmin] = useState(true);
-    const [pwPassed, setPwPassed] = useState(false);
     const [tab, setTab] = useState('notices');
     const [events, setEvents] = useState([]);
     const [recruitments, setRecruitments] = useState([]);
@@ -1025,7 +952,7 @@ export default function AdminPage() {
         (async () => {
             try {
                 const sb = createClient();
-                const { data } = await sb.from('profiles').select('is_admin').eq('id', user.id).single();
+                const { data } = await sb.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
                 if (!data?.is_admin) { router.replace('/'); return; }
                 setIsAdmin(true);
             } catch { router.replace('/'); }
@@ -1084,7 +1011,6 @@ export default function AdminPage() {
         </div>
     );
     if (!isAdmin) return null;
-    if (!pwPassed) return <PasswordGate onPass={() => setPwPassed(true)} />;
 
     const evtCols = [
         { key: 'name', label: '행사명', width: 'auto' },

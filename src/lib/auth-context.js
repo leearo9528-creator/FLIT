@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     const fetchPlan = async (uid) => {
         try {
             const sb = createClient();
-            const { data, error } = await sb.from('profiles').select('plan, review_count, last_review_at').eq('id', uid).single();
+            const { data, error } = await sb.from('profiles').select('plan, review_count, last_review_at').eq('id', uid).maybeSingle();
             if (error) throw error;
             setPlan(data?.plan ?? 'free');
             setReviewCount(data?.review_count ?? 0);

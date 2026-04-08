@@ -2,20 +2,29 @@ import { createClient } from '@/utils/supabase/server';
 import EventDetailClient from './EventDetailClient';
 import { notFound } from 'next/navigation';
 
+// ISR: 행사 상세는 5분 주기 재생성
+export const revalidate = 300;
+
 export async function generateMetadata({ params }) {
     const { id } = await params;
     const supabase = await createClient();
     const { data: event } = await supabase
         .from('base_events')
-        .select('name')
+        .select('name, category, image_url, total_reviews')
         .eq('id', id)
         .maybeSingle();
 
-    if (!event) return { title: '행사를 찾을 수 없습니다 - 플릿(FLIT)' };
+    if (!event) return { title: '행사를 찾을 수 없습니다' };
+
+    const title = `${event.name} — 셀러 리뷰`;
+    const description = `${event.name}${event.category ? ` (${event.category})` : ''} 행사에 대한 셀러들의 실제 수익성·집객력 평가 ${event.total_reviews || 0}건을 확인해보세요.`;
+    const images = event.image_url ? [{ url: event.image_url }] : undefined;
 
     return {
-        title: `${event.name} 행사 진짜 리뷰 - 플릿(FLIT)`,
-        description: `${event.name} 행사에 대한 셀러들의 실제 수익성·집객력 평가를 확인해보세요.`,
+        title,
+        description,
+        openGraph: { title, description, type: 'article', images },
+        twitter: { card: 'summary_large_image', title, description, images },
     };
 }
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, MapPin, Tag, ArrowUpDown, X, Lock, Bookmark } from 'lucide-react';
 import { T, FILTERS } from '@/lib/design-tokens';
-import { calcRating, timeAgo } from '@/lib/helpers';
+import { calcRating, timeAgo, formatFee } from '@/lib/helpers';
 import { createClient } from '@/utils/supabase/client';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
@@ -108,7 +108,7 @@ function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
         onToggleScrap(rec.id);
     };
 
-    const feeText = rec.fee == null ? '미정' : rec.fee === 0 ? '무료' : `${Number(rec.fee).toLocaleString()}원`;
+    const feeText = formatFee(rec);
     const dateText = inst.event_date
         ? new Date(inst.event_date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
           + (inst.event_date_end && inst.event_date_end !== inst.event_date ? ` ~ ${new Date(inst.event_date_end).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}` : '')
@@ -385,6 +385,7 @@ function OrganizerCard({ org }) {
         <Card padding={16} style={{ border: `1px solid ${T.border}` }}>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{
+                    position: 'relative',
                     width: 52, height: 52, borderRadius: 12, flexShrink: 0,
                     background: T.grayLt, overflow: 'hidden',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -518,7 +519,7 @@ function SearchContent() {
                 const sb = createClient();
                 const [recRes, scrapRes] = await Promise.all([
                     sb.from('recruitments')
-                        .select(`id, title, fee, end_date, status, created_at, instance:event_instances(
+                        .select(`id, title, fee, fee_description, end_date, status, created_at, instance:event_instances(
                             id, location, location_sido, event_date, event_date_end,
                             base_event:base_events(id, name, category, avg_event_rating, total_reviews),
                             organizer:organizers(name)

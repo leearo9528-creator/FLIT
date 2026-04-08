@@ -18,7 +18,7 @@ export async function GET(request) {
           .from('profiles')
           .select('seller_type')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (!profile?.seller_type) {
           return NextResponse.redirect(new URL('/onboarding', request.url))

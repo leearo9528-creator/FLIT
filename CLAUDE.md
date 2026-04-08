@@ -61,14 +61,15 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 이용약관 + 개인정보처리방침 (탭 통합)
 - [x] 회원 탈퇴
 - [x] profiles ↔ organizers 동기화
-- [x] 프로필 아바타 이미지 업로드 (Supabase Storage, avatars 폴더)
-- [x] Supabase Storage 이미지 업로드 설정 (images 버킷, 다중 폴더)
-- [x] 로딩 스켈레톤 UI 통일 (CardSkeleton, 4개 페이지)
-- [x] 에러 상태 UI (error.js, not-found.js)
-- [x] SEO 메타태그 설정 (OG/Twitter Card, generateMetadata 동적 생성)
+- [x] SEO: layout/페이지별 metadata + 동적 라우트 openGraph/twitter
+- [x] robots.js + sitemap.js (Supabase 동적 수집)
+- [x] 에러 UI: error.js + global-error.js + not-found.js
+- [x] 로딩 스켈레톤 shimmer 애니메이션 (`.skeleton` 클래스)
 
 ### 미완료
-- [ ] 도메인 연결 (Vercel 대시보드 설정)
+- [ ] 프로필 아바타 이미지 업로드
+- [ ] Supabase Storage 이미지 업로드 설정
+- [ ] 도메인 연결 (Vercel 설정)
 
 ### 완료 (추가)
 - [x] RLS 정책 전면 검토 및 보완 (profiles_insert 보안 수정, event_instances/recruitments 누락 정책 추가)

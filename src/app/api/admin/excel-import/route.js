@@ -1,13 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerAuthClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
-
-const ADMIN_PASSWORD = 'flit2026!';
 
 function getAdminClient() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY
     );
+}
+
+async function verifyAdmin() {
+    const sb = await createServerAuthClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return false;
+    const { data } = await sb.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
+    return !!data?.is_admin;
 }
 
 function toDateStr(val) {
@@ -22,14 +29,15 @@ function toDateStr(val) {
 
 export async function POST(request) {
     try {
+        // 세션 기반 관리자 인증 (is_admin 플래그)
+        if (!(await verifyAdmin())) {
+            return NextResponse.json({ error: '관리자 권한이 필요합니다' }, { status: 403 });
+        }
+
         const formData = await request.formData();
-        const password = formData.get('password');
         const isMock = formData.get('isMock') === 'true';
         const file = formData.get('file');
 
-        if (password !== ADMIN_PASSWORD) {
-            return NextResponse.json({ error: '인증 실패' }, { status: 401 });
-        }
         if (!file) {
             return NextResponse.json({ error: '파일이 없습니다' }, { status: 400 });
         }
