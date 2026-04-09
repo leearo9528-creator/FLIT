@@ -75,7 +75,7 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 신고 기능: 모집공고 / 리뷰 / 커뮤니티 글·댓글 (`reports` 테이블 + ReportModal + 관리자 신고 탭)
 
 ### 미완료
-- [ ] 도메인 연결 (Vercel 설정)
+- [ ] 도메인 연결 — `app.flitunion.com` (코드 기본값 반영 완료, Vercel/DNS 설정 필요)
 
 ---
 

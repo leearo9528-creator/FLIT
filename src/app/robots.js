@@ -1,5 +1,5 @@
 export default function robots() {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://flit-black.vercel.app';
+    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.flitunion.com';
     return {
         rules: [
             {

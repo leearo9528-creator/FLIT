@@ -30,7 +30,7 @@ const BANNERS = [
         title: '행사 개최\n전문가에게 맡기세요',
         sub: '관공서 · 기업 · 단체 등 모든 행사 개최 의뢰를 받습니다',
         cta: '개최 문의하기',
-        href: 'https://flitunion.vercel.app/',
+        href: 'https://www.flitunion.com/',
         external: true,
     },
 ];
