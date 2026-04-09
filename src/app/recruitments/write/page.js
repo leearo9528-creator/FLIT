@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Plus, MapPin, Calendar, Banknote, Clock } from 'lucide-react';
+import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, Copy } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
@@ -83,6 +83,10 @@ function RecruitmentWriteContent() {
     const [newEventCategory, setNewEventCategory] = useState('플리마켓');
     const [addingEvent, setAddingEvent] = useState(false);
 
+    // 이전 공고 불러오기
+    const [pastRecs, setPastRecs] = useState([]);
+    const [showPastModal, setShowPastModal] = useState(false);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     /* 비주최사 접근 차단 */
@@ -131,6 +135,17 @@ function RecruitmentWriteContent() {
                 .select('id, name, category')
                 .order('name');
             if (evData) setBaseEvents(evData);
+
+            // 이전 공고 목록 (본인 주최사)
+            if (!editId) {
+                const { data: pastData } = await sb
+                    .from('recruitments')
+                    .select('id, title, content, fee_description, application_method, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
+                    .eq('event_instance.organizer_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+                if (pastData) setPastRecs(pastData);
+            }
 
             // 수정 모드: 기존 공고/회차 로드
             if (editId) {
@@ -200,6 +215,25 @@ function RecruitmentWriteContent() {
         } catch (err) {
             alert(`행사 추가 실패: ${err.message}`);
         } finally { setAddingEvent(false); }
+    };
+
+    const applyPastRecruitment = (rec) => {
+        const baseEv = rec.event_instance?.base_event;
+        if (baseEv) {
+            setSelectedBaseEvent(baseEv);
+            setEventKeyword(baseEv.name || '');
+        }
+        if (rec.event_instance?.location) setLocation(rec.event_instance.location);
+        setTitle(rec.title || '');
+        setContent(rec.content || '');
+        setFeeText(rec.fee_description || '');
+        setSellerType(rec.seller_type || '');
+        setApplicationMethod(rec.application_method || '');
+        setRefundPolicy(rec.refund_policy || '');
+        setParkingInfo(rec.parking_info || '');
+        setOnsiteSupport(rec.onsite_support || '');
+        setImages(rec.images || []);
+        setShowPastModal(false);
     };
 
     const handleSubmit = async () => {
@@ -299,6 +333,23 @@ function RecruitmentWriteContent() {
                             <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{organizer.name}</div>
                         </div>
                     </div>
+                )}
+
+                {/* ── 이전 공고 불러오기 ── */}
+                {!editId && pastRecs.length > 0 && (
+                    <button
+                        onClick={() => setShowPastModal(true)}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            width: '100%', padding: '12px 16px',
+                            background: T.white, border: `1.5px dashed ${T.blue}`,
+                            borderRadius: T.radiusMd, cursor: 'pointer',
+                            fontSize: 13, fontWeight: 700, color: T.blue,
+                        }}
+                    >
+                        <Copy size={14} /> 이전 공고에서 정보 불러오기
+                        <span style={{ fontSize: 11, fontWeight: 600, color: T.gray }}>({pastRecs.length}개)</span>
+                    </button>
                 )}
 
                 {/* ── 행사 선택 ── */}
@@ -654,6 +705,77 @@ function RecruitmentWriteContent() {
                 </button>
 
             </div>
+
+            {/* ── 이전 공고 선택 모달 ── */}
+            {showPastModal && (
+                <div
+                    onClick={(e) => { if (e.target === e.currentTarget) setShowPastModal(false); }}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 500,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                    }}
+                >
+                    <div style={{
+                        width: '100%', maxWidth: 430, background: T.white,
+                        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+                        maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+                    }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '20px 20px 12px', borderBottom: `1px solid ${T.border}`,
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>이전 공고 불러오기</div>
+                                <div style={{ fontSize: 12, color: T.gray, marginTop: 4 }}>
+                                    선택한 공고의 내용이 자동으로 채워져요. 날짜는 새로 입력해주세요.
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowPastModal(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+                            >
+                                <X size={22} color={T.gray} />
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px 20px' }}>
+                            {pastRecs.map(rec => {
+                                const evName = rec.event_instance?.base_event?.name || '행사 정보 없음';
+                                const date = rec.created_at ? new Date(rec.created_at).toLocaleDateString('ko-KR') : '';
+                                return (
+                                    <div
+                                        key={rec.id}
+                                        onClick={() => applyPastRecruitment(rec)}
+                                        style={{
+                                            padding: '14px 16px', marginBottom: 8,
+                                            background: T.bg, borderRadius: T.radiusMd,
+                                            border: `1px solid ${T.border}`,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: T.blue, marginBottom: 4 }}>
+                                            🎪 {evName}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 14, fontWeight: 700, color: T.text,
+                                            marginBottom: 4,
+                                            overflow: 'hidden', textOverflow: 'ellipsis',
+                                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                                        }}>
+                                            {rec.title || '(제목 없음)'}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: T.gray }}>
+                                            {date}
+                                            {rec.event_instance?.location && ` · ${rec.event_instance.location}`}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
