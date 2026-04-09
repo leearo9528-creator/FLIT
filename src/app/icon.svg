@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#FFFFFF"/>
+  <text x="40" y="318" font-family="-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif" font-size="180" font-weight="900" fill="#191F28" letter-spacing="-8">플릿</text>
+  <circle cx="428" cy="256" r="32" fill="#3182F6"/>
+</svg>
