@@ -93,8 +93,8 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - Supabase 클라이언트: 싱글톤 패턴 적용 (`client.js`)
 - 네이버 지도 API: NaverMap.js 컴포넌트 (Dynamic Map + Geocoding)
 - 공통 컴포넌트: ReviewCard, ImageUploader, NaverMap, TopBar, Card, BottomTab
-- 행사 개최 문의: https://flitunion.vercel.app/ (외부 링크)
-- 관리자 비밀번호: `flit2026!` (코드 내 하드코딩)
+- 행사 개최 문의: https://www.flitunion.com/ (외부 마케팅 사이트)
+- 관리자 권한: `profiles.is_admin = true` 플래그로만 체크 (Supabase SQL에서 직접 세팅)
 
 ---
 

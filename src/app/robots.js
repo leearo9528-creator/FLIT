@@ -10,7 +10,6 @@ export default function robots() {
                     '/mypage',
                     '/api/',
                     '/auth/',
-                    '/onboarding',
                     '/reviews/write',
                     '/recruitments/write',
                 ],
