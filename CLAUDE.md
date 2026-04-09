@@ -73,9 +73,9 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 온보딩 단계 제거 — 로그인 후 바로 홈으로 이동
 - [x] 새 Supabase 프로젝트 이전 (서울 리전)
 - [x] 신고 기능: 모집공고 / 리뷰 / 커뮤니티 글·댓글 (`reports` 테이블 + ReportModal + 관리자 신고 탭)
-
-### 미완료
-- [ ] 도메인 연결 — `app.flitunion.com` (코드 기본값 반영 완료, Vercel/DNS 설정 필요)
+- [x] favicon 추가 — 플릿 로고 SVG (`src/app/icon.svg`)
+- [x] 도메인 연결 — `app.flitunion.com` (Vercel + DNS + Supabase Auth + OAuth 전부 설정)
+- [x] 🚀 **프로덕션 배포 완료** (2026-04-09)
 
 ---
 
