@@ -77,6 +77,7 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] 도메인 연결 — `app.flitunion.com` (Vercel + DNS + Supabase Auth + OAuth 전부 설정)
 - [x] 🚀 **프로덕션 배포 완료** (2026-04-09)
 - [x] 공고 작성 폼 개편: 날짜 입력 오버플로우 수정, 모집 품목 추가, 신청 방법 하단 이동, 상세 모집 요강 제거 (`recruitment_items` 컬럼)
+- [x] 공고 작성 폼 재구성: 사진 상단 이동, 모집 마감일 분리, 상세공고 통합, 현장지원/주차지원/환불규정 빠른버튼, 신청방법/연락처 프로필 기본값 불러오기 (`profiles.default_application_method`, `default_contact`, `recruitments.contact`)
 
 ---
 

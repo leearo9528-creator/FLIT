@@ -348,6 +348,15 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     )}
                 </Section>
 
+                {/* 연락처 */}
+                {recruitment.contact && (
+                    <Section title="📞 연락처">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.contact}
+                        </div>
+                    </Section>
+                )}
+
                 {/* 환불 규정 */}
                 {recruitment.refund_policy && (
                     <Section title="💸 환불 규정">
