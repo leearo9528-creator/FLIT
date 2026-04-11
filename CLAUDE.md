@@ -76,6 +76,7 @@ base_events (행사 브랜드) ─→ event_instances (개최 회차) ─→ rec
 - [x] favicon 추가 — 플릿 로고 SVG (`src/app/icon.svg`)
 - [x] 도메인 연결 — `app.flitunion.com` (Vercel + DNS + Supabase Auth + OAuth 전부 설정)
 - [x] 🚀 **프로덕션 배포 완료** (2026-04-09)
+- [x] 공고 작성 폼 개편: 날짜 입력 오버플로우 수정, 모집 품목 추가, 신청 방법 하단 이동, 상세 모집 요강 제거 (`recruitment_items` 컬럼)
 
 ---
 

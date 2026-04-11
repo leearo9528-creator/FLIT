@@ -326,12 +326,14 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     )}
                 </Section>
 
-                {/* 상세 모집 요강 */}
-                <Section title="📝 상세 모집 요강">
-                    <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
-                        {recruitment.content || '상세 내용이 없습니다.'}
-                    </div>
-                </Section>
+                {/* 모집 품목 */}
+                {recruitment.recruitment_items && (
+                    <Section title="📦 모집 품목">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.recruitment_items}
+                        </div>
+                    </Section>
+                )}
 
                 {/* 신청 방법 */}
                 <Section title="📋 신청 방법">
