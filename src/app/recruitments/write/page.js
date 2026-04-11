@@ -63,10 +63,10 @@ function RecruitmentWriteContent() {
 
     // 공고 정보
     const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
     const [feeText, setFeeText] = useState('');
     const [endDate, setEndDate] = useState('');
     const [sellerType, setSellerType] = useState('');
+    const [recruitmentItems, setRecruitmentItems] = useState('');
 
     // 신청 방법 + 추가 정보
     const [applicationMethod, setApplicationMethod] = useState('');
@@ -140,7 +140,7 @@ function RecruitmentWriteContent() {
             if (!editId) {
                 const { data: pastData } = await sb
                     .from('recruitments')
-                    .select('id, title, content, fee_description, application_method, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
+                    .select('id, title, recruitment_items, fee_description, application_method, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
                     .eq('event_instance.organizer_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(20);
@@ -171,7 +171,7 @@ function RecruitmentWriteContent() {
                 setEventDateEnd(rec.event_instance.event_date_end && rec.event_instance.event_date_end !== rec.event_instance.event_date ? rec.event_instance.event_date_end : '');
                 setLocation(rec.event_instance.location || '');
                 setTitle(rec.title || '');
-                setContent(rec.content || '');
+                setRecruitmentItems(rec.recruitment_items || '');
                 setFeeText(rec.fee_description || '');
                 setEndDate(rec.end_date || '');
                 setSellerType(rec.seller_type || '');
@@ -225,7 +225,7 @@ function RecruitmentWriteContent() {
         }
         if (rec.event_instance?.location) setLocation(rec.event_instance.location);
         setTitle(rec.title || '');
-        setContent(rec.content || '');
+        setRecruitmentItems(rec.recruitment_items || '');
         setFeeText(rec.fee_description || '');
         setSellerType(rec.seller_type || '');
         setApplicationMethod(rec.application_method || '');
@@ -243,7 +243,6 @@ function RecruitmentWriteContent() {
         if (endDate && endDate > eventDate) return alert('모집 마감일은 행사 시작일보다 늦을 수 없습니다.');
         if (!location.trim()) return alert('장소를 입력해주세요.');
         if (!title.trim()) return alert('공고 제목을 입력해주세요.');
-        if (!content.trim()) return alert('모집 요강을 입력해주세요.');
 
         setIsSubmitting(true);
         try {
@@ -260,7 +259,7 @@ function RecruitmentWriteContent() {
 
             const recPayload = {
                 title: title.trim(),
-                content: content.trim(),
+                recruitment_items: recruitmentItems.trim() || null,
                 fee_description: feeText.trim() || null,
                 end_date: endDate || null,
                 application_method: applicationMethod.trim() || null,
@@ -436,8 +435,8 @@ function RecruitmentWriteContent() {
                 {/* ── 행사 일자 + 장소 ── */}
                 <Section title="행사 일자 / 장소" required>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <Calendar size={12} /> 시작일
                                 </div>
@@ -445,19 +444,19 @@ function RecruitmentWriteContent() {
                                     type="date"
                                     value={eventDate}
                                     onChange={e => setEventDate(e.target.value)}
-                                    style={{ ...inputStyle(!!eventDate), padding: '11px 12px' }}
+                                    style={{ ...inputStyle(!!eventDate), padding: '11px 10px', minWidth: 0, width: '100%' }}
                                 />
                             </div>
-                            <div style={{ flex: 1 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <Calendar size={12} /> 종료일 <span style={{ fontWeight: 400 }}>(선택)</span>
+                                    <Calendar size={12} /> 종료일<span style={{ fontWeight: 400, marginLeft: 2 }}>(선택)</span>
                                 </div>
                                 <input
                                     type="date"
                                     value={eventDateEnd}
                                     onChange={e => setEventDateEnd(e.target.value)}
                                     min={eventDate}
-                                    style={{ ...inputStyle(!!eventDateEnd), padding: '11px 12px' }}
+                                    style={{ ...inputStyle(!!eventDateEnd), padding: '11px 10px', minWidth: 0, width: '100%' }}
                                 />
                             </div>
                         </div>
@@ -577,70 +576,20 @@ function RecruitmentWriteContent() {
                             />
                         </div>
 
-                    </div>
-                </Section>
-
-                {/* ── 상세 모집 요강 ── */}
-                <Section title="상세 모집 요강" required hint="부스 크기, 전기 공급, 주의 사항 등을 자유롭게 입력해주세요.">
-                    <textarea
-                        value={content}
-                        onChange={e => setContent(e.target.value)}
-                        placeholder={'예:\n- 부스 크기: 2m x 2m\n- 전기: 220V 1구 제공\n- 주의사항: 천막 설치 불가\n- 정산: 행사 종료 후 3일 이내'}
-                        rows={8}
-                        style={{
-                            width: '100%', border: `1.5px solid ${content ? T.blue : T.border}`,
-                            borderRadius: T.radiusMd, padding: '12px 14px',
-                            fontSize: 14, color: T.text, lineHeight: 1.8,
-                            outline: 'none', resize: 'vertical', background: T.bg,
-                            fontFamily: 'inherit', boxSizing: 'border-box',
-                            transition: 'border-color 0.15s',
-                        }}
-                    />
-                </Section>
-
-                {/* ── 신청 방법 ── */}
-                <Section
-                    title="신청 방법"
-                    hint="지원자가 어떻게 신청하면 되는지 알려주세요."
-                >
-                    <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                            {[
-                                '구글폼으로 신청해주세요.',
-                                '인스타 DM으로 신청해주세요.',
-                                '이메일로 신청해주세요.',
-                                '카카오채널로 신청해주세요.',
-                            ].map(template => (
-                                <div
-                                    key={template}
-                                    onClick={() => setApplicationMethod(prev =>
-                                        prev ? `${prev}\n${template}` : template
-                                    )}
-                                    style={{
-                                        padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer',
-                                        fontSize: 12, fontWeight: 600,
-                                        background: T.grayLt, color: T.textSub,
-                                        border: `1px solid ${T.border}`,
-                                    }}
-                                >
-                                    + {template}
-                                </div>
-                            ))}
+                        {/* 모집 품목 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                모집 품목
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예) 먹거리 불가 / 악세사리 마감 / 핸드메이드만 가능"
+                                value={recruitmentItems}
+                                onChange={e => setRecruitmentItems(e.target.value)}
+                                style={inputStyle(!!recruitmentItems)}
+                            />
                         </div>
-                        <textarea
-                            value={applicationMethod}
-                            onChange={e => setApplicationMethod(e.target.value)}
-                            placeholder={'예:\n구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market\n이메일: apply@example.com\n\n신청 시 품목명, 예상 매출, 판매 경력을 함께 보내주세요.'}
-                            rows={5}
-                            style={{
-                                width: '100%', border: `1.5px solid ${applicationMethod ? T.blue : T.border}`,
-                                borderRadius: T.radiusMd, padding: '12px 14px',
-                                fontSize: 14, color: T.text, lineHeight: 1.8,
-                                outline: 'none', resize: 'vertical', background: T.bg,
-                                fontFamily: 'inherit', boxSizing: 'border-box',
-                                transition: 'border-color 0.15s',
-                            }}
-                        />
+
                     </div>
                 </Section>
 
@@ -687,6 +636,52 @@ function RecruitmentWriteContent() {
                 {/* ── 사진 첨부 ── */}
                 <Section title="사진 첨부" hint="행사장, 부스 배치 등 참고 사진을 첨부하세요. (최대 5장)">
                     <ImageUploader images={images} onChange={setImages} folder="recruitments" max={5} />
+                </Section>
+
+                {/* ── 신청 방법 ── */}
+                <Section
+                    title="신청 방법"
+                    hint="지원자가 어떻게 신청하면 되는지 알려주세요."
+                >
+                    <div style={{ marginBottom: 10 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                            {[
+                                '구글폼으로 신청해주세요.',
+                                '인스타 DM으로 신청해주세요.',
+                                '이메일로 신청해주세요.',
+                                '카카오채널로 신청해주세요.',
+                            ].map(template => (
+                                <div
+                                    key={template}
+                                    onClick={() => setApplicationMethod(prev =>
+                                        prev ? `${prev}\n${template}` : template
+                                    )}
+                                    style={{
+                                        padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer',
+                                        fontSize: 12, fontWeight: 600,
+                                        background: T.grayLt, color: T.textSub,
+                                        border: `1px solid ${T.border}`,
+                                    }}
+                                >
+                                    + {template}
+                                </div>
+                            ))}
+                        </div>
+                        <textarea
+                            value={applicationMethod}
+                            onChange={e => setApplicationMethod(e.target.value)}
+                            placeholder={'예:\n구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market\n이메일: apply@example.com\n\n신청 시 품목명, 예상 매출, 판매 경력을 함께 보내주세요.'}
+                            rows={5}
+                            style={{
+                                width: '100%', border: `1.5px solid ${applicationMethod ? T.blue : T.border}`,
+                                borderRadius: T.radiusMd, padding: '12px 14px',
+                                fontSize: 14, color: T.text, lineHeight: 1.8,
+                                outline: 'none', resize: 'vertical', background: T.bg,
+                                fontFamily: 'inherit', boxSizing: 'border-box',
+                                transition: 'border-color 0.15s',
+                            }}
+                        />
+                    </div>
                 </Section>
 
                 {/* ── 등록 버튼 ── */}
