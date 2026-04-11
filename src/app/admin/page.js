@@ -55,13 +55,21 @@ function EditModal({ item, fields, tableName, onSave, onClose }) {
         setSaving(true);
         try {
             const sb = createClient();
-            const payload = {};
-            fields.forEach(f => {
+            // 테이블별로 payload 그룹화 (field.table 지원 — 다른 테이블 업데이트)
+            const groups = new Map(); // table -> { payload, idVal }
+            for (const f of fields) {
+                const t = f.table || tableName;
+                const idKey = f.itemIdKey || 'id';
+                const idVal = item[idKey];
+                if (!groups.has(t)) groups.set(t, { payload: {}, idVal });
                 const v = form[f.key];
-                payload[f.key] = f.type === 'number' ? (v === '' ? null : Number(v)) : (v === '' ? null : v);
-            });
-            const { error } = await sb.from(tableName).update(payload).eq('id', item.id);
-            if (error) throw error;
+                groups.get(t).payload[f.key] = f.type === 'number' ? (v === '' ? null : Number(v)) : (v === '' ? null : v);
+            }
+            for (const [t, { payload, idVal }] of groups) {
+                if (!idVal) continue;
+                const { error } = await sb.from(t).update(payload).eq('id', idVal);
+                if (error) throw error;
+            }
             onSave();
         } catch (err) {
             alert(`수정 실패: ${err.message}`);
@@ -1188,7 +1196,7 @@ export default function AdminPage() {
             const sb = createClient();
             const [eRes, rRes, oRes, uRes] = await Promise.all([
                 sb.from('base_events').select('id, name, category, description, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance:event_instances(base_event:base_events(name))').order('created_at', { ascending: false }).limit(100),
+                sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance_id, event_instance:event_instances(id, organizer_id, base_event:base_events(name), organizer:organizers(name))').order('created_at', { ascending: false }).limit(100),
                 sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
             ]);
@@ -1266,12 +1274,18 @@ export default function AdminPage() {
     const recCols = [
         { key: 'title', label: '제목', width: 'auto' },
         { key: 'event', label: '행사', width: 160, render: r => r.event_instance?.base_event?.name || '-' },
+        { key: 'organizer', label: '주최사', width: 140, render: r => r.event_instance?.organizer?.name || '-' },
         { key: 'fee_description', label: '참가비', width: 160, render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
         { key: 'status', label: '상태', width: 72, render: r => r.status === 'OPEN' ? '모집중' : '마감' },
         { key: 'end_date', label: '마감일', width: 100, render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
     ];
     const recFields = [
         { key: 'title', label: '공고 제목', type: 'text' },
+        {
+            key: 'organizer_id', label: '주최사', type: 'select',
+            options: [{ value: '', label: '(없음)' }, ...orgList.map(o => ({ value: o.id, label: o.name }))],
+            table: 'event_instances', itemIdKey: 'event_instance_id',
+        },
         { key: 'status', label: '상태', type: 'select', options: [{ value: 'OPEN', label: '모집중' }, { value: 'CLOSED', label: '마감' }] },
         { key: 'fee_description', label: '참가비', type: 'text' },
         { key: 'end_date', label: '모집 마감일', type: 'date' },
@@ -1352,7 +1366,11 @@ export default function AdminPage() {
                         <DataTable columns={recCols} rows={recruitments}
                             onDelete={handleDelete('recruitments')}
                             onDeleteSelected={handleBulkDelete('recruitments')}
-                            onEdit={row => setEditItem({ item: row, tableName: 'recruitments', fields: recFields })}
+                            onEdit={row => setEditItem({
+                                item: { ...row, organizer_id: row.event_instance?.organizer_id ?? '' },
+                                tableName: 'recruitments',
+                                fields: recFields,
+                            })}
                             emptyMsg="등록된 공고가 없어요." />
                     </div>
                 ) : tab === 'organizers' ? (
