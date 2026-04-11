@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, X, Plus, MapPin, Calendar, Banknote, Clock, Copy } from 'lucide-react';
+import { Search, X, Plus, MapPin, Calendar, Banknote, Copy } from 'lucide-react';
 import { T, inputStyle } from '@/lib/design-tokens';
 import { createClient } from '@/utils/supabase/client';
 import { useAuth } from '@/lib/auth-context';
@@ -30,6 +30,37 @@ function Section({ title, required, hint, children }) {
         </div>
     );
 }
+
+/* ─── 공통 스타일 / 헬퍼 ──────────────────────────────────── */
+const chipStyle = {
+    padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer',
+    fontSize: 12, fontWeight: 600,
+    background: T.grayLt, color: T.textSub,
+    border: `1px solid ${T.border}`,
+};
+
+const textareaStyle = (hasValue) => ({
+    width: '100%', border: `1.5px solid ${hasValue ? T.blue : T.border}`,
+    borderRadius: T.radiusMd, padding: '12px 14px',
+    fontSize: 14, color: T.text, lineHeight: 1.8,
+    outline: 'none', resize: 'vertical', background: T.bg,
+    fontFamily: 'inherit', boxSizing: 'border-box',
+    transition: 'border-color 0.15s',
+});
+
+const loadBtnStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    width: '100%', padding: '10px 14px', marginBottom: 10,
+    background: T.white, border: `1.5px dashed ${T.blue}`,
+    borderRadius: T.radiusMd, cursor: 'pointer',
+    fontSize: 13, fontWeight: 700, color: T.blue,
+};
+
+const appendChip = (prev, chip) => {
+    if (!prev) return `- ${chip}`;
+    if (prev.includes(chip)) return prev;
+    return `${prev}\n- ${chip}`;
+};
 
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function RecruitmentWritePage() {
@@ -70,9 +101,13 @@ function RecruitmentWriteContent() {
 
     // 신청 방법 + 추가 정보
     const [applicationMethod, setApplicationMethod] = useState('');
+    const [contact, setContact] = useState('');
     const [refundPolicy, setRefundPolicy] = useState('');
     const [parkingInfo, setParkingInfo] = useState('');
     const [onsiteSupport, setOnsiteSupport] = useState('');
+
+    // 프로필에 저장된 기본 정보 (불러오기용)
+    const [profileDefaults, setProfileDefaults] = useState({ application: '', contact: '' });
 
     // 이미지
     const [images, setImages] = useState([]);
@@ -130,6 +165,19 @@ function RecruitmentWriteContent() {
                 if (newOrg) setOrganizer(newOrg);
             }
 
+            // 프로필에 저장된 기본 신청 방법 / 연락처 불러오기
+            const { data: profileData } = await sb
+                .from('profiles')
+                .select('default_application_method, default_contact, phone')
+                .eq('id', user.id)
+                .maybeSingle();
+            if (profileData) {
+                setProfileDefaults({
+                    application: profileData.default_application_method || '',
+                    contact: profileData.default_contact || profileData.phone || '',
+                });
+            }
+
             const { data: evData } = await sb
                 .from('base_events')
                 .select('id, name, category')
@@ -140,7 +188,7 @@ function RecruitmentWriteContent() {
             if (!editId) {
                 const { data: pastData } = await sb
                     .from('recruitments')
-                    .select('id, title, recruitment_items, fee_description, application_method, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
+                    .select('id, title, recruitment_items, fee_description, application_method, contact, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
                     .eq('event_instance.organizer_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(20);
@@ -176,6 +224,7 @@ function RecruitmentWriteContent() {
                 setEndDate(rec.end_date || '');
                 setSellerType(rec.seller_type || '');
                 setApplicationMethod(rec.application_method || '');
+                setContact(rec.contact || '');
                 setRefundPolicy(rec.refund_policy || '');
                 setParkingInfo(rec.parking_info || '');
                 setOnsiteSupport(rec.onsite_support || '');
@@ -229,6 +278,7 @@ function RecruitmentWriteContent() {
         setFeeText(rec.fee_description || '');
         setSellerType(rec.seller_type || '');
         setApplicationMethod(rec.application_method || '');
+        setContact(rec.contact || '');
         setRefundPolicy(rec.refund_policy || '');
         setParkingInfo(rec.parking_info || '');
         setOnsiteSupport(rec.onsite_support || '');
@@ -263,6 +313,7 @@ function RecruitmentWriteContent() {
                 fee_description: feeText.trim() || null,
                 end_date: endDate || null,
                 application_method: applicationMethod.trim() || null,
+                contact: contact.trim() || null,
                 refund_policy: refundPolicy.trim() || null,
                 parking_info: parkingInfo.trim() || null,
                 onsite_support: onsiteSupport.trim() || null,
@@ -490,55 +541,56 @@ function RecruitmentWriteContent() {
                     />
                 </Section>
 
-                {/* ── 모집 조건 ── */}
-                <Section title="모집 조건">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* ── 사진 첨부 ── */}
+                <Section title="사진 첨부" hint="행사장, 부스 배치 등 참고 사진을 첨부하세요. (최대 5장)">
+                    <ImageUploader images={images} onChange={setImages} folder="recruitments" max={5} />
+                </Section>
 
-                        {/* 모집 마감일 */}
-                        <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Clock size={12} /> 모집 마감일
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    style={{ ...inputStyle(!!endDate), padding: '11px 12px', flex: 1 }}
-                                />
-                                <div
-                                    onClick={() => setEndDate('')}
-                                    style={{
-                                        padding: '11px 16px', borderRadius: T.radiusMd, cursor: 'pointer',
-                                        border: `1.5px solid ${!endDate ? T.blue : T.border}`,
-                                        background: !endDate ? T.blueLt : T.white,
-                                        fontSize: 13, fontWeight: 700,
-                                        color: !endDate ? T.blue : T.gray, whiteSpace: 'nowrap',
-                                    }}
-                                >없음</div>
-                            </div>
+                {/* ── 모집 마감일 ── */}
+                <Section title="모집 마감일">
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            style={{ ...inputStyle(!!endDate), padding: '11px 12px', flex: 1, minWidth: 0 }}
+                        />
+                        <div
+                            onClick={() => setEndDate('')}
+                            style={{
+                                padding: '11px 16px', borderRadius: T.radiusMd, cursor: 'pointer',
+                                border: `1.5px solid ${!endDate ? T.blue : T.border}`,
+                                background: !endDate ? T.blueLt : T.white,
+                                fontSize: 13, fontWeight: 700,
+                                color: !endDate ? T.blue : T.gray, whiteSpace: 'nowrap',
+                            }}
+                        >없음</div>
+                    </div>
+                    {eventDate && (
+                        <div style={{
+                            marginTop: 10,
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            background: T.bg, borderRadius: T.radiusMd, padding: '10px 14px',
+                            border: `1px solid ${T.border}`,
+                        }}>
+                            <span style={{ fontSize: 12, color: T.gray, fontWeight: 600 }}>행사일수</span>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>
+                                {(() => {
+                                    if (!eventDateEnd || eventDateEnd === eventDate) return '1일';
+                                    const d = Math.round((new Date(eventDateEnd) - new Date(eventDate)) / 86400000) + 1;
+                                    return `${d}일`;
+                                })()}
+                            </span>
+                            <span style={{ fontSize: 12, color: T.gray }}>
+                                ({eventDate}{eventDateEnd && eventDateEnd !== eventDate ? ` ~ ${eventDateEnd}` : ''})
+                            </span>
                         </div>
+                    )}
+                </Section>
 
-                        {/* 행사일수 (자동 계산) */}
-                        {eventDate && (
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                background: T.bg, borderRadius: T.radiusMd, padding: '10px 14px',
-                                border: `1px solid ${T.border}`,
-                            }}>
-                                <span style={{ fontSize: 12, color: T.gray, fontWeight: 600 }}>행사일수</span>
-                                <span style={{ fontSize: 15, fontWeight: 800, color: T.blue }}>
-                                    {(() => {
-                                        if (!eventDateEnd || eventDateEnd === eventDate) return '1일';
-                                        const d = Math.round((new Date(eventDateEnd) - new Date(eventDate)) / 86400000) + 1;
-                                        return `${d}일`;
-                                    })()}
-                                </span>
-                                <span style={{ fontSize: 12, color: T.gray }}>
-                                    ({eventDate}{eventDateEnd && eventDateEnd !== eventDate ? ` ~ ${eventDateEnd}` : ''})
-                                </span>
-                            </div>
-                        )}
+                {/* ── 상세 공고 ── */}
+                <Section title="상세 공고">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
                         {/* 모집 셀러 유형 */}
                         <div>
@@ -590,52 +642,76 @@ function RecruitmentWriteContent() {
                             />
                         </div>
 
+                        {/* 현장 지원 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                현장 지원
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                {['1800 테이블', '1500 테이블', '의자', '파라솔', '천막', '스트링조명'].map(chip => (
+                                    <div
+                                        key={chip}
+                                        onClick={() => setOnsiteSupport(prev => appendChip(prev, chip))}
+                                        style={chipStyle}
+                                    >+ {chip}</div>
+                                ))}
+                            </div>
+                            <textarea
+                                value={onsiteSupport}
+                                onChange={e => setOnsiteSupport(e.target.value)}
+                                placeholder={'예:\n- 현장 스텝 상주\n- 테이블·의자 제공\n- SNS 홍보'}
+                                rows={3}
+                                style={textareaStyle(!!onsiteSupport)}
+                            />
+                        </div>
+
+                        {/* 주차 지원 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                주차 지원
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                {['무료 주차', '지원 불가'].map(chip => (
+                                    <div
+                                        key={chip}
+                                        onClick={() => setParkingInfo(chip)}
+                                        style={chipStyle}
+                                    >+ {chip}</div>
+                                ))}
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예) 행사장 인근 공영주차장 이용 / 셀러 전용 주차 2대 제공"
+                                value={parkingInfo}
+                                onChange={e => setParkingInfo(e.target.value)}
+                                style={inputStyle(!!parkingInfo)}
+                            />
+                        </div>
+
+                        {/* 환불 규정 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                환불 규정
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                {['주최측 취소 시 환불'].map(chip => (
+                                    <div
+                                        key={chip}
+                                        onClick={() => setRefundPolicy(prev => appendChip(prev, chip))}
+                                        style={chipStyle}
+                                    >+ {chip}</div>
+                                ))}
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예) 행사 7일 전 100% 환불 / 3일 전 50% / 이후 환불 불가"
+                                value={refundPolicy}
+                                onChange={e => setRefundPolicy(e.target.value)}
+                                style={inputStyle(!!refundPolicy)}
+                            />
+                        </div>
+
                     </div>
-                </Section>
-
-                {/* ── 환불 규정 ── */}
-                <Section title="환불 규정" hint="참가비 환불 가능 여부 및 조건을 알려주세요.">
-                    <input
-                        type="text"
-                        placeholder="예) 행사 7일 전 100% 환불 / 3일 전 50% / 이후 환불 불가"
-                        value={refundPolicy}
-                        onChange={e => setRefundPolicy(e.target.value)}
-                        style={inputStyle(!!refundPolicy)}
-                    />
-                </Section>
-
-                {/* ── 주차 지원 ── */}
-                <Section title="주차 지원">
-                    <input
-                        type="text"
-                        placeholder="예) 행사장 인근 공영주차장 이용 / 주차 지원 없음 / 셀러 전용 주차 2대 제공"
-                        value={parkingInfo}
-                        onChange={e => setParkingInfo(e.target.value)}
-                        style={inputStyle(!!parkingInfo)}
-                    />
-                </Section>
-
-                {/* ── 현장 지원 ── */}
-                <Section title="현장 지원" hint="스텝, 집기류, 홍보 등 현장에서 제공되는 지원 사항을 입력해주세요.">
-                    <textarea
-                        value={onsiteSupport}
-                        onChange={e => setOnsiteSupport(e.target.value)}
-                        placeholder={'예:\n- 현장 스텝 상주\n- 테이블·의자 제공\n- SNS 홍보 (인스타 팔로워 5만)\n- 공동 현수막 설치'}
-                        rows={4}
-                        style={{
-                            width: '100%', border: `1.5px solid ${onsiteSupport ? T.blue : T.border}`,
-                            borderRadius: T.radiusMd, padding: '12px 14px',
-                            fontSize: 14, color: T.text, lineHeight: 1.8,
-                            outline: 'none', resize: 'vertical', background: T.bg,
-                            fontFamily: 'inherit', boxSizing: 'border-box',
-                            transition: 'border-color 0.15s',
-                        }}
-                    />
-                </Section>
-
-                {/* ── 사진 첨부 ── */}
-                <Section title="사진 첨부" hint="행사장, 부스 배치 등 참고 사진을 첨부하세요. (최대 5장)">
-                    <ImageUploader images={images} onChange={setImages} folder="recruitments" max={5} />
                 </Section>
 
                 {/* ── 신청 방법 ── */}
@@ -643,45 +719,52 @@ function RecruitmentWriteContent() {
                     title="신청 방법"
                     hint="지원자가 어떻게 신청하면 되는지 알려주세요."
                 >
-                    <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                            {[
-                                '구글폼으로 신청해주세요.',
-                                '인스타 DM으로 신청해주세요.',
-                                '이메일로 신청해주세요.',
-                                '카카오채널로 신청해주세요.',
-                            ].map(template => (
-                                <div
-                                    key={template}
-                                    onClick={() => setApplicationMethod(prev =>
-                                        prev ? `${prev}\n${template}` : template
-                                    )}
-                                    style={{
-                                        padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer',
-                                        fontSize: 12, fontWeight: 600,
-                                        background: T.grayLt, color: T.textSub,
-                                        border: `1px solid ${T.border}`,
-                                    }}
-                                >
-                                    + {template}
-                                </div>
-                            ))}
+                    {profileDefaults.application && (
+                        <button
+                            type="button"
+                            onClick={() => setApplicationMethod(profileDefaults.application)}
+                            style={loadBtnStyle}
+                        >
+                            <Copy size={13} /> 저장된 정보 불러오기
+                        </button>
+                    )}
+                    <textarea
+                        value={applicationMethod}
+                        onChange={e => setApplicationMethod(e.target.value)}
+                        placeholder={'예:\n구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market\n이메일: apply@example.com\n\n신청 시 품목명, 예상 매출, 판매 경력을 함께 보내주세요.'}
+                        rows={5}
+                        style={textareaStyle(!!applicationMethod)}
+                    />
+                    {!profileDefaults.application && (
+                        <div style={{ fontSize: 11, color: T.gray, marginTop: 8, lineHeight: 1.6 }}>
+                            💡 마이페이지 &gt; 프로필 수정 &gt; 공고 기본 정보에서 기본 신청 방법을 저장하면 한 번에 불러올 수 있어요.
                         </div>
-                        <textarea
-                            value={applicationMethod}
-                            onChange={e => setApplicationMethod(e.target.value)}
-                            placeholder={'예:\n구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market\n이메일: apply@example.com\n\n신청 시 품목명, 예상 매출, 판매 경력을 함께 보내주세요.'}
-                            rows={5}
-                            style={{
-                                width: '100%', border: `1.5px solid ${applicationMethod ? T.blue : T.border}`,
-                                borderRadius: T.radiusMd, padding: '12px 14px',
-                                fontSize: 14, color: T.text, lineHeight: 1.8,
-                                outline: 'none', resize: 'vertical', background: T.bg,
-                                fontFamily: 'inherit', boxSizing: 'border-box',
-                                transition: 'border-color 0.15s',
-                            }}
-                        />
-                    </div>
+                    )}
+                </Section>
+
+                {/* ── 연락처 ── */}
+                <Section title="연락처" hint="문의를 받을 연락처를 입력해주세요.">
+                    {profileDefaults.contact && (
+                        <button
+                            type="button"
+                            onClick={() => setContact(profileDefaults.contact)}
+                            style={loadBtnStyle}
+                        >
+                            <Copy size={13} /> 저장된 정보 불러오기
+                        </button>
+                    )}
+                    <input
+                        type="text"
+                        placeholder="예) 010-1234-5678 / 카카오 오픈채팅 링크"
+                        value={contact}
+                        onChange={e => setContact(e.target.value)}
+                        style={inputStyle(!!contact)}
+                    />
+                    {!profileDefaults.contact && (
+                        <div style={{ fontSize: 11, color: T.gray, marginTop: 8, lineHeight: 1.6 }}>
+                            💡 마이페이지 &gt; 프로필 수정 &gt; 공고 기본 정보에서 기본 연락처를 저장하면 한 번에 불러올 수 있어요.
+                        </div>
+                    )}
                 </Section>
 
                 {/* ── 등록 버튼 ── */}

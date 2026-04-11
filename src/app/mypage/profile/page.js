@@ -52,6 +52,8 @@ export default function ProfilePage() {
     // 주최사 필드
     const [orgName, setOrgName] = useState('');
     const [orgDesc, setOrgDesc] = useState('');
+    const [defaultApplicationMethod, setDefaultApplicationMethod] = useState('');
+    const [defaultContact, setDefaultContact] = useState('');
 
     const [avatarUrl, setAvatarUrl] = useState('');
     const [avatarUploading, setAvatarUploading] = useState(false);
@@ -71,7 +73,7 @@ export default function ProfilePage() {
         (async () => {
             const sb = createClient();
             const { data } = await sb.from('profiles')
-                .select('name, plan, seller_type, brand_name, real_name, phone, products, promo_link, organizer_name, organizer_desc, avatar_url')
+                .select('name, plan, seller_type, brand_name, real_name, phone, products, promo_link, organizer_name, organizer_desc, avatar_url, default_application_method, default_contact')
                 .eq('id', user.id).maybeSingle();
             if (data) {
                 setName(data.name || user.user_metadata?.full_name || user.user_metadata?.name || '');
@@ -84,6 +86,8 @@ export default function ProfilePage() {
                 setPromoLink(data.promo_link || '');
                 setOrgName(data.organizer_name || '');
                 setOrgDesc(data.organizer_desc || '');
+                setDefaultApplicationMethod(data.default_application_method || '');
+                setDefaultContact(data.default_contact || '');
             }
             setLoaded(true);
         })();
@@ -133,6 +137,8 @@ export default function ProfilePage() {
                 promo_link: promoLink.trim() || null,
                 organizer_name: orgName.trim() || null,
                 organizer_desc: orgDesc.trim() || null,
+                default_application_method: defaultApplicationMethod.trim() || null,
+                default_contact: defaultContact.trim() || null,
             };
 
             // 역할 변경 처리 (승인 없이 즉시 전환)
@@ -301,14 +307,36 @@ export default function ProfilePage() {
 
                     {/* ── 주최사 상세 정보 ── */}
                     {isOrganizer && (
-                        <Card>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>주최사 정보</div>
-                            <FieldInput label="주최사명 *" value={orgName} onChange={setOrgName} placeholder="예: 서울플리마켓협회" />
-                            <FieldInput label="주최사 설명" value={orgDesc} onChange={setOrgDesc} placeholder="주최사 소개를 입력하세요" multiline />
-                            <FieldInput label="성함" value={realName} onChange={setRealName} placeholder="담당자 실명" />
-                            <FieldInput label="연락처" value={phone} onChange={setPhone} placeholder="010-0000-0000" />
-                            <FieldInput label="홍보 링크" value={promoLink} onChange={setPromoLink} placeholder="홈페이지, 인스타 등 URL" />
-                        </Card>
+                        <>
+                            <Card>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>주최사 정보</div>
+                                <FieldInput label="주최사명 *" value={orgName} onChange={setOrgName} placeholder="예: 서울플리마켓협회" />
+                                <FieldInput label="주최사 설명" value={orgDesc} onChange={setOrgDesc} placeholder="주최사 소개를 입력하세요" multiline />
+                                <FieldInput label="성함" value={realName} onChange={setRealName} placeholder="담당자 실명" />
+                                <FieldInput label="연락처" value={phone} onChange={setPhone} placeholder="010-0000-0000" />
+                                <FieldInput label="홍보 링크" value={promoLink} onChange={setPromoLink} placeholder="홈페이지, 인스타 등 URL" />
+                            </Card>
+
+                            <Card>
+                                <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 4 }}>공고 기본 정보</div>
+                                <div style={{ fontSize: 12, color: T.gray, marginBottom: 14, lineHeight: 1.6 }}>
+                                    공고 작성 시 &lsquo;저장된 정보 불러오기&rsquo; 버튼으로 빠르게 채울 수 있어요.
+                                </div>
+                                <FieldInput
+                                    label="기본 신청 방법"
+                                    value={defaultApplicationMethod}
+                                    onChange={setDefaultApplicationMethod}
+                                    placeholder={'예) 구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market'}
+                                    multiline
+                                />
+                                <FieldInput
+                                    label="기본 연락처"
+                                    value={defaultContact}
+                                    onChange={setDefaultContact}
+                                    placeholder="예) 010-1234-5678 / 카카오 오픈채팅: https://open.kakao.com/..."
+                                />
+                            </Card>
+                        </>
                     )}
 
                     {/* ── 저장 ── */}
