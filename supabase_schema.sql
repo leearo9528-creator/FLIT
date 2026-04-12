@@ -51,6 +51,10 @@ CREATE TABLE public.profiles (
     organizer_name      TEXT,   -- 주최사 표시 이름 (organizers.name 초기값)
     organizer_desc      TEXT,   -- 주최사 설명
 
+    -- 공고 작성 시 기본값 (프로필에 저장)
+    default_application_method TEXT,
+    default_contact            TEXT,
+
     -- 리뷰 카운트 (트리거 관리)
     review_count        INT DEFAULT 0,
 
@@ -216,6 +220,8 @@ CREATE TABLE public.recruitments (
     extra_costs         JSONB,                 -- 레거시: [{label, amount}, ...]
 
     application_method  TEXT,
+    contact             TEXT,                  -- 연락처
+    recruitment_items   TEXT,                  -- 모집 품목
     refund_policy       TEXT,                  -- 환불규정
     parking_info        TEXT,                  -- 주차지원
     onsite_support      TEXT,                  -- 현장지원
