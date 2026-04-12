@@ -486,7 +486,7 @@ function RecruitmentWriteContent() {
                 {/* ── 행사 일자 + 장소 ── */}
                 <Section title="행사 일자 / 장소" required>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, width: '65%' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <Calendar size={12} /> 시작일
