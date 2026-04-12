@@ -486,8 +486,8 @@ function RecruitmentWriteContent() {
                 {/* ── 행사 일자 + 장소 ── */}
                 <Section title="행사 일자 / 장소" required>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <div style={{ display: 'flex', gap: 8, width: '65%' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                            <div>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <Calendar size={12} /> 시작일
                                 </div>
@@ -495,10 +495,10 @@ function RecruitmentWriteContent() {
                                     type="date"
                                     value={eventDate}
                                     onChange={e => setEventDate(e.target.value)}
-                                    style={{ ...inputStyle(!!eventDate), padding: '11px 10px', minWidth: 0, width: '100%' }}
+                                    style={{ ...inputStyle(!!eventDate), padding: '11px 8px', fontSize: 13, minWidth: 0, width: '100%' }}
                                 />
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                            <div>
                                 <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <Calendar size={12} /> 종료일<span style={{ fontWeight: 400, marginLeft: 2 }}>(선택)</span>
                                 </div>
@@ -507,7 +507,7 @@ function RecruitmentWriteContent() {
                                     value={eventDateEnd}
                                     onChange={e => setEventDateEnd(e.target.value)}
                                     min={eventDate}
-                                    style={{ ...inputStyle(!!eventDateEnd), padding: '11px 10px', minWidth: 0, width: '100%' }}
+                                    style={{ ...inputStyle(!!eventDateEnd), padding: '11px 8px', fontSize: 13, minWidth: 0, width: '100%' }}
                                 />
                             </div>
                         </div>
