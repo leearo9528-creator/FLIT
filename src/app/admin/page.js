@@ -202,54 +202,36 @@ function ExcelUploader({ onComplete }) {
 
     const addLog = (msg) => setLog(prev => [...prev, `${new Date().toLocaleTimeString()} ${msg}`]);
 
-    const handleUpload = async (e) => {
+    const handleUpload = useCallback(async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setUploading(true); setLog([]); setStatus('업로드 중...');
-        addLog(`파일 선택: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+        setUploading(true);
+        setLog([]);
+        setStatus('업로드 중...');
+
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('isMock', String(isMock));
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('isMock', String(isMock));
-
-            addLog('서버로 전송 시작...');
             setStatus('서버에서 처리 중...');
-            const controller = new AbortController();
-            const timeout = setTimeout(() => { controller.abort(); addLog('⏰ 60초 타임아웃 발생'); }, 60000);
-            const res = await fetch('/api/admin/excel-import', {
-                method: 'POST',
-                body: formData,
-                signal: controller.signal,
-                credentials: 'include',
-            });
-            clearTimeout(timeout);
-            addLog(`서버 응답 수신: HTTP ${res.status}`);
-            const text = await res.text();
-            addLog(`응답 크기: ${text.length}자`);
-            let result;
-            try { result = JSON.parse(text); } catch {
-                addLog(`JSON 파싱 실패 — 원본: ${text.slice(0, 300)}`);
-                setStatus('오류 발생');
-                return;
-            }
+            const res = await fetch('/api/admin/excel-import', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.logs) setLog(data.logs);
             if (!res.ok) {
-                (result.logs || []).forEach(l => setLog(prev => [...prev, l]));
-                addLog(`서버 오류 (${res.status}): ${result.error || res.statusText}`);
                 setStatus('오류 발생');
             } else {
-                (result.logs || []).forEach(l => setLog(prev => [...prev, l]));
                 setStatus('완료!');
                 onComplete?.();
             }
         } catch (err) {
             setStatus('오류 발생');
-            addLog(`오류: ${err.name}: ${err.message}`);
+            setLog(prev => [...prev, `오류: ${err.message}`]);
         } finally {
             setUploading(false);
             if (fileRef.current) fileRef.current.value = '';
         }
-    };
+    }, [isMock, onComplete]);
 
     return (
         <div style={{ padding: '0 16px' }}>
