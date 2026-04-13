@@ -1866,6 +1866,7 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [editItem, setEditItem] = useState(null); // { item, tableName, fields }
     const [orgRecsModal, setOrgRecsModal] = useState(null); // { orgName, recs[] }
+    const [evtInstsModal, setEvtInstsModal] = useState(null); // { evtName, instances[] }
 
     useEffect(() => {
         if (authLoading) return;
@@ -1891,16 +1892,19 @@ export default function AdminPage() {
                 sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance_id, event_instance:event_instances(id, organizer_id, event_date, event_date_end, base_event:base_events(name), organizer:organizers(name))').order('created_at', { ascending: false }).limit(300),
                 sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
-                sb.from('event_instances').select('id, organizer_id'),
+                sb.from('event_instances').select('id, organizer_id, base_event_id, event_date, event_date_end, location, organizer:organizers(name)').order('event_date', { ascending: false }),
             ]);
-            setEvents(eRes.data || []);
             setRecruitments(rRes.data || []);
-            // 실제 event_instances 카운트 계산
-            const instCounts = {};
-            (instRes.data || []).forEach(inst => {
-                if (inst.organizer_id) instCounts[inst.organizer_id] = (instCounts[inst.organizer_id] || 0) + 1;
+            // 실제 event_instances 카운트 계산 (주최사별 + 행사별)
+            const orgInstCounts = {};
+            const evtInstCounts = {};
+            const allInstances = instRes.data || [];
+            allInstances.forEach(inst => {
+                if (inst.organizer_id) orgInstCounts[inst.organizer_id] = (orgInstCounts[inst.organizer_id] || 0) + 1;
+                if (inst.base_event_id) evtInstCounts[inst.base_event_id] = (evtInstCounts[inst.base_event_id] || 0) + 1;
             });
-            setOrgList((oRes.data || []).map(o => ({ ...o, real_instance_count: instCounts[o.id] || 0 })));
+            setEvents((eRes.data || []).map(e => ({ ...e, real_instance_count: evtInstCounts[e.id] || 0, _instances: allInstances.filter(i => i.base_event_id === e.id) })));
+            setOrgList((oRes.data || []).map(o => ({ ...o, real_instance_count: orgInstCounts[o.id] || 0 })));
             setUserList(uRes.data || []);
         } catch (err) { console.error('관리자 작업 실패'); }
         finally { setLoading(false); }
@@ -1942,8 +1946,17 @@ export default function AdminPage() {
     const evtCols = [
         { key: 'name', label: '행사명', width: 'auto' },
         { key: 'category', label: '카테고리', width: 120 },
-        { key: 'total_instances', label: '개최', width: 60 },
-        { key: 'total_reviews', label: '리뷰', width: 60 },
+        {
+            key: 'real_instance_count', label: '개최', width: 60,
+            sortValue: r => r.real_instance_count || 0,
+            render: r => (
+                <span
+                    onClick={(e) => { e.stopPropagation(); setEvtInstsModal({ evtName: r.name, instances: r._instances || [] }); }}
+                    style={{ color: T.blue, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >{r.real_instance_count || 0}</span>
+            ),
+        },
+        { key: 'total_reviews', label: '리뷰', width: 60, sortValue: r => r.total_reviews || 0 },
     ];
     const evtFields = [
         { key: 'name', label: '행사명', type: 'text' },
@@ -2074,6 +2087,34 @@ export default function AdminPage() {
                                         }}>{rec.status === 'OPEN' ? '모집중' : '마감'}</span>
                                     </div>
                                 </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* 행사 개최 목록 모달 */}
+            {evtInstsModal && (
+                <div onClick={e => { if (e.target === e.currentTarget) setEvtInstsModal(null); }}
+                    style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: T.white, borderRadius: T.radiusLg, width: '90%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${T.border}` }}>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{evtInstsModal.evtName} 개최 이력 ({evtInstsModal.instances.length})</div>
+                            <X size={20} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setEvtInstsModal(null)} />
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+                            {evtInstsModal.instances.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 14 }}>개최 이력이 없어요.</div>
+                            ) : evtInstsModal.instances.map(inst => (
+                                <div key={inst.id} style={{ padding: '12px 14px', marginBottom: 8, background: T.bg, borderRadius: T.radiusMd, border: `1px solid ${T.border}` }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                                            {inst.event_date ? inst.event_date.slice(0, 10) : '날짜 없음'}
+                                            {inst.event_date_end && inst.event_date_end !== inst.event_date ? ` ~ ${inst.event_date_end.slice(0, 10)}` : ''}
+                                        </span>
+                                        <span style={{ fontSize: 11, color: T.gray }}>{inst.organizer?.name || '주최사 없음'}</span>
+                                    </div>
+                                    <div style={{ fontSize: 12, color: T.textSub }}>{inst.location || '장소 미정'}</div>
+                                </div>
                             ))}
                         </div>
                     </div>
