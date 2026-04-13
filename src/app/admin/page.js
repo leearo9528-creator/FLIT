@@ -523,8 +523,8 @@ function BulkReviewManager() {
             const sb = createClient();
             const { data } = await sb
                 .from('event_instances')
-                .select('id, event_date, event_date_end, location, base_event:base_events(name), organizer:organizers(name)')
-                .ilike('base_event.name', `%${keyword.trim()}%`)
+                .select('id, event_date, event_date_end, location, base_event:base_events!inner(name), organizer:organizers(name)')
+                .ilike('base_events.name', `%${keyword.trim()}%`)
                 .order('event_date', { ascending: false })
                 .limit(30);
             setInstances((data || []).filter(d => d.base_event));

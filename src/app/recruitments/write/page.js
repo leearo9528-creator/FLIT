@@ -410,6 +410,7 @@ function RecruitmentWriteContent() {
                 {/* ── 이전 공고 불러오기 ── */}
                 {!editId && pastRecs.length > 0 && (
                     <button
+                        type="button"
                         onClick={() => { setPastModalMode('all'); setShowPastModal(true); }}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
