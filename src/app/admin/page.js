@@ -202,35 +202,47 @@ function ExcelUploader({ onComplete }) {
 
     const addLog = (msg) => setLog(prev => [...prev, `${new Date().toLocaleTimeString()} ${msg}`]);
 
-    const handleUpload = useCallback(async (e) => {
+    const handleUpload = useCallback((e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(true);
         setLog([]);
-        setStatus('업로드 중...');
+        setStatus('서버에서 처리 중...');
 
         const fd = new FormData();
         fd.append('file', file);
         fd.append('isMock', String(isMock));
 
-        try {
-            setStatus('서버에서 처리 중...');
-            const res = await fetch('/api/admin/excel-import', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (data.logs) setLog(data.logs);
-            if (!res.ok) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/admin/excel-import');
+        xhr.withCredentials = true;
+        xhr.onload = () => {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (data.logs) setLog(data.logs);
+                setStatus(xhr.status === 200 ? '완료!' : '오류 발생');
+                if (xhr.status === 200) onComplete?.();
+            } catch {
+                setLog([`응답 파싱 실패: ${xhr.responseText.slice(0, 200)}`]);
                 setStatus('오류 발생');
-            } else {
-                setStatus('완료!');
-                onComplete?.();
             }
-        } catch (err) {
-            setStatus('오류 발생');
-            setLog(prev => [...prev, `오류: ${err.message}`]);
-        } finally {
             setUploading(false);
             if (fileRef.current) fileRef.current.value = '';
-        }
+        };
+        xhr.onerror = () => {
+            setLog([`네트워크 오류 발생`]);
+            setStatus('오류 발생');
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = '';
+        };
+        xhr.ontimeout = () => {
+            setLog([`60초 타임아웃`]);
+            setStatus('오류 발생');
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = '';
+        };
+        xhr.timeout = 60000;
+        xhr.send(fd);
     }, [isMock, onComplete]);
 
     return (
