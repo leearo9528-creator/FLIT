@@ -242,8 +242,8 @@ function ExcelUploader({ onComplete }) {
                 <div style={{ fontSize: 12, color: T.gray, marginBottom: 12, lineHeight: 1.6 }}>
                     엑셀 파일을 선택하면 자동으로 업로드됩니다.<br/>
                     <b>단일 시트</b> 형식: 한 행에 공고 하나씩 입력<br/>
-                    <span style={{ color: T.blue }}>행사명* | 공고제목* | 주최사명 | 카테고리 | 장소 | 시/도 | 행사시작일 | 행사종료일 | 모집시작일 | 모집마감일 | 참가비 | 환불규정 | 주차지원 | 현장지원 | 신청방법 | 공고내용 | 상태</span><br/>
-                    <span style={{ color: T.gray }}>참가비는 자유 텍스트 (예: &quot;무료&quot;, &quot;1일 8만원&quot;, &quot;매출의 20%&quot;)</span>
+                    <span style={{ color: T.blue }}>행사명* | 공고제목* | 주최사명 | 주최사 연락처 | 주최사 인스타그램 | 카테고리 | 장소* | 시/도 | 행사시작일* | 행사종료일 | 공고내용 | 참가비 | 신청방법 | 환불규정 | 주차지원 | 현장지원 | 모집대상 | 모집시작일 | 모집마감일* | 상태</span><br/>
+                    <span style={{ color: T.gray }}>참가비는 자유 텍스트 (예: &quot;무료&quot;, &quot;1일 8만원&quot;, &quot;매출의 20%&quot;) · 모집대상: seller / foodtruck (비우면 전체)</span>
                 </div>
                 <a href="/data_template.xlsx" download="FLIT_데이터입력양식.xlsx"
                     style={{ display: 'inline-block', padding: '8px 16px', borderRadius: T.radiusMd, background: T.blueLt, color: T.blue, fontSize: 12, fontWeight: 700, textDecoration: 'none', marginBottom: 14 }}>
