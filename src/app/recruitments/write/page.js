@@ -123,6 +123,7 @@ function RecruitmentWriteContent() {
     // 이전 공고 불러오기
     const [pastRecs, setPastRecs] = useState([]);
     const [showPastModal, setShowPastModal] = useState(false);
+    const [pastModalMode, setPastModalMode] = useState('all'); // 'all' | 'detail'
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -271,24 +272,37 @@ function RecruitmentWriteContent() {
     };
 
     const applyPastRecruitment = (rec) => {
-        const baseEv = rec.event_instance?.base_event;
-        if (baseEv) {
-            setSelectedBaseEvent(baseEv);
-            setEventKeyword(baseEv.name || '');
+        if (pastModalMode === 'detail') {
+            // 상세 공고 필드만 불러오기
+            setFeeText(rec.fee_description || '');
+            setSellerType(rec.seller_type || '');
+            setRecruitmentItems(rec.recruitment_items || '');
+            setRecruitmentScale(rec.recruitment_scale || '');
+            setOnsiteSupport(rec.onsite_support || '');
+            setSpecialNotes(rec.special_notes || '');
+            setParkingInfo(rec.parking_info || '');
+            setRefundPolicy(rec.refund_policy || '');
+        } else {
+            // 전체 불러오기
+            const baseEv = rec.event_instance?.base_event;
+            if (baseEv) {
+                setSelectedBaseEvent(baseEv);
+                setEventKeyword(baseEv.name || '');
+            }
+            if (rec.event_instance?.location) setLocation(rec.event_instance.location);
+            setTitle(rec.title || '');
+            setRecruitmentItems(rec.recruitment_items || '');
+            setRecruitmentScale(rec.recruitment_scale || '');
+            setFeeText(rec.fee_description || '');
+            setSellerType(rec.seller_type || '');
+            setApplicationMethod(rec.application_method || '');
+            setContact(rec.contact || '');
+            setRefundPolicy(rec.refund_policy || '');
+            setParkingInfo(rec.parking_info || '');
+            setOnsiteSupport(rec.onsite_support || '');
+            setSpecialNotes(rec.special_notes || '');
+            setImages(rec.images || []);
         }
-        if (rec.event_instance?.location) setLocation(rec.event_instance.location);
-        setTitle(rec.title || '');
-        setRecruitmentItems(rec.recruitment_items || '');
-        setRecruitmentScale(rec.recruitment_scale || '');
-        setFeeText(rec.fee_description || '');
-        setSellerType(rec.seller_type || '');
-        setApplicationMethod(rec.application_method || '');
-        setContact(rec.contact || '');
-        setRefundPolicy(rec.refund_policy || '');
-        setParkingInfo(rec.parking_info || '');
-        setOnsiteSupport(rec.onsite_support || '');
-        setSpecialNotes(rec.special_notes || '');
-        setImages(rec.images || []);
         setShowPastModal(false);
     };
 
@@ -396,7 +410,7 @@ function RecruitmentWriteContent() {
                 {/* ── 이전 공고 불러오기 ── */}
                 {!editId && pastRecs.length > 0 && (
                     <button
-                        onClick={() => setShowPastModal(true)}
+                        onClick={() => { setPastModalMode('all'); setShowPastModal(true); }}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                             width: '100%', padding: '12px 16px',
@@ -598,6 +612,15 @@ function RecruitmentWriteContent() {
 
                 {/* ── 상세 공고 ── */}
                 <Section title="상세 공고">
+                    {!editId && pastRecs.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => { setPastModalMode('detail'); setShowPastModal(true); }}
+                            style={loadBtnStyle}
+                        >
+                            <Copy size={13} /> 이전 공고에서 불러오기
+                        </button>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
                         {/* 모집 셀러 유형 */}
@@ -840,9 +863,13 @@ function RecruitmentWriteContent() {
                             padding: '20px 20px 12px', borderBottom: `1px solid ${T.border}`,
                         }}>
                             <div>
-                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>이전 공고 불러오기</div>
+                                <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>
+                                    {pastModalMode === 'detail' ? '상세 공고 불러오기' : '이전 공고 불러오기'}
+                                </div>
                                 <div style={{ fontSize: 12, color: T.gray, marginTop: 4 }}>
-                                    선택한 공고의 내용이 자동으로 채워져요. 날짜는 새로 입력해주세요.
+                                    {pastModalMode === 'detail'
+                                        ? '선택한 공고의 상세 내용(참가비, 모집 품목 등)이 채워져요.'
+                                        : '선택한 공고의 내용이 자동으로 채워져요. 날짜는 새로 입력해주세요.'}
                                 </div>
                             </div>
                             <button
