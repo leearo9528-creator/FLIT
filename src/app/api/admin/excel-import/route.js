@@ -41,7 +41,14 @@ export async function POST(request) {
     const addLog = (msg) => logs.push(`${new Date().toLocaleTimeString()} ${msg}`);
 
     try {
+        // 디버그: URL 파라미터로 test=1 보내면 즉시 응답
+        const url = new URL(request.url);
+        if (url.searchParams.get('test') === '1') {
+            return NextResponse.json({ logs: ['POST 테스트 성공'] });
+        }
+
         // 1. 관리자 인증
+        addLog('인증 시작...');
         let isAdmin = false;
         try { isAdmin = await verifyAdmin(); } catch (e) {
             console.error('verifyAdmin error:', e);
@@ -53,6 +60,7 @@ export async function POST(request) {
         addLog('관리자 인증 완료');
 
         // 2. 파일 읽기
+        addLog('파일 파싱 시작...');
         const formData = await request.formData();
         const isMock = formData.get('isMock') === 'true';
         const file = formData.get('file');

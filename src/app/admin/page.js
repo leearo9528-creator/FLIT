@@ -221,6 +221,7 @@ function ExcelUploader({ onComplete }) {
                 method: 'POST',
                 body: formData,
                 signal: controller.signal,
+                credentials: 'include',
             });
             clearTimeout(timeout);
             addLog(`서버 응답 수신: HTTP ${res.status}`);
