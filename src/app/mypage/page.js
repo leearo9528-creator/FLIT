@@ -94,7 +94,7 @@ export default function MyPage() {
                     }
                 }
             } catch (err) {
-                console.error('마이페이지 로드 실패:', err);
+                console.error('마이페이지 로드 실패');
             }
         })();
     }, [user, plan]);

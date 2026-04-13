@@ -119,7 +119,7 @@ export default function NotificationDrawer({ open, onClose, userId }) {
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(50);
-            if (error) console.error('알림 로드 실패:', error);
+            if (error) console.error('알림 로드 실패');
             if (data) setNotifs(data);
             setLoading(false);
         })();

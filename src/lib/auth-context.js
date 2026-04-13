@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
             setReviewCount(data?.review_count ?? 0);
             setCanViewReviews(canViewReviewsNow(data?.last_review_at, data?.review_count));
         } catch (err) {
-            console.error('프로필 로드 실패:', err);
+            console.error('프로필 로드 실패');
         }
     };
 

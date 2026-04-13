@@ -98,6 +98,7 @@ function RecruitmentWriteContent() {
     const [endDate, setEndDate] = useState('');
     const [sellerType, setSellerType] = useState('');
     const [recruitmentItems, setRecruitmentItems] = useState('');
+    const [recruitmentScale, setRecruitmentScale] = useState('');
 
     // 신청 방법 + 추가 정보
     const [applicationMethod, setApplicationMethod] = useState('');
@@ -105,6 +106,7 @@ function RecruitmentWriteContent() {
     const [refundPolicy, setRefundPolicy] = useState('');
     const [parkingInfo, setParkingInfo] = useState('');
     const [onsiteSupport, setOnsiteSupport] = useState('');
+    const [specialNotes, setSpecialNotes] = useState('');
 
     // 프로필에 저장된 기본 정보 (불러오기용)
     const [profileDefaults, setProfileDefaults] = useState({ application: '', contact: '' });
@@ -188,7 +190,7 @@ function RecruitmentWriteContent() {
             if (!editId) {
                 const { data: pastData } = await sb
                     .from('recruitments')
-                    .select('id, title, recruitment_items, fee_description, application_method, contact, refund_policy, parking_info, onsite_support, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
+                    .select('id, title, recruitment_items, recruitment_scale, fee_description, application_method, contact, refund_policy, parking_info, onsite_support, special_notes, seller_type, images, created_at, event_instance:event_instances!inner(id, location, organizer_id, base_event:base_events(id, name, category))')
                     .eq('event_instance.organizer_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(20);
@@ -220,6 +222,7 @@ function RecruitmentWriteContent() {
                 setLocation(rec.event_instance.location || '');
                 setTitle(rec.title || '');
                 setRecruitmentItems(rec.recruitment_items || '');
+                setRecruitmentScale(rec.recruitment_scale || '');
                 setFeeText(rec.fee_description || '');
                 setEndDate(rec.end_date || '');
                 setSellerType(rec.seller_type || '');
@@ -228,6 +231,7 @@ function RecruitmentWriteContent() {
                 setRefundPolicy(rec.refund_policy || '');
                 setParkingInfo(rec.parking_info || '');
                 setOnsiteSupport(rec.onsite_support || '');
+                setSpecialNotes(rec.special_notes || '');
                 setImages(rec.images || []);
             }
         })();
@@ -275,6 +279,7 @@ function RecruitmentWriteContent() {
         if (rec.event_instance?.location) setLocation(rec.event_instance.location);
         setTitle(rec.title || '');
         setRecruitmentItems(rec.recruitment_items || '');
+        setRecruitmentScale(rec.recruitment_scale || '');
         setFeeText(rec.fee_description || '');
         setSellerType(rec.seller_type || '');
         setApplicationMethod(rec.application_method || '');
@@ -282,6 +287,7 @@ function RecruitmentWriteContent() {
         setRefundPolicy(rec.refund_policy || '');
         setParkingInfo(rec.parking_info || '');
         setOnsiteSupport(rec.onsite_support || '');
+        setSpecialNotes(rec.special_notes || '');
         setImages(rec.images || []);
         setShowPastModal(false);
     };
@@ -310,6 +316,7 @@ function RecruitmentWriteContent() {
             const recPayload = {
                 title: title.trim(),
                 recruitment_items: recruitmentItems.trim() || null,
+                recruitment_scale: recruitmentScale.trim() || null,
                 fee_description: feeText.trim() || null,
                 end_date: endDate || null,
                 application_method: applicationMethod.trim() || null,
@@ -317,6 +324,7 @@ function RecruitmentWriteContent() {
                 refund_policy: refundPolicy.trim() || null,
                 parking_info: parkingInfo.trim() || null,
                 onsite_support: onsiteSupport.trim() || null,
+                special_notes: specialNotes.trim() || null,
                 seller_type: sellerType || null,
                 images: images.length > 0 ? images : null,
             };
@@ -355,7 +363,7 @@ function RecruitmentWriteContent() {
                 router.push(`/recruitments/${rec.id}`);
             }
         } catch (err) {
-            console.error('공고 등록 오류:', err);
+            console.error('공고 등록 오류');
             alert((editId ? '수정' : '등록') + ' 중 오류가 발생했습니다.\n' + (err.message || ''));
             setIsSubmitting(false);
         }
@@ -642,6 +650,20 @@ function RecruitmentWriteContent() {
                             />
                         </div>
 
+                        {/* 모집 규모 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                모집 규모
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예) 20팀 / 10~15팀 / 50팀 이상"
+                                value={recruitmentScale}
+                                onChange={e => setRecruitmentScale(e.target.value)}
+                                style={inputStyle(!!recruitmentScale)}
+                            />
+                        </div>
+
                         {/* 현장 지원 */}
                         <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
@@ -662,6 +684,20 @@ function RecruitmentWriteContent() {
                                 placeholder={'예:\n- 현장 스텝 상주\n- 테이블·의자 제공\n- SNS 홍보'}
                                 rows={3}
                                 style={textareaStyle(!!onsiteSupport)}
+                            />
+                        </div>
+
+                        {/* 특이사항 */}
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
+                                특이사항
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="예) 현장 전기사용 절대 불가 / 우천 시 취소"
+                                value={specialNotes}
+                                onChange={e => setSpecialNotes(e.target.value)}
+                                style={inputStyle(!!specialNotes)}
                             />
                         </div>
 

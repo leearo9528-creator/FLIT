@@ -80,7 +80,7 @@ export default function PostDetailPage() {
                     .order('created_at', { ascending: true }),
             ]);
             if (postError) {
-                console.error('[community detail] post fetch error:', postError);
+                console.error('게시글 로드 실패');
                 setFetchError(postError.message || JSON.stringify(postError));
             }
             if (postData) {
@@ -114,7 +114,7 @@ export default function PostDetailPage() {
         const sb = createClient();
         const { error } = await sb.from('posts').update({ likes: nextCount }).eq('id', id);
         if (error) {
-            console.error('좋아요 실패:', error);
+            console.error('좋아요 실패');
             setIsLiked(!next);
             setLikeCount(likeCount);
         }
@@ -148,7 +148,7 @@ export default function PostDetailPage() {
         if (!window.confirm('댓글을 삭제할까요?')) return;
         const sb = createClient();
         const { error } = await sb.from('post_comments').delete().eq('id', commentId);
-        if (error) { console.error('댓글 삭제 실패:', error); return; }
+        if (error) { console.error('댓글 삭제 실패'); return; }
         setComments(prev => prev.filter(c => c.id !== commentId));
     }, [user, comments]);
 
@@ -157,7 +157,7 @@ export default function PostDetailPage() {
         if (!editingText.trim()) return;
         const sb = createClient();
         const { error } = await sb.from('post_comments').update({ content: editingText.trim() }).eq('id', commentId);
-        if (error) { console.error('댓글 수정 실패:', error); return; }
+        if (error) { console.error('댓글 수정 실패'); return; }
         setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: editingText.trim() } : c));
         setEditingCommentId(null);
     }, [editingText]);
@@ -167,7 +167,7 @@ export default function PostDetailPage() {
         if (!editPostTitle.trim()) return;
         const sb = createClient();
         const { error } = await sb.from('posts').update({ title: editPostTitle.trim(), content: editPostContent.trim() }).eq('id', id);
-        if (error) { console.error('글 수정 실패:', error); alert('수정 중 오류가 발생했어요.'); return; }
+        if (error) { console.error('글 수정 실패'); alert('수정 중 오류가 발생했어요.'); return; }
         setPost(prev => ({ ...prev, title: editPostTitle.trim(), content: editPostContent.trim() }));
         setIsEditingPost(false);
     };
@@ -177,7 +177,7 @@ export default function PostDetailPage() {
         if (!window.confirm('게시글을 삭제할까요?')) return;
         const sb = createClient();
         const { error } = await sb.from('posts').delete().eq('id', id);
-        if (error) { console.error('글 삭제 실패:', error); alert('삭제 중 오류가 발생했어요.'); return; }
+        if (error) { console.error('글 삭제 실패'); alert('삭제 중 오류가 발생했어요.'); return; }
         router.replace('/community');
     };
 

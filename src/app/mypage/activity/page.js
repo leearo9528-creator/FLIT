@@ -145,9 +145,9 @@ export default function MyActivityPage() {
         setFetching(false);
     }
 
-    const deleteReview = async (id) => { if (!confirm('리뷰를 삭제할까요?')) return; const sb = createClient(); await sb.from('reviews').delete().eq('id', id); setReviews(prev => prev.filter(r => r.id !== id)); };
-    const deletePost = async (id) => { if (!confirm('게시글을 삭제할까요?')) return; const sb = createClient(); await sb.from('posts').delete().eq('id', id); setPosts(prev => prev.filter(p => p.id !== id)); };
-    const deleteComment = async (id) => { if (!confirm('댓글을 삭제할까요?')) return; const sb = createClient(); await sb.from('post_comments').delete().eq('id', id); setComments(prev => prev.filter(c => c.id !== id)); };
+    const deleteReview = async (id) => { if (!confirm('리뷰를 삭제할까요?')) return; const sb = createClient(); const { error } = await sb.from('reviews').delete().eq('id', id); if (error) { alert('삭제에 실패했어요.'); return; } setReviews(prev => prev.filter(r => r.id !== id)); };
+    const deletePost = async (id) => { if (!confirm('게시글을 삭제할까요?')) return; const sb = createClient(); const { error } = await sb.from('posts').delete().eq('id', id); if (error) { alert('삭제에 실패했어요.'); return; } setPosts(prev => prev.filter(p => p.id !== id)); };
+    const deleteComment = async (id) => { if (!confirm('댓글을 삭제할까요?')) return; const sb = createClient(); const { error } = await sb.from('post_comments').delete().eq('id', id); if (error) { alert('삭제에 실패했어요.'); return; } setComments(prev => prev.filter(c => c.id !== id)); };
 
     if (loading || !user) return null;
 

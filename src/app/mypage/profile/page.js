@@ -174,7 +174,7 @@ export default function ProfilePage() {
                     promo_link: promoLink.trim() || null,
                     contact_name: realName.trim() || null,
                 }, { onConflict: 'id' });
-                if (orgErr) console.error('organizers 동기화 실패:', orgErr);
+                if (orgErr) console.error('주최사 동기화 실패');
             }
 
             await refreshPlan();
@@ -182,7 +182,7 @@ export default function ProfilePage() {
             router.push('/mypage');
         } catch (err) {
             alert('저장 중 오류가 발생했습니다: ' + (err.message || ''));
-            console.error(err);
+            console.error('프로필 저장 실패');
         } finally {
             setIsSubmitting(false);
         }
@@ -200,7 +200,7 @@ export default function ProfilePage() {
             router.replace('/');
         } catch (err) {
             alert('탈퇴 처리 중 오류가 발생했습니다.');
-            console.error(err);
+            console.error('아바타 업로드 실패');
         } finally {
             setIsWithdrawing(false);
         }

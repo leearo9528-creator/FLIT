@@ -506,7 +506,7 @@ function ReportsManager() {
             .order('created_at', { ascending: false });
         if (statusFilter !== 'all') q = q.eq('status', statusFilter);
         const { data, error } = await q;
-        if (error) { console.error('신고 로드 실패:', error); setLoading(false); return; }
+        if (error) { console.error('신고 로드 실패'); setLoading(false); return; }
         setReports(data || []);
 
         // 신고자 정보
@@ -1214,7 +1214,7 @@ export default function AdminPage() {
             setRecruitments(rRes.data || []);
             setOrgList(oRes.data || []);
             setUserList(uRes.data || []);
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error('관리자 작업 실패'); }
         finally { setLoading(false); }
     }, [isAdmin]);
 

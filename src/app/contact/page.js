@@ -36,7 +36,7 @@ export default function ContactPage() {
         setIsSubmitting(true);
         try {
             const sb = createClient();
-            await sb.from('contact_requests').insert({
+            const { error } = await sb.from('contact_requests').insert({
                 org_type: orgType || null,
                 org_name: orgName.trim(),
                 contact_name: contactName.trim(),
@@ -48,11 +48,13 @@ export default function ContactPage() {
                 scheduled_date: scheduledDate || null,
                 message: message.trim() || null,
             });
+            if (error) {
+                alert('문의 접수에 실패했어요. 잠시 후 다시 시도해주세요.');
+                return;
+            }
             setSubmitted(true);
         } catch (err) {
-            console.error(err);
-            // 테이블 없어도 성공 처리 (추후 스키마 추가)
-            setSubmitted(true);
+            alert('문의 접수에 실패했어요. 잠시 후 다시 시도해주세요.');
         } finally {
             setIsSubmitting(false);
         }

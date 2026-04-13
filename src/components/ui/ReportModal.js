@@ -60,7 +60,7 @@ export default function ReportModal({ open, onClose, targetType, targetId }) {
             if (error.code === '23505') {
                 alert('이미 신고한 내용이에요.');
             } else {
-                console.error('신고 실패:', error);
+                console.error('신고 실패');
                 alert('신고 접수에 실패했어요. 잠시 후 다시 시도해주세요.');
                 return;
             }

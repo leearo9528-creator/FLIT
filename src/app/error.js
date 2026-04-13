@@ -5,7 +5,7 @@ import { T } from '@/lib/design-tokens';
 
 export default function Error({ error, reset }) {
     useEffect(() => {
-        console.error(error);
+        console.error('페이지 오류 발생');
     }, [error]);
 
     return (

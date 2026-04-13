@@ -44,13 +44,15 @@ export default function MyScrapsPage() {
 
     const unscrapRec = async (recId) => {
         const sb = createClient();
-        await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recId);
+        const { error } = await sb.from('scraps').delete().eq('user_id', user.id).eq('recruitment_id', recId);
+        if (error) { alert('스크랩 해제에 실패했어요.'); return; }
         setRecScraps(prev => prev.filter(s => s.recruitment?.id !== recId));
     };
 
     const unscrapEvt = async (evtId) => {
         const sb = createClient();
-        await sb.from('event_scraps').delete().eq('user_id', user.id).eq('base_event_id', evtId);
+        const { error } = await sb.from('event_scraps').delete().eq('user_id', user.id).eq('base_event_id', evtId);
+        if (error) { alert('스크랩 해제에 실패했어요.'); return; }
         setEvtScraps(prev => prev.filter(s => s.base_event?.id !== evtId));
     };
 

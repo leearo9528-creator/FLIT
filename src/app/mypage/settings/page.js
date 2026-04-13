@@ -39,7 +39,7 @@ export default function SettingsPage() {
             router.push('/mypage');
         } catch (err) {
             alert('설정 저장 중 오류가 발생했습니다.');
-            console.error(err);
+            console.error('설정 저장 실패');
         } finally {
             setIsSaving(false);
         }

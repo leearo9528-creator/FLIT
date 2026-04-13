@@ -310,7 +310,7 @@ function ReviewWriteContent() {
             setInstKeyword(ev.name);
             setShowAddEvent(false); setNewEvtName(''); setNewEvtStart(''); setNewEvtEnd('');
         } catch (err) {
-            console.error(err);
+            console.error('리뷰 데이터 로드 실패');
             alert('행사 추가 중 오류가 발생했습니다.');
         } finally {
             setAddingEvent(false); }
@@ -357,13 +357,13 @@ function ReviewWriteContent() {
                     review_count: reviewCount + 1,
                     last_review_at: new Date().toISOString(),
                 }).eq('id', user.id);
-                if (profileErr) console.error('프로필 업데이트 실패:', profileErr);
+                if (profileErr) console.error('프로필 업데이트 실패');
 
                 await refreshPlan();
             }
             router.push(fromUrl);
         } catch (err) {
-            console.error('리뷰 등록 에러:', err);
+            console.error('리뷰 등록 에러');
             alert('저장 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);

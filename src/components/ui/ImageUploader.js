@@ -52,8 +52,8 @@ export default function ImageUploader({ images = [], onChange, folder = 'general
                     upsert: false,
                 });
                 if (error) {
-                    console.error('업로드 실패:', error);
-                    alert(`${file.name} 업로드 실패: ${error.message}`);
+                    console.error('업로드 실패');
+                    alert(`${file.name} 업로드에 실패했어요.`);
                     continue;
                 }
 
@@ -65,7 +65,7 @@ export default function ImageUploader({ images = [], onChange, folder = 'general
                 onChange(single ? [newUrls[0]] : [...images, ...newUrls]);
             }
         } catch (err) {
-            console.error('이미지 업로드 에러:', err);
+            console.error('이미지 업로드 에러');
             alert('이미지 업로드 중 오류가 발생했습니다.');
         } finally {
             setUploading(false);

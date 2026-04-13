@@ -39,7 +39,7 @@ export default function MyRecruitmentsPage() {
                 .order('created_at', { ascending: false });
 
             setItems(data || []);
-        } catch (err) { console.error('내 공고 로드 실패:', err); }
+        } catch (err) { console.error('내 공고 로드 실패'); }
         finally { setLoading(false); }
     }
 

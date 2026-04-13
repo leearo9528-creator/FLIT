@@ -54,7 +54,7 @@ export default function CommunityWritePage() {
             if (error) throw error;
             router.push('/community');
         } catch (err) {
-            console.error('글쓰기 에러:', err);
+            console.error('글쓰기 에러');
             alert('저장 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);

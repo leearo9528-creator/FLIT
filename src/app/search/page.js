@@ -531,7 +531,7 @@ function SearchContent() {
                 if (recRes.data) setRecruitments(recRes.data);
                 if (scrapRes.data) setScrappedSet(new Set(scrapRes.data.map(s => s.recruitment_id)));
             } catch (err) {
-                console.error('모집공고 로드 실패:', err);
+                console.error('모집공고 로드 실패');
             } finally {
                 setLoadingRec(false);
             }

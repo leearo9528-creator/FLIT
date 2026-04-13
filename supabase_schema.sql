@@ -380,7 +380,27 @@ ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 
 
 -- ────────────────────────────────────────────────
--- 12. reports — 신고
+-- 12. contact_requests — 행사 개최 문의
+-- ────────────────────────────────────────────────
+CREATE TABLE public.contact_requests (
+    id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    org_type        TEXT,
+    org_name        TEXT NOT NULL,
+    contact_name    TEXT NOT NULL,
+    contact_phone   TEXT,
+    contact_email   TEXT,
+    event_type      TEXT NOT NULL,
+    scale           TEXT,
+    location        TEXT,
+    scheduled_date  DATE,
+    message         TEXT,
+    status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'done')),
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ────────────────────────────────────────────────
+-- 13. reports — 신고
 -- ────────────────────────────────────────────────
 CREATE TABLE public.reports (
     id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -732,7 +752,15 @@ CREATE POLICY "reports_admin_all"    ON public.reports FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
 );
 
+-- contact_requests
+ALTER TABLE public.contact_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "contact_requests_insert" ON public.contact_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "contact_requests_admin_all" ON public.contact_requests FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
 -- notifications
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notifications_select" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "notifications_insert" ON public.notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "notifications_update" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);

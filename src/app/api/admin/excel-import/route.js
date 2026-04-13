@@ -6,10 +6,6 @@ import * as XLSX from 'xlsx';
 // Vercel 함수 타임아웃 60초 (Hobby 기본 10초)
 export const maxDuration = 60;
 
-// GET 헬스체크 — /api/admin/excel-import 접속 시 함수 작동 여부 확인
-export async function GET() {
-    return NextResponse.json({ ok: true, ts: Date.now(), xlsx: typeof XLSX.read });
-}
 
 function getAdminClient() {
     return createClient(
