@@ -71,6 +71,8 @@ export async function POST(request) {
             if (!행사명 || !공고제목) { addLog(`건너뜀: 행사명 또는 공고제목 없음`); continue; }
 
             const 주최사명 = (r['주최사명'] || '').trim();
+            const 주최사연락처 = (r['주최사 연락처'] || '').trim() || null;
+            const 주최사인스타 = (r['주최사 인스타그램'] || '').trim() || null;
             const 카테고리 = (r['카테고리'] || '').trim();
             const 장소 = (r['장소 *'] || r['장소'] || '').trim();
             const 시도 = (r['시/도'] || r['시도'] || '').trim();
@@ -82,6 +84,8 @@ export async function POST(request) {
             const 환불규정 = (r['환불규정'] || r['환불 규정'] || '').trim() || null;
             const 주차지원 = (r['주차지원'] || r['주차 지원'] || '').trim() || null;
             const 현장지원 = (r['현장지원'] || r['현장 지원'] || '').trim() || null;
+            const 모집대상 = (r['모집대상'] || r['모집 대상'] || '').trim().toLowerCase() || null;
+            const sellerType = (모집대상 === 'seller' || 모집대상 === 'foodtruck') ? 모집대상 : null;
             const 모집시작일 = toDateStr(r['모집시작일'] || r['모집 시작일']);
             const 모집마감일 = toDateStr(r['모집마감일 *'] || r['모집마감일'] || r['모집 마감일']);
             const 상태 = (r['상태'] || 'OPEN').trim().toUpperCase();
@@ -97,7 +101,7 @@ export async function POST(request) {
                         orgId = existing.id;
                     } else {
                         const { data: inserted, error } = await sb.from('organizers')
-                            .insert({ name: 주최사명, is_mock: isMock }).select('id').maybeSingle();
+                            .insert({ name: 주최사명, phone: 주최사연락처, instagram_handle: 주최사인스타, is_mock: isMock }).select('id').maybeSingle();
                         if (error) { addLog(`주최사 "${주최사명}" 생성 실패: ${error.message}`); }
                         else { orgId = inserted.id; addLog(`주최사 "${주최사명}" 생성`); }
                     }
@@ -158,6 +162,7 @@ export async function POST(request) {
                 refund_policy: 환불규정,
                 parking_info: 주차지원,
                 onsite_support: 현장지원,
+                seller_type: sellerType,
                 start_date: 모집시작일 || null,
                 end_date: 모집마감일 || null,
                 status: 상태,
