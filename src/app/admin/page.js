@@ -577,12 +577,15 @@ function BulkReviewManager() {
     const [result, setResult] = useState(null);
 
     const REVENUE_RANGES = ['10만 원 미만', '10~30만 원', '30~50만 원', '50~100만 원', '100만 원 이상'];
+    const AGE_GROUPS = ['10대', '20대', '30대', '40대', '50대 이상', '전 연령층'];
+    const VISITOR_TYPES = ['가족 단위 (아이 동반)', '커플 / 연인', '친구 / 지인', '나홀로 방문객 (혼쇼족)', '관광객 / 외국인'];
 
     const emptyReview = () => ({
         seller_type: 'seller',
         rating_profit: 4, rating_traffic: 4, rating_promotion: 4,
         rating_support: 4, rating_manners: 4,
         revenue_range: '',
+        age_groups: [], visitor_types: [],
         pros: '', cons: '', content: '',
     });
     const [reviews, setReviews] = useState(Array.from({ length: 5 }, emptyReview));
@@ -746,7 +749,7 @@ function BulkReviewManager() {
                     </div>
 
                     {/* 전체 매출 범위 */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 11, color: T.gray, minWidth: 60 }}>매출 범위</span>
                         {REVENUE_RANGES.map(v => (
                             <button key={v} onClick={() => setReviews(prev => prev.map(r => ({ ...r, revenue_range: v })))}
@@ -754,6 +757,36 @@ function BulkReviewManager() {
                                 {v}
                             </button>
                         ))}
+                    </div>
+
+                    {/* 전체 연령대 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, color: T.gray, minWidth: 60 }}>연령대</span>
+                        {AGE_GROUPS.map(v => (
+                            <button key={v} onClick={() => setReviews(prev => prev.map(r => ({ ...r, age_groups: r.age_groups.includes(v) ? r.age_groups : [...r.age_groups, v] })))}
+                                style={{ padding: '4px 10px', borderRadius: T.radiusFull, border: `1px solid ${T.border}`, background: T.white, fontSize: 11, fontWeight: 600, color: T.text, cursor: 'pointer' }}>
+                                {v}
+                            </button>
+                        ))}
+                        <button onClick={() => setReviews(prev => prev.map(r => ({ ...r, age_groups: [] })))}
+                            style={{ padding: '4px 8px', borderRadius: T.radiusFull, border: `1px solid ${T.red}30`, background: '#FEF2F2', fontSize: 10, fontWeight: 600, color: T.red, cursor: 'pointer' }}>
+                            초기화
+                        </button>
+                    </div>
+
+                    {/* 전체 방문객 유형 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: T.gray, minWidth: 60 }}>방문객</span>
+                        {VISITOR_TYPES.map(v => (
+                            <button key={v} onClick={() => setReviews(prev => prev.map(r => ({ ...r, visitor_types: r.visitor_types.includes(v) ? r.visitor_types : [...r.visitor_types, v] })))}
+                                style={{ padding: '4px 10px', borderRadius: T.radiusFull, border: `1px solid ${T.border}`, background: T.white, fontSize: 11, fontWeight: 600, color: T.text, cursor: 'pointer' }}>
+                                {v}
+                            </button>
+                        ))}
+                        <button onClick={() => setReviews(prev => prev.map(r => ({ ...r, visitor_types: [] })))}
+                            style={{ padding: '4px 8px', borderRadius: T.radiusFull, border: `1px solid ${T.red}30`, background: '#FEF2F2', fontSize: 10, fontWeight: 600, color: T.red, cursor: 'pointer' }}>
+                            초기화
+                        </button>
                     </div>
                 </div>
 
@@ -828,6 +861,42 @@ function BulkReviewManager() {
                                             border: `1.5px solid ${r.revenue_range === v ? T.blue : T.border}`,
                                         }}>{v}</button>
                                 ))}
+                            </div>
+                        </div>
+
+                        {/* 연령대 */}
+                        <div style={{ marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>방문객 연령대</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                {AGE_GROUPS.map(v => {
+                                    const sel = r.age_groups.includes(v);
+                                    return (
+                                        <button key={v} onClick={() => updateReview(idx, 'age_groups', sel ? r.age_groups.filter(a => a !== v) : [...r.age_groups, v])}
+                                            style={{
+                                                padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: T.radiusFull, cursor: 'pointer',
+                                                background: sel ? '#EFF6FF' : T.white, color: sel ? T.blue : T.gray,
+                                                border: `1.5px solid ${sel ? T.blue : T.border}`,
+                                            }}>{v}</button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* 방문객 유형 */}
+                        <div style={{ marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>방문객 유형</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                {VISITOR_TYPES.map(v => {
+                                    const sel = r.visitor_types.includes(v);
+                                    return (
+                                        <button key={v} onClick={() => updateReview(idx, 'visitor_types', sel ? r.visitor_types.filter(a => a !== v) : [...r.visitor_types, v])}
+                                            style={{
+                                                padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: T.radiusFull, cursor: 'pointer',
+                                                background: sel ? '#EFF6FF' : T.white, color: sel ? T.blue : T.gray,
+                                                border: `1.5px solid ${sel ? T.blue : T.border}`,
+                                            }}>{v}</button>
+                                    );
+                                })}
                             </div>
                         </div>
 

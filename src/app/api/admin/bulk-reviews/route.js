@@ -87,6 +87,8 @@ export async function POST(request) {
             rating_support: r.rating_support ?? 4,
             rating_manners: r.rating_manners ?? 4,
             revenue_range: r.revenue_range || null,
+            age_groups: r.age_groups?.length > 0 ? r.age_groups : null,
+            visitor_types: r.visitor_types?.length > 0 ? r.visitor_types : null,
             pros: r.pros || '',
             cons: r.cons || '',
             content: r.content || null,
