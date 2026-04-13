@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
     Shield, Users,
-    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell, Flag,
+    Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell, Flag, Star,
 } from 'lucide-react';
 import { T } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
@@ -27,6 +27,7 @@ const TABS = [
     { key: 'recruitments', label: '공고', icon: Megaphone },
     { key: 'organizers', label: '주최사', icon: Building2 },
     { key: 'users', label: '회원', icon: Users },
+    { key: 'reviews', label: '리뷰', icon: Star },
     { key: 'reports', label: '신고', icon: Flag },
     { key: 'upload', label: '업로드', icon: Upload },
     { key: 'paste', label: '텍스트', icon: FileText },
@@ -484,6 +485,228 @@ function NoticeManager() {
                         <div style={{ fontSize: 12, color: T.gray }}>{new Date(n.created_at).toLocaleDateString('ko-KR')} · {n.content.slice(0, 50)}...</div>
                     </div>
                 ))
+            )}
+        </div>
+    );
+}
+
+/* ─── 리뷰 일괄 생성 ─── */
+function BulkReviewManager() {
+    const [keyword, setKeyword] = useState('');
+    const [instances, setInstances] = useState([]);
+    const [selectedInstance, setSelectedInstance] = useState(null);
+    const [searching, setSearching] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [result, setResult] = useState(null);
+
+    const REVENUE_RANGES = ['10만 원 미만', '10~30만 원', '30~50만 원', '50~100만 원', '100만 원 이상'];
+
+    const emptyReview = () => ({
+        seller_type: 'seller',
+        rating_profit: 4, rating_traffic: 4, rating_promotion: 4,
+        rating_support: 4, rating_manners: 4,
+        revenue_range: '',
+        pros: '', cons: '', content: '',
+    });
+    const [reviews, setReviews] = useState(Array.from({ length: 5 }, emptyReview));
+
+    const updateReview = (idx, field, value) => {
+        setReviews(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+    };
+    const addReview = () => setReviews(prev => [...prev, emptyReview()]);
+    const removeReview = (idx) => setReviews(prev => prev.filter((_, i) => i !== idx));
+
+    const searchInstances = async () => {
+        if (!keyword.trim()) return;
+        setSearching(true);
+        try {
+            const sb = createClient();
+            const { data } = await sb
+                .from('event_instances')
+                .select('id, event_date, event_date_end, location, base_event:base_events(name), organizer:organizers(name)')
+                .ilike('base_event.name', `%${keyword.trim()}%`)
+                .order('event_date', { ascending: false })
+                .limit(30);
+            setInstances((data || []).filter(d => d.base_event));
+        } catch { setInstances([]); }
+        finally { setSearching(false); }
+    };
+
+    const handleSubmit = async () => {
+        if (!selectedInstance) return alert('행사 회차를 선택하세요.');
+        const validReviews = reviews.filter(r => r.pros.trim() || r.cons.trim());
+        if (validReviews.length === 0) return alert('장점 또는 단점을 1개 이상 입력하세요.');
+        setSubmitting(true);
+        setResult(null);
+        try {
+            const res = await fetch('/api/admin/bulk-reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_instance_id: selectedInstance.id,
+                    reviews: validReviews,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setResult({ success: true, message: data.message });
+        } catch (err) {
+            setResult({ success: false, message: err.message });
+        } finally { setSubmitting(false); }
+    };
+
+    const ratingLabel = { 1: '매우나쁨', 2: '나쁨', 3: '보통', 4: '좋음', 5: '매우좋음' };
+
+    return (
+        <div style={{ padding: '0 16px' }}>
+            {/* 행사 검색 */}
+            <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 16, marginBottom: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>1. 행사 회차 선택</div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <input
+                        type="text" placeholder="행사명 검색..." value={keyword}
+                        onChange={e => setKeyword(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && searchInstances()}
+                        style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button onClick={searchInstances} disabled={searching} style={btnPrimary}>
+                        {searching ? '검색중...' : '검색'}
+                    </button>
+                </div>
+                {instances.length > 0 && (
+                    <div style={{ maxHeight: 200, overflowY: 'auto', border: `1px solid ${T.border}`, borderRadius: T.radiusMd }}>
+                        {instances.map(inst => {
+                            const sel = selectedInstance?.id === inst.id;
+                            return (
+                                <div key={inst.id} onClick={() => setSelectedInstance(inst)} style={{
+                                    padding: '10px 12px', cursor: 'pointer', borderBottom: `1px solid ${T.border}`,
+                                    background: sel ? '#EFF6FF' : T.white,
+                                    border: sel ? `2px solid ${T.blue}` : 'none',
+                                }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                                        {inst.base_event?.name}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: T.gray, marginTop: 2 }}>
+                                        {inst.event_date}{inst.event_date_end ? ` ~ ${inst.event_date_end}` : ''}
+                                        {inst.location && ` · ${inst.location}`}
+                                        {inst.organizer?.name && ` · ${inst.organizer.name}`}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+                {selectedInstance && (
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: '#EFF6FF', borderRadius: T.radiusMd, fontSize: 12, color: T.blue, fontWeight: 700 }}>
+                        ✅ {selectedInstance.base_event?.name} ({selectedInstance.event_date})
+                    </div>
+                )}
+            </div>
+
+            {/* 리뷰 입력 */}
+            <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 16, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>2. 리뷰 내용 ({reviews.length}개)</div>
+                    <button onClick={addReview} style={{ ...btnOutline, fontSize: 12, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Plus size={13} /> 추가
+                    </button>
+                </div>
+
+                {reviews.map((r, idx) => (
+                    <div key={idx} style={{
+                        border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
+                        padding: 14, marginBottom: 10, background: T.bg,
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: T.text }}>리뷰 #{idx + 1}</div>
+                            {reviews.length > 1 && (
+                                <button onClick={() => removeReview(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.red, fontSize: 12 }}>
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 셀러 유형 */}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                            {['seller', 'foodtruck'].map(t => (
+                                <button key={t} onClick={() => updateReview(idx, 'seller_type', t)} style={{
+                                    padding: '5px 12px', fontSize: 12, fontWeight: 700, borderRadius: T.radiusFull, cursor: 'pointer',
+                                    background: r.seller_type === t ? T.blue : T.white,
+                                    color: r.seller_type === t ? '#fff' : T.gray,
+                                    border: `1.5px solid ${r.seller_type === t ? T.blue : T.border}`,
+                                }}>
+                                    {t === 'seller' ? '셀러' : '푸드트럭'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 별점 */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+                            {[
+                                { key: 'rating_profit', label: '수익성' },
+                                { key: 'rating_traffic', label: '유동인구' },
+                                { key: 'rating_promotion', label: '홍보력' },
+                                { key: 'rating_support', label: '운영지원' },
+                                { key: 'rating_manners', label: '소통/매너' },
+                            ].map(({ key, label }) => (
+                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 11, color: T.gray, minWidth: 50 }}>{label}</span>
+                                    <select value={r[key]} onChange={e => updateReview(idx, key, Number(e.target.value))} style={{ ...selectStyle, flex: 1, padding: '4px 6px', fontSize: 12 }}>
+                                        {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}점 ({ratingLabel[v]})</option>)}
+                                    </select>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 매출 */}
+                        <div style={{ marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>매출 범위</span>
+                            <select value={r.revenue_range} onChange={e => updateReview(idx, 'revenue_range', e.target.value)} style={{ ...selectStyle, marginTop: 4, fontSize: 12 }}>
+                                <option value="">선택 안 함</option>
+                                {REVENUE_RANGES.map(v => <option key={v} value={v}>{v}</option>)}
+                            </select>
+                        </div>
+
+                        {/* 장단점 */}
+                        <div style={{ marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>장점 *</span>
+                            <textarea rows={2} value={r.pros} onChange={e => updateReview(idx, 'pros', e.target.value)}
+                                placeholder="이 행사의 좋았던 점..."
+                                style={{ ...inputStyle, marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                            <span style={{ fontSize: 11, color: T.gray }}>단점</span>
+                            <textarea rows={2} value={r.cons} onChange={e => updateReview(idx, 'cons', e.target.value)}
+                                placeholder="아쉬웠던 점..."
+                                style={{ ...inputStyle, marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                        </div>
+                        <div>
+                            <span style={{ fontSize: 11, color: T.gray }}>추가 코멘트</span>
+                            <textarea rows={2} value={r.content} onChange={e => updateReview(idx, 'content', e.target.value)}
+                                placeholder="자유롭게 작성..."
+                                style={{ ...inputStyle, marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* 등록 버튼 */}
+            <button onClick={handleSubmit} disabled={submitting} style={{
+                ...btnPrimary, width: '100%', padding: '14px 0', fontSize: 15, fontWeight: 800,
+                opacity: submitting ? 0.5 : 1, marginBottom: 12,
+            }}>
+                {submitting ? '등록 중...' : `리뷰 ${reviews.filter(r => r.pros.trim() || r.cons.trim()).length}개 일괄 등록`}
+            </button>
+
+            {result && (
+                <div style={{
+                    padding: '12px 14px', borderRadius: T.radiusMd, marginBottom: 12, fontSize: 13, fontWeight: 700,
+                    background: result.success ? '#ECFDF5' : '#FEF2F2',
+                    color: result.success ? '#065F46' : '#991B1B',
+                    border: `1px solid ${result.success ? '#A7F3D0' : '#FECACA'}`,
+                }}>
+                    {result.success ? '✅' : '❌'} {result.message}
+                </div>
             )}
         </div>
     );
@@ -1400,6 +1623,8 @@ export default function AdminPage() {
                             onEdit={row => setEditItem({ item: row, tableName: 'profiles', fields: userFields })}
                             emptyMsg="가입된 회원이 없어요." />
                     </div>
+                ) : tab === 'reviews' ? (
+                    <BulkReviewManager />
                 ) : tab === 'reports' ? (
                     <ReportsManager />
                 ) : tab === 'upload' ? (
