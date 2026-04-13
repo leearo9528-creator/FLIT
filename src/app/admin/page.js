@@ -6,11 +6,13 @@ import Link from 'next/link';
 import {
     Shield, Users,
     Calendar, Megaphone, Upload, Trash2, Edit3, Plus, Building2, FileText, Bell, Flag, Star,
+    Search, X, MapPin, Banknote, ChevronDown,
 } from 'lucide-react';
-import { T } from '@/lib/design-tokens';
+import { T, inputStyle as designInputStyle } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 import { createClient } from '@/utils/supabase/client';
 import TopBar from '@/components/ui/TopBar';
+import ImageUploader from '@/components/ui/ImageUploader';
 // XLSX는 사용 시점에 dynamic import
 
 /* ─── 공통 스타일 ─── */
@@ -34,9 +36,12 @@ const TABS = [
 ];
 
 /* ─── StatCard ─── */
-function StatCard({ label, count, color }) {
+function StatCard({ label, count, color, onClick }) {
     return (
-        <div style={{ flex: 1, background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: '12px 14px', boxShadow: T.shadowSm }}>
+        <div onClick={onClick} style={{ flex: 1, background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: '12px 14px', boxShadow: T.shadowSm, cursor: onClick ? 'pointer' : 'default', transition: 'box-shadow 0.15s' }}
+            onMouseEnter={e => { if (onClick) e.currentTarget.style.boxShadow = T.shadowMd; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = T.shadowSm; }}
+        >
             <div style={{ fontSize: 11, color: T.gray, marginBottom: 2 }}>{label}</div>
             <div style={{ fontSize: 22, fontWeight: 900, color }}>{count}</div>
         </div>
@@ -115,80 +120,152 @@ function EditModal({ item, fields, tableName, onSave, onClose }) {
     );
 }
 
-/* ─── 데이터 테이블 ─── */
+/* ─── 데이터 테이블 (검색 + 정렬) ─── */
 function DataTable({ columns, rows, onDelete, onDeleteSelected, onEdit, emptyMsg }) {
     const [selected, setSelected] = useState(new Set());
+    const [search, setSearch] = useState('');
+    const [sortKey, setSortKey] = useState(null);
+    const [sortDir, setSortDir] = useState('asc'); // 'asc' | 'desc'
 
-    const allChecked = rows.length > 0 && selected.size === rows.length;
-    const toggleAll = () => setSelected(allChecked ? new Set() : new Set(rows.map(r => r.id)));
+    const handleSort = (key) => {
+        if (sortKey === key) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
+    };
+
+    // 검색 필터
+    const filtered = search.trim()
+        ? rows.filter(row => {
+            const q = search.toLowerCase();
+            return columns.some(c => {
+                const val = c.render ? null : row[c.key];
+                if (typeof val === 'string') return val.toLowerCase().includes(q);
+                if (typeof val === 'number') return String(val).includes(q);
+                // render 컬럼은 중첩 필드 검색
+                const nested = c.key === 'event' ? row.event_instance?.base_event?.name
+                    : c.key === 'organizer' ? row.event_instance?.organizer?.name
+                    : null;
+                return nested ? nested.toLowerCase().includes(q) : false;
+            });
+        })
+        : rows;
+
+    // 정렬
+    const sorted = sortKey
+        ? [...filtered].sort((a, b) => {
+            const col = columns.find(c => c.key === sortKey);
+            let va, vb;
+            if (col?.sortValue) {
+                va = col.sortValue(a);
+                vb = col.sortValue(b);
+            } else {
+                va = a[sortKey] ?? '';
+                vb = b[sortKey] ?? '';
+            }
+            if (typeof va === 'number' && typeof vb === 'number') return sortDir === 'asc' ? va - vb : vb - va;
+            const sa = String(va).toLowerCase(), sb = String(vb).toLowerCase();
+            return sortDir === 'asc' ? sa.localeCompare(sb) : sb.localeCompare(sa);
+        })
+        : filtered;
+
+    const allChecked = sorted.length > 0 && selected.size === sorted.length;
+    const toggleAll = () => setSelected(allChecked ? new Set() : new Set(sorted.map(r => r.id)));
     const toggleOne = (id) => {
         const next = new Set(selected);
         next.has(id) ? next.delete(id) : next.add(id);
         setSelected(next);
     };
 
-    if (rows.length === 0) return <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>{emptyMsg}</div>;
-
     return (
         <div>
+            {/* 검색 바 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, background: T.white, borderRadius: T.radiusMd, border: `1.5px solid ${T.border}`, padding: '0 12px' }}>
+                <Search size={14} color={T.gray} />
+                <input
+                    type="text"
+                    placeholder="검색..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ flex: 1, padding: '10px 0', border: 'none', background: 'transparent', fontSize: 13, color: T.text, outline: 'none' }}
+                />
+                {search && <X size={14} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setSearch('')} />}
+                <span style={{ fontSize: 11, color: T.gray, whiteSpace: 'nowrap' }}>{sorted.length}건</span>
+            </div>
+
             {selected.size > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#FEF2F2', borderRadius: T.radiusMd, marginBottom: 8, border: `1px solid ${T.red}30` }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: T.red }}>{selected.size}개 선택됨</span>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={() => setSelected(new Set())} style={{ ...btnOutline, padding: '5px 12px', fontSize: 12 }}>선택 해제</button>
-                        <button onClick={() => { onDeleteSelected([...selected]); setSelected(new Set()); }} style={{ ...btnDanger, padding: '5px 12px', fontSize: 12 }}>🗑 선택 삭제</button>
+                        <button onClick={() => { onDeleteSelected([...selected]); setSelected(new Set()); }} style={{ ...btnDanger, padding: '5px 12px', fontSize: 12 }}>선택 삭제</button>
                     </div>
                 </div>
             )}
-            <div style={{ overflowX: 'auto', background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}` }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                    <colgroup>
-                        <col style={{ width: 40 }} />
-                        {columns.map(c => <col key={c.key} style={{ width: c.width || 'auto' }} />)}
-                        <col style={{ width: 64 }} />
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>
-                                <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer' }} />
-                            </th>
-                            {columns.map(c => <th key={c.key} style={{ ...thStyle, width: c.width }}>{c.label}</th>)}
-                            <th style={{ ...thStyle, width: 64 }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row, i) => (
-                            <tr key={row.id} style={{
-                                background: selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA',
-                                transition: 'background 0.1s',
-                            }}
-                                onMouseEnter={e => { if (!selected.has(row.id)) e.currentTarget.style.background = '#F0F7FF'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA'; }}
-                            >
-                                <td style={{ ...cellStyle, textAlign: 'center', width: 40 }}>
-                                    <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleOne(row.id)} style={{ cursor: 'pointer' }} />
-                                </td>
+
+            {sorted.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 0', color: T.gray, fontSize: 14 }}>{search ? '검색 결과가 없어요.' : emptyMsg}</div>
+            ) : (
+                <div style={{ overflowX: 'auto', background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}` }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                        <colgroup>
+                            <col style={{ width: 40 }} />
+                            {columns.map(c => <col key={c.key} style={{ width: c.width || 'auto' }} />)}
+                            <col style={{ width: 64 }} />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th style={{ ...thStyle, width: 40, textAlign: 'center' }}>
+                                    <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{ cursor: 'pointer' }} />
+                                </th>
                                 {columns.map(c => (
-                                    <td key={c.key} style={{
-                                        ...cellStyle,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: c.wrap ? 'normal' : 'nowrap',
-                                    }}>
-                                        {c.render ? c.render(row) : (row[c.key] ?? '-')}
-                                    </td>
+                                    <th key={c.key} style={{ ...thStyle, width: c.width, cursor: 'pointer', userSelect: 'none' }}
+                                        onClick={() => handleSort(c.key)}>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                            {c.label}
+                                            {sortKey === c.key && <span style={{ fontSize: 10 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                                        </span>
+                                    </th>
                                 ))}
-                                <td style={{ ...cellStyle, textAlign: 'center', width: 64 }}>
-                                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                                        {onEdit && <Edit3 size={14} color={T.blue} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onEdit(row)} />}
-                                        <Trash2 size={14} color={T.red} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onDelete(row.id)} />
-                                    </div>
-                                </td>
+                                <th style={{ ...thStyle, width: 64 }}></th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {sorted.map((row, i) => (
+                                <tr key={row.id} style={{
+                                    background: selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA',
+                                    transition: 'background 0.1s',
+                                }}
+                                    onMouseEnter={e => { if (!selected.has(row.id)) e.currentTarget.style.background = '#F0F7FF'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = selected.has(row.id) ? '#FFF5F5' : i % 2 === 0 ? T.white : '#FAFAFA'; }}
+                                >
+                                    <td style={{ ...cellStyle, textAlign: 'center', width: 40 }}>
+                                        <input type="checkbox" checked={selected.has(row.id)} onChange={() => toggleOne(row.id)} style={{ cursor: 'pointer' }} />
+                                    </td>
+                                    {columns.map(c => (
+                                        <td key={c.key} style={{
+                                            ...cellStyle,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: c.wrap ? 'normal' : 'nowrap',
+                                        }}>
+                                            {c.render ? c.render(row) : (row[c.key] ?? '-')}
+                                        </td>
+                                    ))}
+                                    <td style={{ ...cellStyle, textAlign: 'center', width: 64 }}>
+                                        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                                            {onEdit && <Edit3 size={14} color={T.blue} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onEdit(row)} />}
+                                            <Trash2 size={14} color={T.red} style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => onDelete(row.id)} />
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }
@@ -1161,6 +1238,9 @@ function OrganizerForm({ onComplete }) {
         if (!form.name.trim()) return alert('주최사명을 입력하세요.');
         setSaving(true);
         const sb = createClient();
+        // 중복 체크
+        const { data: existing } = await sb.from('organizers').select('id').ilike('name', form.name.trim()).limit(1);
+        if (existing?.length > 0) { setSaving(false); return alert('이미 동일한 이름의 주최사가 있습니다.'); }
         const { error } = await sb.from('organizers').insert({
             name: form.name.trim(),
             description: form.description.trim() || null,
@@ -1297,96 +1377,474 @@ function EventForm({ orgList, onComplete }) {
     );
 }
 
-/* ─── 공고 추가 폼 ─── */
-function RecruitmentForm({ onComplete }) {
-    const [open, setOpen] = useState(false);
-    const [instances, setInstances] = useState([]);
-    const [form, setForm] = useState({ event_instance_id: '', title: '', content: '', fee_description: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
-    const [saving, setSaving] = useState(false);
-    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+/* ─── 공고 추가 폼 (실제 공고 작성 페이지와 동일) ─── */
+const formSectionStyle = {
+    background: T.white, borderRadius: T.radiusLg,
+    border: `1px solid ${T.border}`, padding: '18px 16px',
+};
+const formLabelStyle = { fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 };
+const formTextarea = (hasValue) => ({
+    width: '100%', border: `1.5px solid ${hasValue ? T.blue : T.border}`,
+    borderRadius: T.radiusMd, padding: '12px 14px',
+    fontSize: 14, color: T.text, lineHeight: 1.8,
+    outline: 'none', resize: 'vertical', background: T.bg,
+    fontFamily: 'inherit', boxSizing: 'border-box',
+    transition: 'border-color 0.15s',
+});
+const formChipStyle = {
+    padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer',
+    fontSize: 12, fontWeight: 600,
+    background: T.grayLt, color: T.textSub,
+    border: `1px solid ${T.border}`,
+};
+const appendChip = (prev, chip) => {
+    if (!prev) return `- ${chip}`;
+    if (prev.includes(chip)) return prev;
+    return `${prev}\n- ${chip}`;
+};
 
+function FormSection({ title, required, hint, children }) {
+    return (
+        <div style={formSectionStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hint ? 4 : 14 }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{title}</span>
+                {required && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.red, background: T.redLt, padding: '2px 7px', borderRadius: T.radiusFull }}>필수</span>
+                )}
+            </div>
+            {hint && <div style={{ fontSize: 12, color: T.gray, marginBottom: 12 }}>{hint}</div>}
+            {children}
+        </div>
+    );
+}
+
+function RecruitmentForm({ orgList, onComplete }) {
+    const [open, setOpen] = useState(false);
+
+    // 주최사 선택
+    const [selectedOrganizer, setSelectedOrganizer] = useState(null);
+    const [orgKeyword, setOrgKeyword] = useState('');
+    const [isOrgOpen, setIsOrgOpen] = useState(false);
+    const orgRef = useRef(null);
+
+    // 행사 검색
+    const [baseEvents, setBaseEvents] = useState([]);
+    const [eventKeyword, setEventKeyword] = useState('');
+    const [selectedBaseEvent, setSelectedBaseEvent] = useState(null);
+    const [isEventOpen, setIsEventOpen] = useState(false);
+    const eventRef = useRef(null);
+
+    // 새 행사 추가
+    const [showAddEvent, setShowAddEvent] = useState(false);
+    const [newEventName, setNewEventName] = useState('');
+    const [newEventCategory, setNewEventCategory] = useState('플리마켓');
+    const [addingEvent, setAddingEvent] = useState(false);
+
+    // 행사 상세
+    const [eventDate, setEventDate] = useState('');
+    const [eventDateEnd, setEventDateEnd] = useState('');
+    const [location, setLocation] = useState('');
+
+    // 공고 정보
+    const [title, setTitle] = useState('');
+    const [feeText, setFeeText] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [sellerType, setSellerType] = useState('');
+    const [recruitmentItems, setRecruitmentItems] = useState('');
+    const [recruitmentScale, setRecruitmentScale] = useState('');
+
+    // 신청 방법 + 추가 정보
+    const [applicationMethod, setApplicationMethod] = useState('');
+    const [contact, setContact] = useState('');
+    const [refundPolicy, setRefundPolicy] = useState('');
+    const [parkingInfo, setParkingInfo] = useState('');
+    const [onsiteSupport, setOnsiteSupport] = useState('');
+    const [specialNotes, setSpecialNotes] = useState('');
+
+    // 이미지
+    const [images, setImages] = useState([]);
+
+    // 목데이터
+    const [isMock, setIsMock] = useState(false);
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    /* 행사 목록 로드 */
     useEffect(() => {
-        if (!open || instances.length > 0) return;
+        if (!open) return;
         (async () => {
             const sb = createClient();
-            const { data } = await sb.from('event_instances')
-                .select('id, event_date, base_event:base_events(name)')
-                .order('event_date', { ascending: false })
-                .limit(300);
-            setInstances(data || []);
+            const { data } = await sb.from('base_events').select('id, name, category').order('name');
+            if (data) setBaseEvents(data);
         })();
     }, [open]);
 
-    const handleSave = async () => {
-        if (!form.event_instance_id) return alert('행사 개최를 선택하세요.');
-        if (!form.title.trim()) return alert('공고 제목을 입력하세요.');
-        if (!form.end_date) return alert('모집 마감일을 입력하세요.');
-        setSaving(true);
-        const sb = createClient();
-        const { error } = await sb.from('recruitments').insert({
-            event_instance_id: form.event_instance_id,
-            title: form.title.trim(),
-            content: form.content.trim() || null,
-            fee_description: form.fee_description.trim() || null,
-            application_method: form.application_method.trim() || null,
-            start_date: form.start_date || null,
-            end_date: form.end_date,
-            status: form.status,
-            is_mock: form.is_mock,
-        });
-        setSaving(false);
-        if (error) return alert(`저장 실패: ${error.message}`);
-        setForm({ event_instance_id: '', title: '', content: '', fee_description: '', application_method: '', start_date: '', end_date: '', status: 'OPEN', is_mock: false });
-        setOpen(false);
-        onComplete?.();
+    /* 외부 클릭 시 드롭다운 닫기 */
+    useEffect(() => {
+        const handler = e => {
+            if (eventRef.current && !eventRef.current.contains(e.target)) setIsEventOpen(false);
+            if (orgRef.current && !orgRef.current.contains(e.target)) setIsOrgOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const filteredEvents = baseEvents.filter(e => e.name.toLowerCase().includes(eventKeyword.toLowerCase()));
+    const filteredOrgs = (orgList || []).filter(o => o.name.toLowerCase().includes(orgKeyword.toLowerCase()));
+
+    const handleAddEvent = async () => {
+        if (!newEventName.trim()) return alert('행사명을 입력해주세요.');
+        setAddingEvent(true);
+        try {
+            const sb = createClient();
+            const { data, error } = await sb.from('base_events')
+                .insert({ name: newEventName.trim(), category: newEventCategory })
+                .select('id, name, category').maybeSingle();
+            if (error) throw error;
+            setBaseEvents(prev => [data, ...prev]);
+            setSelectedBaseEvent(data);
+            setEventKeyword(data.name);
+            setShowAddEvent(false);
+            setNewEventName('');
+        } catch (err) {
+            alert(`행사 추가 실패: ${err.message}`);
+        } finally { setAddingEvent(false); }
+    };
+
+    const resetForm = () => {
+        setSelectedOrganizer(null); setOrgKeyword('');
+        setSelectedBaseEvent(null); setEventKeyword('');
+        setEventDate(''); setEventDateEnd(''); setLocation('');
+        setTitle(''); setFeeText(''); setEndDate('');
+        setSellerType(''); setRecruitmentItems(''); setRecruitmentScale('');
+        setApplicationMethod(''); setContact('');
+        setRefundPolicy(''); setParkingInfo('');
+        setOnsiteSupport(''); setSpecialNotes('');
+        setImages([]); setIsMock(false);
+    };
+
+    const handleSubmit = async () => {
+        if (!selectedOrganizer) return alert('주최사를 선택해주세요.');
+        if (!selectedBaseEvent) return alert('행사를 선택해주세요.');
+        if (!eventDate) return alert('행사 일자를 입력해주세요.');
+        if (eventDateEnd && eventDateEnd < eventDate) return alert('행사 종료일은 시작일보다 빠를 수 없습니다.');
+        if (endDate && endDate > eventDate) return alert('모집 마감일은 행사 시작일보다 늦을 수 없습니다.');
+        if (!location.trim()) return alert('장소를 입력해주세요.');
+        if (!title.trim()) return alert('공고 제목을 입력해주세요.');
+
+        setIsSubmitting(true);
+        try {
+            const sb = createClient();
+
+            const { data: instance, error: instErr } = await sb
+                .from('event_instances')
+                .insert({
+                    base_event_id: selectedBaseEvent.id,
+                    organizer_id: selectedOrganizer.id,
+                    location: location.trim(),
+                    location_sido: location.trim().split(' ')[0],
+                    event_date: eventDate,
+                    event_date_end: eventDateEnd || eventDate,
+                })
+                .select('id')
+                .maybeSingle();
+            if (instErr) throw instErr;
+
+            const { error: recErr } = await sb
+                .from('recruitments')
+                .insert({
+                    event_instance_id: instance.id,
+                    title: title.trim(),
+                    recruitment_items: recruitmentItems.trim() || null,
+                    recruitment_scale: recruitmentScale.trim() || null,
+                    fee_description: feeText.trim() || null,
+                    end_date: endDate || null,
+                    application_method: applicationMethod.trim() || null,
+                    contact: contact.trim() || null,
+                    refund_policy: refundPolicy.trim() || null,
+                    parking_info: parkingInfo.trim() || null,
+                    onsite_support: onsiteSupport.trim() || null,
+                    special_notes: specialNotes.trim() || null,
+                    seller_type: sellerType || null,
+                    images: images.length > 0 ? images : null,
+                    status: 'OPEN',
+                    is_mock: isMock,
+                });
+            if (recErr) throw recErr;
+
+            alert('공고가 등록되었습니다.');
+            resetForm();
+            setOpen(false);
+            onComplete?.();
+        } catch (err) {
+            alert('등록 중 오류가 발생했습니다.\n' + (err.message || ''));
+        } finally { setIsSubmitting(false); }
     };
 
     return (
         <div style={{ marginBottom: 16 }}>
             <button onClick={() => setOpen(o => !o)} style={{ ...btnPrimary, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
-                <Plus size={14}/> 공고 추가
+                <Plus size={14}/> {open ? '공고 추가 닫기' : '공고 추가'}
             </button>
             {open && (
-                <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 20, marginTop: 10 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 14 }}>새 모집공고 등록</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div>
-                            <div style={labelStyle}>행사 개최 *</div>
-                            <select value={form.event_instance_id} onChange={e => set('event_instance_id', e.target.value)} style={selectStyle}>
-                                <option value="">행사를 선택하세요</option>
-                                {instances.map(i => (
-                                    <option key={i.id} value={i.id}>
-                                        {i.base_event?.name || '(이름 없음)'} {i.event_date ? `— ${i.event_date.slice(0, 10)}` : ''}
-                                    </option>
-                                ))}
-                            </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+
+                    {/* ── 주최사 선택 ── */}
+                    <FormSection title="주최사" required>
+                        <div ref={orgRef} style={{ position: 'relative' }}>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                background: T.bg, borderRadius: T.radiusMd, padding: '0 14px',
+                                border: `1.5px solid ${selectedOrganizer ? T.blue : T.border}`,
+                            }}>
+                                <Building2 size={15} color={T.gray} style={{ flexShrink: 0 }} />
+                                <input
+                                    type="text"
+                                    placeholder="주최사명 검색..."
+                                    value={orgKeyword}
+                                    onChange={e => { setOrgKeyword(e.target.value); setIsOrgOpen(true); if (selectedOrganizer) setSelectedOrganizer(null); }}
+                                    onFocus={() => setIsOrgOpen(true)}
+                                    style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                                />
+                                {orgKeyword && (
+                                    <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => { setOrgKeyword(''); setSelectedOrganizer(null); }} />
+                                )}
+                            </div>
+                            {isOrgOpen && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                    background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
+                                    boxShadow: T.shadowMd, maxHeight: 200, overflowY: 'auto', zIndex: 200,
+                                }}>
+                                    {filteredOrgs.length === 0 ? (
+                                        <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없어요.</div>
+                                    ) : filteredOrgs.map((o, i) => (
+                                        <div
+                                            key={o.id}
+                                            onClick={() => { setSelectedOrganizer(o); setOrgKeyword(o.name); setIsOrgOpen(false); }}
+                                            style={{
+                                                padding: '12px 16px', cursor: 'pointer',
+                                                background: selectedOrganizer?.id === o.id ? T.blueLt : T.white,
+                                                borderBottom: i < filteredOrgs.length - 1 ? `1px solid ${T.border}` : 'none',
+                                            }}
+                                        >
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{o.name}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                        <div><div style={labelStyle}>공고 제목 *</div><input value={form.title} onChange={e => set('title', e.target.value)} placeholder="예) 5월 한강 플리마켓 셀러 모집" style={inputStyle}/></div>
-                        <div>
-                            <div style={labelStyle}>공고 내용</div>
-                            <textarea value={form.content} onChange={e => set('content', e.target.value)} placeholder="모집 조건, 혜택 등 상세 내용" rows={4}
-                                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7, fontFamily: 'inherit' }}/>
+                    </FormSection>
+
+                    {/* ── 행사 선택 ── */}
+                    <FormSection title="행사" required>
+                        <div ref={eventRef} style={{ position: 'relative' }}>
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                background: T.bg, borderRadius: T.radiusMd, padding: '0 14px',
+                                border: `1.5px solid ${selectedBaseEvent ? T.blue : T.border}`,
+                            }}>
+                                <Search size={15} color={T.gray} style={{ flexShrink: 0 }} />
+                                <input
+                                    type="text"
+                                    placeholder="행사명 검색..."
+                                    value={eventKeyword}
+                                    onChange={e => { setEventKeyword(e.target.value); setIsEventOpen(true); if (selectedBaseEvent) setSelectedBaseEvent(null); }}
+                                    onFocus={() => setIsEventOpen(true)}
+                                    style={{ flex: 1, padding: '13px 0', border: 'none', background: 'transparent', fontSize: 14, color: T.text, outline: 'none' }}
+                                />
+                                {eventKeyword && (
+                                    <X size={15} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => { setEventKeyword(''); setSelectedBaseEvent(null); }} />
+                                )}
+                            </div>
+                            {isEventOpen && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                                    background: T.white, border: `1px solid ${T.border}`, borderRadius: T.radiusMd,
+                                    boxShadow: T.shadowMd, maxHeight: 200, overflowY: 'auto', zIndex: 200,
+                                }}>
+                                    {filteredEvents.length === 0 ? (
+                                        <div style={{ padding: '12px 16px', color: T.gray, fontSize: 13 }}>검색 결과가 없어요.</div>
+                                    ) : filteredEvents.map((e, i) => (
+                                        <div
+                                            key={e.id}
+                                            onClick={() => { setSelectedBaseEvent(e); setEventKeyword(e.name); setIsEventOpen(false); }}
+                                            style={{
+                                                padding: '12px 16px', cursor: 'pointer',
+                                                background: selectedBaseEvent?.id === e.id ? T.blueLt : T.white,
+                                                borderBottom: i < filteredEvents.length - 1 ? `1px solid ${T.border}` : 'none',
+                                            }}
+                                        >
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{e.name}</div>
+                                            {e.category && <div style={{ fontSize: 12, color: T.gray, marginTop: 2 }}>{e.category}</div>}
+                                        </div>
+                                    ))}
+                                    <div
+                                        onClick={() => { setIsEventOpen(false); setShowAddEvent(true); setNewEventName(eventKeyword); }}
+                                        style={{ padding: '12px 16px', cursor: 'pointer', borderTop: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.blue, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Plus size={14} /> 새 행사 추가하기
+                                    </div>
+                                </div>
+                            )}
+                            {showAddEvent && (
+                                <div style={{ marginTop: 12, background: T.blueLt, borderRadius: T.radiusMd, padding: 16, border: `1.5px solid ${T.blue}` }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: T.blue, marginBottom: 10 }}>새 행사 추가</div>
+                                    <input value={newEventName} onChange={e => setNewEventName(e.target.value)} placeholder="행사명"
+                                        style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: `1.5px solid ${T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.white, boxSizing: 'border-box', marginBottom: 8 }} />
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                                        {['플리마켓', '푸드트럭', '플리+푸드 전체'].map(c => (
+                                            <div key={c} onClick={() => setNewEventCategory(c)} style={{
+                                                padding: '6px 12px', borderRadius: T.radiusFull, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                                                background: newEventCategory === c ? T.blue : T.white, color: newEventCategory === c ? '#fff' : T.gray,
+                                                border: `1px solid ${newEventCategory === c ? T.blue : T.border}`,
+                                            }}>{c}</div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => { setShowAddEvent(false); setNewEventName(''); }} style={{ flex: 1, padding: '10px 0', border: `1px solid ${T.border}`, borderRadius: T.radiusMd, fontSize: 13, fontWeight: 700, color: T.gray, cursor: 'pointer', background: T.white }}>취소</button>
+                                        <button onClick={addingEvent ? null : handleAddEvent} style={{ flex: 2, padding: '10px 0', borderRadius: T.radiusMd, fontSize: 13, fontWeight: 700, color: '#fff', cursor: addingEvent ? 'default' : 'pointer', background: addingEvent ? T.gray : T.blue, border: 'none' }}>{addingEvent ? '추가 중...' : '추가하기'}</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                            <div><div style={labelStyle}>참가비</div><input value={form.fee_description} onChange={e => set('fee_description', e.target.value)} placeholder="예) 무료 / 1일 80,000원" style={inputStyle}/></div>
+                    </FormSection>
+
+                    {/* ── 공고 제목 ── */}
+                    <FormSection title="공고 제목" required>
+                        <input type="text" placeholder="예: 2025 홍대 플리마켓 셀러 모집" value={title} onChange={e => setTitle(e.target.value)} style={designInputStyle(!!title)} />
+                    </FormSection>
+
+                    {/* ── 행사 일자 / 장소 ── */}
+                    <FormSection title="행사 일자 / 장소" required>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{ ...formLabelStyle, display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> 시작일</div>
+                                    <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ ...designInputStyle(!!eventDate), padding: '11px 6px', fontSize: 13, minWidth: 0, width: '100%' }} />
+                                </div>
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{ ...formLabelStyle, display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={12} /> 종료일<span style={{ fontWeight: 400, marginLeft: 2 }}>(선택)</span></div>
+                                    <input type="date" value={eventDateEnd} onChange={e => setEventDateEnd(e.target.value)} min={eventDate} style={{ ...designInputStyle(!!eventDateEnd), padding: '11px 6px', fontSize: 13, minWidth: 0, width: '100%' }} />
+                                </div>
+                            </div>
                             <div>
-                                <div style={labelStyle}>상태</div>
-                                <select value={form.status} onChange={e => set('status', e.target.value)} style={selectStyle}>
-                                    <option value="OPEN">모집중</option>
-                                    <option value="CLOSED">마감</option>
-                                </select>
+                                <div style={{ ...formLabelStyle, display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} /> 장소</div>
+                                <input type="text" placeholder="예: 서울 마포구 홍대 걷고싶은거리" value={location} onChange={e => setLocation(e.target.value)}
+                                    style={{ width: '100%', padding: '12px 14px', fontSize: 14, color: T.text, border: `1.5px solid ${location ? T.blue : T.border}`, borderRadius: T.radiusMd, outline: 'none', background: T.bg, boxSizing: 'border-box' }} />
                             </div>
                         </div>
-                        <div><div style={labelStyle}>신청 방법</div><input value={form.application_method} onChange={e => set('application_method', e.target.value)} placeholder="예) 카카오톡 채널 문의" style={inputStyle}/></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                            <div><div style={labelStyle}>모집 시작일</div><input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} style={inputStyle}/></div>
-                            <div><div style={labelStyle}>모집 마감일 *</div><input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} style={inputStyle}/></div>
+                    </FormSection>
+
+                    {/* ── 사진 첨부 ── */}
+                    <FormSection title="사진 첨부" hint="행사장, 부스 배치 등 참고 사진을 첨부하세요. (최대 5장)">
+                        <ImageUploader images={images} onChange={setImages} folder="recruitments" max={5} />
+                    </FormSection>
+
+                    {/* ── 모집 마감일 ── */}
+                    <FormSection title="모집 마감일">
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ ...designInputStyle(!!endDate), padding: '11px 12px', flex: 1, minWidth: 0 }} />
+                            <div onClick={() => setEndDate('')} style={{
+                                padding: '11px 16px', borderRadius: T.radiusMd, cursor: 'pointer',
+                                border: `1.5px solid ${!endDate ? T.blue : T.border}`,
+                                background: !endDate ? T.blueLt : T.white,
+                                fontSize: 13, fontWeight: 700,
+                                color: !endDate ? T.blue : T.gray, whiteSpace: 'nowrap',
+                            }}>없음</div>
                         </div>
-                        <MockToggle value={form.is_mock} onChange={v => set('is_mock', v)} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                        <button onClick={() => setOpen(false)} style={btnOutline}>취소</button>
-                        <button onClick={handleSave} disabled={saving} style={{ ...btnPrimary, flex: 1 }}>{saving ? '저장 중...' : '저장'}</button>
+                    </FormSection>
+
+                    {/* ── 상세 공고 ── */}
+                    <FormSection title="상세 공고">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                            {/* 모집 셀러 유형 */}
+                            <div>
+                                <div style={formLabelStyle}>모집 셀러 유형</div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    {[{ key: '', label: '전체' }, { key: 'seller', label: '일반셀러' }, { key: 'foodtruck', label: '푸드트럭' }].map(opt => (
+                                        <div key={opt.key} onClick={() => setSellerType(opt.key)} style={{
+                                            flex: 1, padding: '10px 6px', borderRadius: T.radiusMd, textAlign: 'center', cursor: 'pointer',
+                                            border: `1.5px solid ${sellerType === opt.key ? T.blue : T.border}`,
+                                            background: sellerType === opt.key ? T.blueLt : T.white,
+                                            fontSize: 13, fontWeight: 700, color: sellerType === opt.key ? T.blue : T.gray,
+                                        }}>{opt.label}</div>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* 참가비 */}
+                            <div>
+                                <div style={{ ...formLabelStyle, display: 'flex', alignItems: 'center', gap: 4 }}><Banknote size={12} /> 참가비</div>
+                                <textarea placeholder={'예:\n무료 / 1일 80,000원 / 2일 150,000원'} value={feeText} onChange={e => setFeeText(e.target.value)} rows={2} style={formTextarea(!!feeText)} />
+                            </div>
+                            {/* 모집 품목 */}
+                            <div>
+                                <div style={formLabelStyle}>모집 품목</div>
+                                <textarea placeholder={'예:\n먹거리 불가 / 악세사리 마감'} value={recruitmentItems} onChange={e => setRecruitmentItems(e.target.value)} rows={2} style={formTextarea(!!recruitmentItems)} />
+                            </div>
+                            {/* 모집 규모 */}
+                            <div>
+                                <div style={formLabelStyle}>모집 규모</div>
+                                <textarea placeholder={'예:\n20팀 / 10~15팀'} value={recruitmentScale} onChange={e => setRecruitmentScale(e.target.value)} rows={2} style={formTextarea(!!recruitmentScale)} />
+                            </div>
+                            {/* 현장 지원 */}
+                            <div>
+                                <div style={formLabelStyle}>현장 지원</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                    {['1800 테이블', '1500 테이블', '의자', '파라솔', '천막', '스트링조명'].map(chip => (
+                                        <div key={chip} onClick={() => setOnsiteSupport(prev => appendChip(prev, chip))} style={formChipStyle}>+ {chip}</div>
+                                    ))}
+                                </div>
+                                <textarea value={onsiteSupport} onChange={e => setOnsiteSupport(e.target.value)} placeholder={'예:\n- 현장 스텝 상주\n- 테이블·의자 제공'} rows={3} style={formTextarea(!!onsiteSupport)} />
+                            </div>
+                            {/* 특이사항 */}
+                            <div>
+                                <div style={formLabelStyle}>특이사항</div>
+                                <textarea placeholder={'예:\n현장 전기사용 절대 불가 / 우천 시 취소'} value={specialNotes} onChange={e => setSpecialNotes(e.target.value)} rows={2} style={formTextarea(!!specialNotes)} />
+                            </div>
+                            {/* 주차 지원 */}
+                            <div>
+                                <div style={formLabelStyle}>주차 지원</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                    {['무료 주차', '지원 불가'].map(chip => (
+                                        <div key={chip} onClick={() => setParkingInfo(chip)} style={formChipStyle}>+ {chip}</div>
+                                    ))}
+                                </div>
+                                <textarea placeholder={'예:\n행사장 인근 공영주차장 이용'} value={parkingInfo} onChange={e => setParkingInfo(e.target.value)} rows={2} style={formTextarea(!!parkingInfo)} />
+                            </div>
+                            {/* 환불 규정 */}
+                            <div>
+                                <div style={formLabelStyle}>환불 규정</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                                    {['주최측 취소 시 환불'].map(chip => (
+                                        <div key={chip} onClick={() => setRefundPolicy(prev => appendChip(prev, chip))} style={formChipStyle}>+ {chip}</div>
+                                    ))}
+                                </div>
+                                <textarea placeholder={'예:\n행사 7일 전 100% 환불 / 3일 전 50%'} value={refundPolicy} onChange={e => setRefundPolicy(e.target.value)} rows={2} style={formTextarea(!!refundPolicy)} />
+                            </div>
+                        </div>
+                    </FormSection>
+
+                    {/* ── 신청 방법 ── */}
+                    <FormSection title="신청 방법" hint="지원자가 어떻게 신청하면 되는지 알려주세요.">
+                        <textarea value={applicationMethod} onChange={e => setApplicationMethod(e.target.value)}
+                            placeholder={'예:\n구글폼 링크: https://forms.gle/...\n인스타 DM: @flit_market'} rows={5} style={formTextarea(!!applicationMethod)} />
+                    </FormSection>
+
+                    {/* ── 연락처 ── */}
+                    <FormSection title="연락처" hint="문의를 받을 연락처를 입력해주세요.">
+                        <textarea placeholder={'예:\n010-1234-5678 / 카카오 오픈채팅 링크'} value={contact} onChange={e => setContact(e.target.value)} rows={2} style={formTextarea(!!contact)} />
+                    </FormSection>
+
+                    {/* ── 목데이터 토글 ── */}
+                    <MockToggle value={isMock} onChange={setIsMock} />
+
+                    {/* ── 등록 / 취소 ── */}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => { resetForm(); setOpen(false); }} style={{ ...btnOutline, flex: 1, padding: '14px 0' }}>취소</button>
+                        <button onClick={isSubmitting ? undefined : handleSubmit} disabled={isSubmitting}
+                            style={{ ...btnPrimary, flex: 3, padding: '14px 0', fontSize: 15 }}>
+                            {isSubmitting ? '등록 중...' : '공고 등록하기'}
+                        </button>
                     </div>
                 </div>
             )}
@@ -1407,6 +1865,7 @@ export default function AdminPage() {
     const [userList, setUserList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editItem, setEditItem] = useState(null); // { item, tableName, fields }
+    const [orgRecsModal, setOrgRecsModal] = useState(null); // { orgName, recs[] }
 
     useEffect(() => {
         if (authLoading) return;
@@ -1427,15 +1886,21 @@ export default function AdminPage() {
         setLoading(true);
         try {
             const sb = createClient();
-            const [eRes, rRes, oRes, uRes] = await Promise.all([
+            const [eRes, rRes, oRes, uRes, instRes] = await Promise.all([
                 sb.from('base_events').select('id, name, category, description, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
-                sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance_id, event_instance:event_instances(id, organizer_id, base_event:base_events(name), organizer:organizers(name))').order('created_at', { ascending: false }).limit(100),
+                sb.from('recruitments').select('id, title, status, fee, fee_description, end_date, start_date, content, application_method, event_instance_id, event_instance:event_instances(id, organizer_id, event_date, event_date_end, base_event:base_events(name), organizer:organizers(name))').order('created_at', { ascending: false }).limit(300),
                 sb.from('organizers').select('id, name, description, logo_url, total_reviews, total_instances, created_at').order('created_at', { ascending: false }),
                 sb.from('profiles').select('id, name, email, plan, seller_type, review_count, organizer_name, created_at').order('created_at', { ascending: false }).limit(100),
+                sb.from('event_instances').select('id, organizer_id'),
             ]);
             setEvents(eRes.data || []);
             setRecruitments(rRes.data || []);
-            setOrgList(oRes.data || []);
+            // 실제 event_instances 카운트 계산
+            const instCounts = {};
+            (instRes.data || []).forEach(inst => {
+                if (inst.organizer_id) instCounts[inst.organizer_id] = (instCounts[inst.organizer_id] || 0) + 1;
+            });
+            setOrgList((oRes.data || []).map(o => ({ ...o, real_instance_count: instCounts[o.id] || 0 })));
             setUserList(uRes.data || []);
         } catch (err) { console.error('관리자 작업 실패'); }
         finally { setLoading(false); }
@@ -1492,11 +1957,25 @@ export default function AdminPage() {
         { key: 'description', label: '설명', type: 'textarea' },
     ];
 
+    const showOrgRecs = (org) => {
+        const recs = recruitments.filter(r => r.event_instance?.organizer_id === org.id);
+        setOrgRecsModal({ orgName: org.name, recs });
+    };
+
     const orgCols = [
         { key: 'name', label: '주최사명', width: 'auto' },
-        { key: 'total_instances', label: '행사', width: 60 },
-        { key: 'total_reviews', label: '리뷰', width: 60 },
-        { key: 'created_at', label: '등록일', width: 110, render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-' },
+        {
+            key: 'real_instance_count', label: '행사', width: 60,
+            sortValue: r => r.real_instance_count || 0,
+            render: r => (
+                <span
+                    onClick={(e) => { e.stopPropagation(); showOrgRecs(r); }}
+                    style={{ color: T.blue, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                >{r.real_instance_count || 0}</span>
+            ),
+        },
+        { key: 'total_reviews', label: '리뷰', width: 60, sortValue: r => r.total_reviews || 0 },
+        { key: 'created_at', label: '등록일', width: 110, render: r => r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-', sortValue: r => r.created_at || '' },
     ];
     const orgFields = [
         { key: 'name', label: '주최사명', type: 'text' },
@@ -1505,12 +1984,39 @@ export default function AdminPage() {
     ];
 
     const recCols = [
-        { key: 'title', label: '제목', width: 'auto' },
-        { key: 'event', label: '행사', width: 160, render: r => r.event_instance?.base_event?.name || '-' },
-        { key: 'organizer', label: '주최사', width: 140, render: r => r.event_instance?.organizer?.name || '-' },
-        { key: 'fee_description', label: '참가비', width: 160, render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
-        { key: 'status', label: '상태', width: 72, render: r => r.status === 'OPEN' ? '모집중' : '마감' },
-        { key: 'end_date', label: '마감일', width: 100, render: r => r.end_date ? new Date(r.end_date).toLocaleDateString('ko-KR') : '-' },
+        { key: 'event', label: '행사명', width: 'auto', render: r => r.event_instance?.base_event?.name || '-', sortValue: r => r.event_instance?.base_event?.name || '' },
+        { key: 'organizer', label: '주최사', width: 120, render: r => r.event_instance?.organizer?.name || '-', sortValue: r => r.event_instance?.organizer?.name || '' },
+        {
+            key: 'schedule', label: '일정', width: 140,
+            render: r => {
+                const d = r.event_instance?.event_date;
+                const de = r.event_instance?.event_date_end;
+                if (!d) return '-';
+                const fmt = (s) => s ? s.slice(5).replace('-', '/') : '';
+                return de && de !== d ? `${fmt(d)} ~ ${fmt(de)}` : fmt(d);
+            },
+            sortValue: r => r.event_instance?.event_date || '',
+        },
+        { key: 'fee_description', label: '참가비', width: 140, render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
+        {
+            key: 'status', label: '상태', width: 72,
+            render: r => (
+                <span style={{
+                    padding: '3px 8px', borderRadius: T.radiusFull, fontSize: 11, fontWeight: 700,
+                    background: r.status === 'OPEN' ? '#DCFCE7' : T.grayLt,
+                    color: r.status === 'OPEN' ? '#16A34A' : T.gray,
+                }}>{r.status === 'OPEN' ? '모집중' : '마감'}</span>
+            ),
+        },
+        {
+            key: 'detail', label: '자세히', width: 64,
+            render: r => (
+                <Link href={`/recruitments/${r.id}`} target="_blank"
+                    style={{ fontSize: 12, fontWeight: 700, color: T.blue, textDecoration: 'underline' }}>
+                    보기
+                </Link>
+            ),
+        },
     ];
     const recFields = [
         { key: 'title', label: '공고 제목', type: 'text' },
@@ -1542,6 +2048,37 @@ export default function AdminPage() {
     return (
         <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 40 }}>
             <TopBar title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={18}/> 관리자</span>} back />
+            {/* 주최사 공고 목록 모달 */}
+            {orgRecsModal && (
+                <div onClick={e => { if (e.target === e.currentTarget) setOrgRecsModal(null); }}
+                    style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: T.white, borderRadius: T.radiusLg, width: '90%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${T.border}` }}>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>{orgRecsModal.orgName} 공고 ({orgRecsModal.recs.length})</div>
+                            <X size={20} color={T.gray} style={{ cursor: 'pointer' }} onClick={() => setOrgRecsModal(null)} />
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+                            {orgRecsModal.recs.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 0', color: T.gray, fontSize: 14 }}>등록된 공고가 없어요.</div>
+                            ) : orgRecsModal.recs.map(rec => (
+                                <Link key={rec.id} href={`/recruitments/${rec.id}`} target="_blank"
+                                    style={{ display: 'block', padding: '12px 14px', marginBottom: 8, background: T.bg, borderRadius: T.radiusMd, border: `1px solid ${T.border}`, textDecoration: 'none' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 4 }}>{rec.title || '(제목 없음)'}</div>
+                                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: T.gray }}>
+                                        <span>{rec.event_instance?.base_event?.name || '-'}</span>
+                                        <span>{rec.event_instance?.event_date ? rec.event_instance.event_date.slice(0, 10) : '-'}</span>
+                                        <span style={{
+                                            padding: '1px 6px', borderRadius: T.radiusFull, fontSize: 10, fontWeight: 700,
+                                            background: rec.status === 'OPEN' ? '#DCFCE7' : T.grayLt,
+                                            color: rec.status === 'OPEN' ? '#16A34A' : T.gray,
+                                        }}>{rec.status === 'OPEN' ? '모집중' : '마감'}</span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
             {editItem && (
                 <EditModal
                     item={editItem.item}
@@ -1554,10 +2091,10 @@ export default function AdminPage() {
 
             {/* 통계 */}
             <div style={{ padding: '16px 16px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <StatCard label="행사" count={events.length} color={T.blue} />
-                <StatCard label="공고" count={recruitments.length} color={T.green} />
-                <StatCard label="주최사" count={orgList.length} color="#B45309" />
-                <StatCard label="회원" count={userList.length} color={T.text} />
+                <StatCard label="행사" count={events.length} color={T.blue} onClick={() => setTab('events')} />
+                <StatCard label="공고" count={recruitments.length} color={T.green} onClick={() => setTab('recruitments')} />
+                <StatCard label="주최사" count={orgList.length} color="#B45309" onClick={() => setTab('organizers')} />
+                <StatCard label="회원" count={userList.length} color={T.text} onClick={() => setTab('users')} />
             </div>
 
             {/* 탭 */}
@@ -1595,7 +2132,7 @@ export default function AdminPage() {
                     </div>
                 ) : tab === 'recruitments' ? (
                     <div style={{ padding: '0 16px' }}>
-                        <RecruitmentForm onComplete={fetchAll} />
+                        <RecruitmentForm orgList={orgList} onComplete={fetchAll} />
                         <DataTable columns={recCols} rows={recruitments}
                             onDelete={handleDelete('recruitments')}
                             onDeleteSelected={handleBulkDelete('recruitments')}
