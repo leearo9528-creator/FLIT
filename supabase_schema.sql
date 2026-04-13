@@ -222,9 +222,11 @@ CREATE TABLE public.recruitments (
     application_method  TEXT,
     contact             TEXT,                  -- 연락처
     recruitment_items   TEXT,                  -- 모집 품목
+    recruitment_scale   TEXT,                  -- 모집 규모
     refund_policy       TEXT,                  -- 환불규정
     parking_info        TEXT,                  -- 주차지원
     onsite_support      TEXT,                  -- 현장지원
+    special_notes       TEXT,                  -- 특이사항
 
     -- 모집 대상 셀러 유형 (null = 전체)
     seller_type         TEXT CHECK (seller_type IN ('seller', 'foodtruck')),
@@ -378,7 +380,23 @@ ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 
 
 -- ────────────────────────────────────────────────
--- 12. 통계 트리거
+-- 12. reports — 신고
+-- ────────────────────────────────────────────────
+CREATE TABLE public.reports (
+    id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    reporter_id  UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    target_type  TEXT NOT NULL,      -- 'recruitment', 'review', 'post', 'post_comment'
+    target_id    UUID NOT NULL,
+    reason       TEXT NOT NULL,
+    detail       TEXT,
+    status       TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'resolved', 'dismissed')),
+    created_at   TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (reporter_id, target_type, target_id)
+);
+
+
+-- ────────────────────────────────────────────────
+-- 13. 통계 트리거
 -- ────────────────────────────────────────────────
 
 -- 리뷰 통계 재계산
@@ -701,6 +719,16 @@ CREATE POLICY "comments_delete"       ON public.post_comments FOR DELETE USING (
 ALTER TABLE public.notices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "notices_select"      ON public.notices FOR SELECT USING (true);
 CREATE POLICY "notices_admin_all"   ON public.notices FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+);
+
+-- reports
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "reports_insert_self"  ON public.reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+CREATE POLICY "reports_select_admin" ON public.reports FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+);
+CREATE POLICY "reports_admin_all"    ON public.reports FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
 );
 
