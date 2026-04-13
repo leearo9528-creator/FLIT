@@ -2012,14 +2012,18 @@ export default function AdminPage() {
         },
         { key: 'fee_description', label: '참가비', width: 140, render: r => r.fee_description || (r.fee == null ? '-' : r.fee === 0 ? '무료' : `${Number(r.fee).toLocaleString()}원`) },
         {
-            key: 'status', label: '상태', width: 72,
-            render: r => (
-                <span style={{
-                    padding: '3px 8px', borderRadius: T.radiusFull, fontSize: 11, fontWeight: 700,
-                    background: r.status === 'OPEN' ? '#DCFCE7' : T.grayLt,
-                    color: r.status === 'OPEN' ? '#16A34A' : T.gray,
-                }}>{r.status === 'OPEN' ? '모집중' : '마감'}</span>
-            ),
+            key: 'status', label: '상태', width: 80,
+            render: r => {
+                const eventEnd = r.event_instance?.event_date_end || r.event_instance?.event_date;
+                const today = new Date().toISOString().slice(0, 10);
+                const isEventOver = eventEnd && eventEnd < today;
+                const label = isEventOver ? '행사 종료' : r.status === 'OPEN' ? '모집중' : '마감';
+                const bg = isEventOver ? '#F3F4F6' : r.status === 'OPEN' ? '#DCFCE7' : T.grayLt;
+                const color = isEventOver ? '#9CA3AF' : r.status === 'OPEN' ? '#16A34A' : T.gray;
+                return (
+                    <span style={{ padding: '3px 8px', borderRadius: T.radiusFull, fontSize: 11, fontWeight: 700, background: bg, color }}>{label}</span>
+                );
+            },
         },
         {
             key: 'detail', label: '자세히', width: 64,
