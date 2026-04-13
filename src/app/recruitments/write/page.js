@@ -491,6 +491,17 @@ function RecruitmentWriteContent() {
                     </div>
                 </Section>
 
+                {/* ── 공고 제목 ── */}
+                <Section title="공고 제목" required>
+                    <input
+                        type="text"
+                        placeholder="예: 2025 홍대 플리마켓 셀러 모집"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        style={inputStyle(!!title)}
+                    />
+                </Section>
+
                 {/* ── 행사 일자 + 장소 ── */}
                 <Section title="행사 일자 / 장소" required>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -536,17 +547,6 @@ function RecruitmentWriteContent() {
                             />
                         </div>
                     </div>
-                </Section>
-
-                {/* ── 공고 제목 ── */}
-                <Section title="공고 제목" required>
-                    <input
-                        type="text"
-                        placeholder="예: 2025 홍대 플리마켓 셀러 모집"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                        style={inputStyle(!!title)}
-                    />
                 </Section>
 
                 {/* ── 사진 첨부 ── */}
@@ -627,12 +627,12 @@ function RecruitmentWriteContent() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                                 <Banknote size={12} /> 참가비
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 무료 / 1일 80,000원 / 2일 150,000원 / 매출의 20%"
+                            <textarea
+                                placeholder={'예:\n무료 / 1일 80,000원 / 2일 150,000원 / 매출의 20%'}
                                 value={feeText}
                                 onChange={e => setFeeText(e.target.value)}
-                                style={inputStyle(!!feeText)}
+                                rows={2}
+                                style={textareaStyle(!!feeText)}
                             />
                         </div>
 
@@ -641,12 +641,12 @@ function RecruitmentWriteContent() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
                                 모집 품목
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 먹거리 불가 / 악세사리 마감 / 핸드메이드만 가능"
+                            <textarea
+                                placeholder={'예:\n먹거리 불가 / 악세사리 마감 / 핸드메이드만 가능'}
                                 value={recruitmentItems}
                                 onChange={e => setRecruitmentItems(e.target.value)}
-                                style={inputStyle(!!recruitmentItems)}
+                                rows={2}
+                                style={textareaStyle(!!recruitmentItems)}
                             />
                         </div>
 
@@ -655,12 +655,12 @@ function RecruitmentWriteContent() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
                                 모집 규모
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 20팀 / 10~15팀 / 50팀 이상"
+                            <textarea
+                                placeholder={'예:\n20팀 / 10~15팀 / 50팀 이상'}
                                 value={recruitmentScale}
                                 onChange={e => setRecruitmentScale(e.target.value)}
-                                style={inputStyle(!!recruitmentScale)}
+                                rows={2}
+                                style={textareaStyle(!!recruitmentScale)}
                             />
                         </div>
 
@@ -692,12 +692,12 @@ function RecruitmentWriteContent() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray, marginBottom: 6 }}>
                                 특이사항
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 현장 전기사용 절대 불가 / 우천 시 취소"
+                            <textarea
+                                placeholder={'예:\n현장 전기사용 절대 불가 / 우천 시 취소'}
                                 value={specialNotes}
                                 onChange={e => setSpecialNotes(e.target.value)}
-                                style={inputStyle(!!specialNotes)}
+                                rows={2}
+                                style={textareaStyle(!!specialNotes)}
                             />
                         </div>
 
@@ -715,12 +715,12 @@ function RecruitmentWriteContent() {
                                     >+ {chip}</div>
                                 ))}
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 행사장 인근 공영주차장 이용 / 셀러 전용 주차 2대 제공"
+                            <textarea
+                                placeholder={'예:\n행사장 인근 공영주차장 이용 / 셀러 전용 주차 2대 제공'}
                                 value={parkingInfo}
                                 onChange={e => setParkingInfo(e.target.value)}
-                                style={inputStyle(!!parkingInfo)}
+                                rows={2}
+                                style={textareaStyle(!!parkingInfo)}
                             />
                         </div>
 
@@ -738,12 +738,12 @@ function RecruitmentWriteContent() {
                                     >+ {chip}</div>
                                 ))}
                             </div>
-                            <input
-                                type="text"
-                                placeholder="예) 행사 7일 전 100% 환불 / 3일 전 50% / 이후 환불 불가"
+                            <textarea
+                                placeholder={'예:\n행사 7일 전 100% 환불 / 3일 전 50% / 이후 환불 불가'}
                                 value={refundPolicy}
                                 onChange={e => setRefundPolicy(e.target.value)}
-                                style={inputStyle(!!refundPolicy)}
+                                rows={2}
+                                style={textareaStyle(!!refundPolicy)}
                             />
                         </div>
 
@@ -789,12 +789,12 @@ function RecruitmentWriteContent() {
                             <Copy size={13} /> 저장된 정보 불러오기
                         </button>
                     )}
-                    <input
-                        type="text"
-                        placeholder="예) 010-1234-5678 / 카카오 오픈채팅 링크"
+                    <textarea
+                        placeholder={'예:\n010-1234-5678 / 카카오 오픈채팅 링크'}
                         value={contact}
                         onChange={e => setContact(e.target.value)}
-                        style={inputStyle(!!contact)}
+                        rows={2}
+                        style={textareaStyle(!!contact)}
                     />
                     {!profileDefaults.contact && (
                         <div style={{ fontSize: 11, color: T.gray, marginTop: 8, lineHeight: 1.6 }}>

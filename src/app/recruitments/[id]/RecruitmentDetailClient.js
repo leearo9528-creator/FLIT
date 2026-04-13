@@ -335,6 +335,15 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     </Section>
                 )}
 
+                {/* 모집 규모 */}
+                {recruitment.recruitment_scale && (
+                    <Section title="👥 모집 규모">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.recruitment_scale}
+                        </div>
+                    </Section>
+                )}
+
                 {/* 신청 방법 */}
                 <Section title="📋 신청 방법">
                     {recruitment.application_method ? (
@@ -380,6 +389,15 @@ export default function RecruitmentDetailClient({ recruitment }) {
                     <Section title="🛠️ 현장 지원">
                         <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
                             {recruitment.onsite_support}
+                        </div>
+                    </Section>
+                )}
+
+                {/* 특이사항 */}
+                {recruitment.special_notes && (
+                    <Section title="⚠️ 특이사항">
+                        <div style={{ fontSize: 14, color: T.text, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+                            {recruitment.special_notes}
                         </div>
                     </Section>
                 )}
