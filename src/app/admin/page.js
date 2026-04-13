@@ -638,7 +638,7 @@ function BulkReviewManager() {
         <div style={{ padding: '0 16px' }}>
             {/* 행사 검색 */}
             <div style={{ background: T.white, borderRadius: T.radiusLg, border: `1px solid ${T.border}`, padding: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>1. 행사 회차 선택</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>1. 행사 선택</div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                     <input
                         type="text" placeholder="행사명 검색..." value={keyword}
@@ -675,9 +675,12 @@ function BulkReviewManager() {
                 )}
                 {selectedInstance && (
                     <div style={{ marginTop: 8, padding: '8px 12px', background: '#EFF6FF', borderRadius: T.radiusMd, fontSize: 12, color: T.blue, fontWeight: 700 }}>
-                        ✅ {selectedInstance.base_event?.name} ({selectedInstance.event_date})
+                        {selectedInstance.base_event?.name} ({selectedInstance.event_date})
                     </div>
                 )}
+                <div style={{ fontSize: 11, color: T.gray, marginTop: 6 }}>
+                    행사명을 검색하면 개최 회차 목록이 나옵니다. 회차를 선택해주세요.
+                </div>
             </div>
 
             {/* 리뷰 입력 */}
@@ -687,6 +690,71 @@ function BulkReviewManager() {
                     <button onClick={addReview} style={{ ...btnOutline, fontSize: 12, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Plus size={13} /> 추가
                     </button>
+                </div>
+
+                {/* ── 전체 일괄 설정 ── */}
+                <div style={{ border: `2px solid ${T.blue}`, borderRadius: T.radiusMd, padding: 14, marginBottom: 14, background: '#F0F7FF' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: T.blue, marginBottom: 10 }}>전체 일괄 설정</div>
+
+                    {/* 전체 셀러 유형 */}
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: T.gray, minWidth: 60 }}>셀러 유형</span>
+                        {['seller', 'foodtruck'].map(t => (
+                            <button key={t} onClick={() => setReviews(prev => prev.map(r => ({ ...r, seller_type: t })))} style={{
+                                padding: '4px 10px', fontSize: 11, fontWeight: 700, borderRadius: T.radiusFull, cursor: 'pointer',
+                                background: T.white, color: T.text, border: `1.5px solid ${T.border}`,
+                            }}>
+                                전체 {t === 'seller' ? '셀러' : '푸드트럭'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 전체 별점 일괄 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                        {[
+                            { key: 'rating_profit', label: '수익성' },
+                            { key: 'rating_traffic', label: '유동인구' },
+                            { key: 'rating_promotion', label: '홍보력' },
+                            { key: 'rating_support', label: '운영지원' },
+                            { key: 'rating_manners', label: '소통/매너' },
+                        ].map(({ key, label }) => (
+                            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ fontSize: 11, color: T.gray, minWidth: 50 }}>{label}</span>
+                                <div style={{ display: 'flex', gap: 2 }}>
+                                    {[1, 2, 3, 4, 5].map(v => (
+                                        <button key={v} onClick={() => setReviews(prev => prev.map(r => ({ ...r, [key]: v })))}
+                                            style={{ width: 26, height: 26, borderRadius: T.radiusMd, border: `1px solid ${T.border}`, background: T.white, fontSize: 11, fontWeight: 700, color: T.text, cursor: 'pointer' }}>
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 전체 별점 한번에 */}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, color: T.gray }}>전체 항목 한번에</span>
+                        {[1, 2, 3, 4, 5].map(v => (
+                            <button key={v} onClick={() => setReviews(prev => prev.map(r => ({
+                                ...r, rating_profit: v, rating_traffic: v, rating_promotion: v, rating_support: v, rating_manners: v,
+                            })))}
+                                style={{ padding: '4px 10px', borderRadius: T.radiusMd, border: `1px solid ${T.border}`, background: T.white, fontSize: 11, fontWeight: 700, color: T.blue, cursor: 'pointer' }}>
+                                모두 {v}점
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 전체 매출 범위 */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: T.gray, minWidth: 60 }}>매출 범위</span>
+                        {REVENUE_RANGES.map(v => (
+                            <button key={v} onClick={() => setReviews(prev => prev.map(r => ({ ...r, revenue_range: v })))}
+                                style={{ padding: '4px 10px', borderRadius: T.radiusFull, border: `1px solid ${T.border}`, background: T.white, fontSize: 11, fontWeight: 600, color: T.text, cursor: 'pointer' }}>
+                                {v}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {reviews.map((r, idx) => (
@@ -717,7 +785,7 @@ function BulkReviewManager() {
                             ))}
                         </div>
 
-                        {/* 별점 */}
+                        {/* 별점 - 숫자 버튼 */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
                             {[
                                 { key: 'rating_profit', label: '수익성' },
@@ -726,37 +794,81 @@ function BulkReviewManager() {
                                 { key: 'rating_support', label: '운영지원' },
                                 { key: 'rating_manners', label: '소통/매너' },
                             ].map(({ key, label }) => (
-                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <span style={{ fontSize: 11, color: T.gray, minWidth: 50 }}>{label}</span>
-                                    <select value={r[key]} onChange={e => updateReview(idx, key, Number(e.target.value))} style={{ ...selectStyle, flex: 1, padding: '4px 6px', fontSize: 12 }}>
-                                        {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}점 ({ratingLabel[v]})</option>)}
-                                    </select>
+                                    <div style={{ display: 'flex', gap: 2 }}>
+                                        {[1, 2, 3, 4, 5].map(v => (
+                                            <button key={v} onClick={() => updateReview(idx, key, v)}
+                                                style={{
+                                                    width: 26, height: 26, borderRadius: T.radiusMd,
+                                                    border: `1.5px solid ${r[key] === v ? T.blue : T.border}`,
+                                                    background: r[key] === v ? T.blue : T.white,
+                                                    fontSize: 11, fontWeight: 700,
+                                                    color: r[key] === v ? '#fff' : T.gray,
+                                                    cursor: 'pointer',
+                                                }}>
+                                                {v}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* 매출 */}
+                        {/* 매출 - 버튼 */}
                         <div style={{ marginBottom: 8 }}>
                             <span style={{ fontSize: 11, color: T.gray }}>매출 범위</span>
-                            <select value={r.revenue_range} onChange={e => updateReview(idx, 'revenue_range', e.target.value)} style={{ ...selectStyle, marginTop: 4, fontSize: 12 }}>
-                                <option value="">선택 안 함</option>
-                                {REVENUE_RANGES.map(v => <option key={v} value={v}>{v}</option>)}
-                            </select>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                {REVENUE_RANGES.map(v => (
+                                    <button key={v} onClick={() => updateReview(idx, 'revenue_range', r.revenue_range === v ? '' : v)}
+                                        style={{
+                                            padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: T.radiusFull, cursor: 'pointer',
+                                            background: r.revenue_range === v ? T.blue : T.white,
+                                            color: r.revenue_range === v ? '#fff' : T.gray,
+                                            border: `1.5px solid ${r.revenue_range === v ? T.blue : T.border}`,
+                                        }}>{v}</button>
+                                ))}
+                            </div>
                         </div>
 
-                        {/* 장단점 */}
+                        {/* 장점 - 빠른 버튼 + 텍스트 */}
                         <div style={{ marginBottom: 8 }}>
                             <span style={{ fontSize: 11, color: T.gray }}>장점 *</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, marginBottom: 4 }}>
+                                {['유동인구 많음', '주최측 소통 좋음', '부스 위치 좋음', '홍보 잘 됨', '시설/환경 좋음', '재참여 의사 있음', '수익 만족', '주차 편리', '분위기 좋음', '운영 체계적'].map(chip => (
+                                    <button key={chip} onClick={() => updateReview(idx, 'pros', r.pros ? (r.pros.includes(chip) ? r.pros : `${r.pros}\n${chip}`) : chip)}
+                                        style={{
+                                            padding: '3px 8px', fontSize: 10, fontWeight: 600, borderRadius: T.radiusFull, cursor: 'pointer',
+                                            background: r.pros.includes(chip) ? '#DCFCE7' : T.white,
+                                            color: r.pros.includes(chip) ? '#16A34A' : T.gray,
+                                            border: `1px solid ${r.pros.includes(chip) ? '#86EFAC' : T.border}`,
+                                        }}>+ {chip}</button>
+                                ))}
+                            </div>
                             <textarea rows={2} value={r.pros} onChange={e => updateReview(idx, 'pros', e.target.value)}
                                 placeholder="이 행사의 좋았던 점..."
-                                style={{ ...inputStyle, marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                                style={{ ...inputStyle, fontSize: 12, resize: 'vertical' }} />
                         </div>
+
+                        {/* 단점 - 빠른 버튼 + 텍스트 */}
                         <div style={{ marginBottom: 8 }}>
                             <span style={{ fontSize: 11, color: T.gray }}>단점</span>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, marginBottom: 4 }}>
+                                {['유동인구 적음', '홍보 부족', '주차 불편', '시설 부족', '부스 배치 아쉬움', '날씨 영향 큼', '수익 기대 이하', '소통 아쉬움', '참가비 비쌈', '전기 사용 불가'].map(chip => (
+                                    <button key={chip} onClick={() => updateReview(idx, 'cons', r.cons ? (r.cons.includes(chip) ? r.cons : `${r.cons}\n${chip}`) : chip)}
+                                        style={{
+                                            padding: '3px 8px', fontSize: 10, fontWeight: 600, borderRadius: T.radiusFull, cursor: 'pointer',
+                                            background: r.cons.includes(chip) ? '#FEF2F2' : T.white,
+                                            color: r.cons.includes(chip) ? '#DC2626' : T.gray,
+                                            border: `1px solid ${r.cons.includes(chip) ? '#FECACA' : T.border}`,
+                                        }}>+ {chip}</button>
+                                ))}
+                            </div>
                             <textarea rows={2} value={r.cons} onChange={e => updateReview(idx, 'cons', e.target.value)}
                                 placeholder="아쉬웠던 점..."
-                                style={{ ...inputStyle, marginTop: 4, fontSize: 12, resize: 'vertical' }} />
+                                style={{ ...inputStyle, fontSize: 12, resize: 'vertical' }} />
                         </div>
+
                         <div>
                             <span style={{ fontSize: 11, color: T.gray }}>추가 코멘트</span>
                             <textarea rows={2} value={r.content} onChange={e => updateReview(idx, 'content', e.target.value)}
