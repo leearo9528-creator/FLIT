@@ -213,11 +213,21 @@ function ExcelUploader({ onComplete }) {
             formData.append('isMock', String(isMock));
 
             setStatus('서버에서 처리 중...');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 60000);
             const res = await fetch('/api/admin/excel-import', {
                 method: 'POST',
                 body: formData,
+                signal: controller.signal,
             });
-            const result = await res.json();
+            clearTimeout(timeout);
+            const text = await res.text();
+            let result;
+            try { result = JSON.parse(text); } catch {
+                addLog(`서버 응답 파싱 실패: ${text.slice(0, 200)}`);
+                setStatus('오류 발생');
+                return;
+            }
             if (!res.ok) {
                 addLog(`서버 오류: ${result.error || res.statusText}`);
                 setStatus('오류 발생');

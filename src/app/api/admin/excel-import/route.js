@@ -30,7 +30,12 @@ function toDateStr(val) {
 export async function POST(request) {
     try {
         // 세션 기반 관리자 인증 (is_admin 플래그)
-        if (!(await verifyAdmin())) {
+        let isAdmin = false;
+        try { isAdmin = await verifyAdmin(); } catch (e) {
+            console.error('verifyAdmin error:', e);
+            return NextResponse.json({ error: `인증 오류: ${e.message}` }, { status: 500 });
+        }
+        if (!isAdmin) {
             return NextResponse.json({ error: '관리자 권한이 필요합니다' }, { status: 403 });
         }
 
@@ -42,7 +47,11 @@ export async function POST(request) {
             return NextResponse.json({ error: '파일이 없습니다' }, { status: 400 });
         }
 
-        const XLSX = await import('xlsx');
+        let XLSX;
+        try { XLSX = await import('xlsx'); } catch (e) {
+            console.error('xlsx import error:', e);
+            return NextResponse.json({ error: `xlsx 모듈 로드 실패: ${e.message}` }, { status: 500 });
+        }
         const buffer = Buffer.from(await file.arrayBuffer());
         const wb = XLSX.read(buffer, { cellDates: false });
 
