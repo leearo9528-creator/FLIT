@@ -229,7 +229,8 @@ function ExcelUploader({ onComplete }) {
                 return;
             }
             if (!res.ok) {
-                addLog(`서버 오류: ${result.error || res.statusText}`);
+                (result.logs || []).forEach(l => setLog(prev => [...prev, l]));
+                addLog(`서버 오류 (${res.status}): ${result.error || res.statusText}`);
                 setStatus('오류 발생');
             } else {
                 (result.logs || []).forEach(l => setLog(prev => [...prev, l]));

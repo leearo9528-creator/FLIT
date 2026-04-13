@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerAuthClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import * as XLSX from 'xlsx';
+
+// Vercel 함수 타임아웃 60초 (Hobby 기본 10초)
+export const maxDuration = 60;
 
 function getAdminClient() {
     return createClient(
@@ -28,48 +32,50 @@ function toDateStr(val) {
 }
 
 export async function POST(request) {
+    const logs = [];
+    const addLog = (msg) => logs.push(`${new Date().toLocaleTimeString()} ${msg}`);
+
     try {
-        // 세션 기반 관리자 인증 (is_admin 플래그)
+        // 1. 관리자 인증
         let isAdmin = false;
         try { isAdmin = await verifyAdmin(); } catch (e) {
             console.error('verifyAdmin error:', e);
-            return NextResponse.json({ error: `인증 오류: ${e.message}` }, { status: 500 });
+            return NextResponse.json({ error: `인증 오류: ${e.message}`, logs: [`인증 오류: ${e.message}`] }, { status: 500 });
         }
         if (!isAdmin) {
-            return NextResponse.json({ error: '관리자 권한이 필요합니다' }, { status: 403 });
+            return NextResponse.json({ error: '관리자 권한이 필요합니다', logs: ['관리자 권한 없음'] }, { status: 403 });
         }
+        addLog('관리자 인증 완료');
 
+        // 2. 파일 읽기
         const formData = await request.formData();
         const isMock = formData.get('isMock') === 'true';
         const file = formData.get('file');
-
         if (!file) {
-            return NextResponse.json({ error: '파일이 없습니다' }, { status: 400 });
+            return NextResponse.json({ error: '파일이 없습니다', logs: ['파일 없음'] }, { status: 400 });
         }
+        addLog(`파일: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
 
-        let XLSX;
-        try { XLSX = await import('xlsx'); } catch (e) {
-            console.error('xlsx import error:', e);
-            return NextResponse.json({ error: `xlsx 모듈 로드 실패: ${e.message}` }, { status: 500 });
-        }
+        // 3. 엑셀 파싱
         const buffer = Buffer.from(await file.arrayBuffer());
         const wb = XLSX.read(buffer, { cellDates: false });
 
-        const sb = getAdminClient();
-        const logs = [];
-        const addLog = (msg) => logs.push(`${new Date().toLocaleTimeString()} ${msg}`);
-
-        // 시트 이름 자동 감지 (단일 시트 우선, 없으면 첫 번째 시트)
         const sheetName = wb.SheetNames.find(n => n.includes('데이터') || n.includes('공고')) || wb.SheetNames[0];
         const sheet = wb.Sheets[sheetName];
         if (!sheet) {
-            return NextResponse.json({ error: '시트를 찾을 수 없습니다' }, { status: 400 });
+            return NextResponse.json({ error: '시트를 찾을 수 없습니다', logs: ['시트 없음'] }, { status: 400 });
         }
 
         const rows = XLSX.utils.sheet_to_json(sheet);
         addLog(`시트 "${sheetName}" 에서 ${rows.length}행 읽음`);
 
-        // 캐시
+        if (rows.length === 0) {
+            addLog('데이터가 없습니다');
+            return NextResponse.json({ logs });
+        }
+
+        // 4. DB 삽입
+        const sb = getAdminClient();
         const orgCache = {};
         const eventCache = {};
         const instCache = {};
@@ -99,7 +105,7 @@ export async function POST(request) {
             const 모집마감일 = toDateStr(r['모집마감일 *'] || r['모집마감일'] || r['모집 마감일']);
             const 상태 = (r['상태'] || 'OPEN').trim().toUpperCase();
 
-            // 1. 주최사
+            // 주최사
             let orgId = null;
             if (주최사명) {
                 if (orgCache[주최사명]) {
@@ -118,7 +124,7 @@ export async function POST(request) {
                 }
             }
 
-            // 2. 행사
+            // 행사
             let baseEventId = eventCache[행사명];
             if (!baseEventId) {
                 const { data: existing } = await sb.from('base_events').select('id').eq('name', 행사명).maybeSingle();
@@ -134,7 +140,7 @@ export async function POST(request) {
                 eventCache[행사명] = baseEventId;
             }
 
-            // 3. 개최 회차
+            // 개최 회차
             const instKey = `${행사명}__${행사시작일}__${장소}`;
             let instId = instCache[instKey];
             if (!instId) {
@@ -161,7 +167,7 @@ export async function POST(request) {
                 instCache[instKey] = instId;
             }
 
-            // 4. 모집공고
+            // 모집공고
             const { error } = await sb.from('recruitments').insert({
                 event_instance_id: instId,
                 title: 공고제목,
@@ -186,6 +192,7 @@ export async function POST(request) {
 
     } catch (err) {
         console.error('excel-import error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        addLog(`치명적 오류: ${err.message}`);
+        return NextResponse.json({ error: err.message, logs }, { status: 500 });
     }
 }
