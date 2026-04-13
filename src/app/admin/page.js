@@ -2046,7 +2046,7 @@ export default function AdminPage() {
     ];
 
     return (
-        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 40 }}>
+        <div style={{ minHeight: '100vh', background: T.bg, paddingBottom: 120 }}>
             <TopBar title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={18}/> 관리자</span>} back />
             {/* 주최사 공고 목록 모달 */}
             {orgRecsModal && (
