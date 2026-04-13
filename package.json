@@ -16,11 +16,11 @@
     "lucide-react": "^0.577.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.0.0",
-    "xlsx": "^0.18.5"
+    "eslint-config-next": "^15.0.0"
   }
 }
