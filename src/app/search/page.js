@@ -101,6 +101,16 @@ function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
     const isScrapped = scrappedSet.has(rec.id);
     const router = useRouter();
 
+    // 행사일 기준 자동 마감 판별
+    const eventEndDate = inst.event_date_end || inst.event_date;
+    const isEventPassed = (() => {
+        if (!eventEndDate) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return new Date(eventEndDate) < today;
+    })();
+    const effectiveStatus = isEventPassed ? 'CLOSED' : rec.status;
+
     const handleScrap = async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -124,8 +134,8 @@ function RecruitCard({ rec, user, scrappedSet, onToggleScrap }) {
                 {/* 상단: 상태 + D-Day + 북마크 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: rec.status === 'OPEN' ? T.greenLt : T.grayLt, color: rec.status === 'OPEN' ? T.green : T.gray }}>
-                            {rec.status === 'OPEN' ? '모집중' : '마감됨'}
+                        <span style={{ padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: effectiveStatus === 'OPEN' ? T.greenLt : T.grayLt, color: effectiveStatus === 'OPEN' ? T.green : T.gray }}>
+                            {effectiveStatus === 'OPEN' ? '모집중' : '모집마감'}
                         </span>
                         {daysLeft !== null && daysLeft >= 0 && (
                             <span style={{ fontSize: 12, fontWeight: 700, color: daysLeft <= 3 ? T.red : T.gray }}>
@@ -497,6 +507,7 @@ function SearchContent() {
     // 모집공고 필터
     const [regionFilter, setRegionFilter] = useState('전체');
     const [categoryFilter, setCategoryFilter] = useState('전체');
+    const [statusFilter, setStatusFilter] = useState('전체');
     const [sortBy, setSortBy] = useState('latest');
 
     // 실시간 후기 필터
@@ -549,6 +560,18 @@ function SearchContent() {
         } catch { setScrappedSet(prev => { const next = new Set(prev); isScrapped ? next.add(recId) : next.delete(recId); return next; }); }
     };
 
+    // 행사일이 지났으면 모집마감으로 처리
+    const getEffectiveStatus = useCallback((rec) => {
+        const inst = rec.instance || {};
+        const endDate = inst.event_date_end || inst.event_date;
+        if (endDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (new Date(endDate) < today) return 'CLOSED';
+        }
+        return rec.status;
+    }, []);
+
     const filteredRecruitments = useMemo(() => {
         let list = recruitments;
         if (query.trim()) {
@@ -562,15 +585,21 @@ function SearchContent() {
         }
         if (regionFilter !== '전체') list = list.filter(r => (r.instance?.location_sido || '').includes(regionFilter));
         if (categoryFilter !== '전체') list = list.filter(r => (r.instance?.base_event?.category || '').includes(categoryFilter));
+        if (statusFilter !== '전체') {
+            list = list.filter(r => {
+                const eff = getEffectiveStatus(r);
+                return statusFilter === '모집중' ? eff === 'OPEN' : eff !== 'OPEN';
+            });
+        }
         if (sortBy === 'fee_asc') list = [...list].sort((a, b) => (a.fee ?? 0) - (b.fee ?? 0));
         else if (sortBy === 'fee_desc') list = [...list].sort((a, b) => (b.fee ?? 0) - (a.fee ?? 0));
         else if (sortBy === 'rating') list = [...list].sort((a, b) => Number(calcRating(b.instance?.base_event)) - Number(calcRating(a.instance?.base_event)));
         return list;
-    }, [recruitments, query, regionFilter, categoryFilter, sortBy]);
+    }, [recruitments, query, regionFilter, categoryFilter, statusFilter, sortBy, getEffectiveStatus]);
 
     // 탭별 활성 필터 카운트
     const activeFilterCount = useMemo(() => {
-        if (activeTab === 'recruit') return [regionFilter !== '전체', categoryFilter !== '전체', sortBy !== 'latest'].filter(Boolean).length;
+        if (activeTab === 'recruit') return [regionFilter !== '전체', categoryFilter !== '전체', statusFilter !== '전체', sortBy !== 'latest'].filter(Boolean).length;
         if (activeTab === 'reviews') return [sellerFilter !== 'all', reviewSortBy !== 'latest'].filter(Boolean).length;
         if (activeTab === 'organizers') return [orgSortBy !== 'name'].filter(Boolean).length;
         return 0;
@@ -632,6 +661,7 @@ function SearchContent() {
                     <div style={{ borderTop: `1px solid ${T.border}`, background: T.bg, paddingBottom: 4 }}>
                         {activeTab === 'recruit' && (
                             <>
+                                <ChipRow label="행사 상태" icon={<Tag size={12} />} options={['전체', '모집중', '모집마감']} value={statusFilter} onChange={setStatusFilter} />
                                 <SortBar value={sortBy} onChange={setSortBy} />
                                 <ChipRow label="지역" icon={<MapPin size={12} />} options={['전체', ...FILTERS.region]} value={regionFilter} onChange={setRegionFilter} />
                                 <ChipRow label="카테고리" icon={<Tag size={12} />} options={['전체', ...FILTERS.boothCategory]} value={categoryFilter} onChange={setCategoryFilter} />
