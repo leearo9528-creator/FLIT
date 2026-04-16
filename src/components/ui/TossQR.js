@@ -143,22 +143,29 @@ export default function TossQR({
         roundedRect(lx, ly, logoSize, logoSize, cellSize * 2);
         ctx.stroke();
 
-        // Logo text: "플릿"
+        // Logo: "플릿 ●" — measure text first to center as a unit
         const logoCenter = lx + logoSize / 2;
         const logoCenterY = ly + logoSize / 2;
 
-        ctx.fillStyle = color;
-        ctx.font = `900 ${cellSize * 3.2}px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif`;
-        ctx.textAlign = 'center';
+        const fontSize = cellSize * 3.2;
+        ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif`;
+        ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(logoText, logoCenter - cellSize * 0.6, logoCenterY);
 
-        // Accent dot (플릿 ●)
+        const textWidth = ctx.measureText(logoText).width;
+        const dotR = cellSize * 0.5;
+        const gap = cellSize * 0.5;
+        const totalWidth = textWidth + gap + dotR * 2;
+        const startX = logoCenter - totalWidth / 2;
+
+        // Text
+        ctx.fillStyle = color;
+        ctx.fillText(logoText, startX, logoCenterY);
+
+        // Accent dot
         ctx.fillStyle = accentColor;
         ctx.beginPath();
-        const dotX = logoCenter + cellSize * 2.1;
-        const dotY = logoCenterY;
-        ctx.arc(dotX, dotY, cellSize * 0.55, 0, Math.PI * 2);
+        ctx.arc(startX + textWidth + gap + dotR, logoCenterY, dotR, 0, Math.PI * 2);
         ctx.fill();
 
         setDataUrl(canvas.toDataURL('image/png'));
