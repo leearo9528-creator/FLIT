@@ -11,7 +11,7 @@ const CARD_W = 300;
 const CARD_H = 540;
 
 /* ═══════════════════════════════════════════
-   앞면 — 메인카피 + QR 코드
+   앞면 — 로고 + QR(크게) + 메인카피
    ═══════════════════════════════════════════ */
 function CardFront({ type, cardRef }) {
     const isSeller = type === 'seller';
@@ -30,43 +30,40 @@ function CardFront({ type, cardRef }) {
             boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'space-between',
-            padding: '36px 24px 32px',
+            padding: '32px 24px 36px',
             position: 'relative', flexShrink: 0,
         }}>
             {/* 장식 */}
             <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
             <div style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-            <div style={{ position: 'absolute', top: '40%', right: -40, width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
 
-            {/* 상단: 로고 + 카피 */}
+            {/* 상단: 로고 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, position: 'relative', zIndex: 1 }}>
+                <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>플릿</span>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(255,255,255,0.7)', display: 'inline-block' }} />
+            </div>
+
+            {/* 중앙: QR 크게 */}
+            <div style={{
+                background: '#fff', borderRadius: 16,
+                padding: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                position: 'relative', zIndex: 1,
+            }}>
+                <TossQR
+                    url={url}
+                    size={180}
+                    color="#000000"
+                    accentColor={accent}
+                />
+            </div>
+
+            {/* 하단: 메인카피 */}
             <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginBottom: 24 }}>
-                    <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>플릿</span>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'rgba(255,255,255,0.7)', display: 'inline-block' }} />
-                </div>
                 <div style={{
-                    fontSize: 24, fontWeight: 900, color: '#fff',
+                    fontSize: 20, fontWeight: 900, color: '#fff',
                     lineHeight: 1.4, whiteSpace: 'pre-line', letterSpacing: -0.5,
                 }}>
                     {headline}
-                </div>
-            </div>
-
-            {/* 하단: QR */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, position: 'relative', zIndex: 1 }}>
-                <div style={{
-                    background: '#fff', borderRadius: 14,
-                    padding: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                }}>
-                    <TossQR
-                        url={url}
-                        size={150}
-                        color="#000000"
-                        accentColor={accent}
-                    />
-                </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.3 }}>
-                    QR 스캔으로 바로 접속
                 </div>
             </div>
         </div>
@@ -74,7 +71,7 @@ function CardFront({ type, cardRef }) {
 }
 
 /* ═══════════════════════════════════════════
-   뒷면 — 서비스 소개 + 대표 정보
+   뒷면 — 서비스 소개 (가운데 정렬)
    ═══════════════════════════════════════════ */
 function CardBack({ type, cardRef }) {
     const isSeller = type === 'seller';
@@ -100,45 +97,38 @@ function CardBack({ type, cardRef }) {
             background: '#fff',
             boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
             display: 'flex', flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '32px 24px 28px',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '32px 24px',
             position: 'relative', flexShrink: 0,
+            textAlign: 'center',
         }}>
-            {/* 상단: 로고 + 태그라인 */}
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                    <span style={{ fontSize: 18, fontWeight: 900, color: T.text, letterSpacing: -0.5 }}>플릿</span>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, display: 'inline-block' }} />
-                </div>
-                <div style={{ fontSize: 10, color: T.gray, marginBottom: 24 }}>
-                    플리마켓 · 팝업스토어 셀러를 위한 행사 정보 플랫폼
-                </div>
-
-                {/* 구분선 */}
-                <div style={{ height: 1, background: T.border, marginBottom: 20 }} />
-
-                {/* 기능 리스트 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {features.map((f, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 18 }}>{f.icon}</span>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{f.text}</span>
-                        </div>
-                    ))}
-                </div>
+            {/* 로고 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                <span style={{ fontSize: 22, fontWeight: 900, color: T.text, letterSpacing: -0.5 }}>플릿</span>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent, display: 'inline-block' }} />
             </div>
 
-            {/* 하단: URL */}
-            <div>
-                <div style={{ height: 1, background: T.border, marginBottom: 16 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div style={{ fontSize: 10, color: T.gray }}>
-                        <span style={{ color: T.textSub, fontWeight: 600 }}>W</span>&nbsp;&nbsp;app.flitunion.com
+            {/* 태그라인 */}
+            <div style={{ fontSize: 11, color: T.gray, lineHeight: 1.5, marginBottom: 28 }}>
+                플리마켓 · 팝업스토어 셀러를 위한<br />행사 정보 플랫폼
+            </div>
+
+            {/* 구분선 */}
+            <div style={{ width: 40, height: 2, background: accent, borderRadius: 1, marginBottom: 28 }} />
+
+            {/* 기능 리스트 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 32 }}>
+                {features.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>{f.icon}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{f.text}</span>
                     </div>
-                    <div style={{ fontSize: 10, color: T.gray }}>
-                        <span style={{ color: T.textSub, fontWeight: 600 }}>H</span>&nbsp;&nbsp;flitunion.com
-                    </div>
-                </div>
+                ))}
+            </div>
+
+            {/* URL */}
+            <div style={{ fontSize: 11, color: T.gray, letterSpacing: 0.3 }}>
+                app.flitunion.com
             </div>
         </div>
     );
