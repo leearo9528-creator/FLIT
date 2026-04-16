@@ -128,16 +128,9 @@ function CardBack({ type, cardRef }) {
                 </div>
             </div>
 
-            {/* 하단: 대표 정보 */}
+            {/* 하단: URL */}
             <div>
-                <div style={{ height: 1, background: T.border, marginBottom: 20 }} />
-                <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>ARO</span>
-                    <span style={{ fontSize: 10, color: T.gray, marginLeft: 8 }}>서비스 대표</span>
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: accent, marginBottom: 10 }}>
-                    플릿유니온
-                </div>
+                <div style={{ height: 1, background: T.border, marginBottom: 16 }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <div style={{ fontSize: 10, color: T.gray }}>
                         <span style={{ color: T.textSub, fontWeight: 600 }}>W</span>&nbsp;&nbsp;app.flitunion.com
